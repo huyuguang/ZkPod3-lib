@@ -1,0 +1,51 @@
+# Prerequisites
+*.d
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+*.d.o
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+
+# Executables
+*.exe
+*.out
+*.app
+
+# vc
+*.vc.*
+*.ipch
+x64/Debug/
+x64/Release/
+.vs/
+ipch/
+*.suo
+*.pdb
+*.log
+*.tlog
+*.idb
+*.sdf
+*.bin
+
+bin/
+
+build/
+
+win/lib
+win/include
+depends/install

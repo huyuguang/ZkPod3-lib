@@ -1,0 +1,57 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="..\pod_dummy\main.cc" />
+    <ClCompile Include="..\public\ecc.cc" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\public\ecc_pub.h" />
+    <ClInclude Include="msvc_hack.h" />
+    <ClInclude Include="..\public\tick.h" />
+    <ClInclude Include="..\public\vrs\vrs_mimc.h">
+      <Filter>vrs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\vrs\vrs_mimc5_gadget.h">
+      <Filter>vrs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\vrs\vrs_misc.h">
+      <Filter>vrs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\vrs\vrs_notary.h">
+      <Filter>vrs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\vrs\vrs_prover.h">
+      <Filter>vrs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\vrs\vrs_verifier.h">
+      <Filter>vrs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\vrs\serialize.h">
+      <Filter>vrs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\vrs\vrs.h">
+      <Filter>vrs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\vrs\vrs_types.h">
+      <Filter>vrs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\vrs\test.h">
+      <Filter>vrs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\vrs\vrs_large.h">
+      <Filter>vrs</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\pod_dummy\Makefile" />
+    <None Include="..\pod_dummy\README.md" />
+    <None Include="..\public\vrs\readme.md">
+      <Filter>vrs</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="vrs">
+      <UniqueIdentifier>{f3ab82f8-a548-4a87-bc37-470fa9753c20}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

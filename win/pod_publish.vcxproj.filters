@@ -1,0 +1,101 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="local">
+      <UniqueIdentifier>{260a8cad-9a11-4bec-9175-3d3bdf60e86b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="public">
+      <UniqueIdentifier>{e61cd62f-be5c-4e37-983b-b3ff4ee689d3}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\pod_publish\main.cc">
+      <Filter>local</Filter>
+    </ClCompile>
+    <ClCompile Include="..\pod_publish\publish.cc">
+      <Filter>local</Filter>
+    </ClCompile>
+    <ClCompile Include="..\public\ecc.cc">
+      <Filter>public</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\pod_publish\publish.h">
+      <Filter>local</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\bulletin_plain.h">
+      <Filter>public</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\bulletin_table.h">
+      <Filter>public</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\basic_types.h">
+      <Filter>public</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\bp.h">
+      <Filter>public</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\chain.h">
+      <Filter>public</Filter>
+    </ClInclude>
+    <ClInclude Include="..\thirdparty\csv\csv.hpp">
+      <Filter>public</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\ecc.h">
+      <Filter>public</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\ecc_pub.h">
+      <Filter>public</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\misc.h">
+      <Filter>public</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\mkl_tree.h">
+      <Filter>public</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\mpz.h">
+      <Filter>public</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\msvc_hack.h">
+      <Filter>public</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\multiexp.h">
+      <Filter>public</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\public.h">
+      <Filter>public</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\scheme_misc.h">
+      <Filter>public</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\scheme_plain.h">
+      <Filter>public</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\scheme_table.h">
+      <Filter>public</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\schnorr.h">
+      <Filter>public</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\tick.h">
+      <Filter>public</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\vrf.h">
+      <Filter>public</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\vrf_meta.h">
+      <Filter>public</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\pds_pub.h">
+      <Filter>public</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\pod_publish\Makefile" />
+    <None Include="..\pod_publish\README.md" />
+    <None Include="..\pod_publish\test.csv" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="..\pod_publish\todo.txt" />
+  </ItemGroup>
+</Project>

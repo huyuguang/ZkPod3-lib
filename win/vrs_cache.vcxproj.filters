@@ -1,0 +1,34 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="..\public\ecc.cc">
+      <Filter>public</Filter>
+    </ClCompile>
+    <ClCompile Include="..\vrs_cache\main.cc">
+      <Filter>local</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\public\ecc.h">
+      <Filter>public</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\msvc_hack.h">
+      <Filter>public</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\tick.h">
+      <Filter>public</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\vrs_cache\Makefile" />
+    <None Include="..\vrs_cache\README.md" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="public">
+      <UniqueIdentifier>{cc94e8fc-d3e7-4c59-b817-ba3ab88349a0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="local">
+      <UniqueIdentifier>{6b86291b-17b0-4f7c-86cf-84dd514c2143}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>
