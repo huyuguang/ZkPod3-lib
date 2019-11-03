@@ -15,9 +15,9 @@
 class PdsPub : boost::noncopyable {
  public:
 #ifdef _DEBUG
-  static inline size_t const kGSize = 32;
+  static inline int64_t const kGSize = 32;
 #else
-  static inline size_t const kGSize = 1024 * 32;
+  static inline int64_t const kGSize = 1024 * 32;
 #endif
 
   PdsPub(std::string const& file) {

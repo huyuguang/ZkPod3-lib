@@ -344,6 +344,7 @@ inline std::string SelectCacheFile(std::string const& dir, int64_t count) {
       files.erase(it);
     }
   }
+  return "";
 }
 
 inline void ReturnCacheFile(std::string const& using_name) {
