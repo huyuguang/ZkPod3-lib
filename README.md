@@ -2,13 +2,13 @@
 
 Core code for https://github.com/sec-bit/zkPoD-lib  
 
-### »ñÈ¡´úÂë
-1£¬À­libsnark´úÂë²¢À­È¡ÒÀÀµ£¬×¢Òâ²»Òªµİ¹éÀ­È¡  
-git submodule init && git submodule update
+### è·å–ä»£ç 
+1ï¼Œæ‹‰libsnarkä»£ç å¹¶æ‹‰å–ä¾èµ–ï¼Œæ³¨æ„ä¸è¦é€’å½’æ‹‰å–  
+git submodule init && git submodule update  
 cd depends/libsnark  
 git submodule init && git submodule update
 
-2£¬±àÒëpod_core£¬pod_setup£¬pod_publish£¨linux or osx£©  
+2ï¼Œç¼–è¯‘pod_coreï¼Œpod_setupï¼Œpod_publishï¼ˆlinux or osxï¼‰  
 cd pod_core  
 make  
 
@@ -18,16 +18,16 @@ make
 cd ../pod_publish  
 make  
 
-±àÒëºÃµÄ´úÂëÔÚlinux/binÄ¿Â¼ÏÂ¡£  
+ç¼–è¯‘å¥½çš„ä»£ç åœ¨linux/binç›®å½•ä¸‹ã€‚  
 
-3£¬ÔËĞĞpod_publish·¢²¼Ò»¸öÎÄ¼ş  
+3ï¼Œè¿è¡Œpod_publishå‘å¸ƒä¸€ä¸ªæ–‡ä»¶  
 cd linux/bin  
 ./pod_publish -m table -f test100000.csv -o table_data -t csv -k 0 1  
 
-4£¬ÔËĞĞpod_core  
+4ï¼Œè¿è¡Œpod_core  
 cd linux/bin  
 ./pod_core -m table -a atomic_swap_pod_vc -p table_data -o table_output --demand_ranges 1-10  
 
 
-### ±àÒë (windows + msvc2019)£º  
-Ö±½ÓÓÃmsvc2019´ò¿ªpod_all.sln¡£  
+### ç¼–è¯‘ (windows + msvc2019)ï¼š  
+ç›´æ¥ç”¨msvc2019æ‰“å¼€pod_all.slnã€‚  
