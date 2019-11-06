@@ -293,6 +293,9 @@ inline bool SaveCache(std::string const& dir, Cache const& cache,
 }
 
 inline std::string SelectCacheFile(std::string const& dir, int64_t count) {
+  boost::system::error_code ec;
+  if (!fs::is_directory(dir, ec)) return "";
+
   auto get_count_from_name = [](std::string const& name) -> int64_t {
     auto pos = name.find("_");
     if (pos == std::string::npos) return 0;
