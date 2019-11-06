@@ -24,6 +24,7 @@ int main(int argc, char** argv) {
   setlocale(LC_ALL, "");
   std::string data_dir;
   uint64_t count;
+  uint32_t thread_num = 0;
 
   try {
     po::options_description options("command line options");
@@ -31,7 +32,9 @@ int main(int argc, char** argv) {
         "data_dir,d", po::value<std::string>(&data_dir)->default_value("."),
         "Provide the data dir")(
         "count,c", po::value<uint64_t>(&count)->default_value(2),
-        "Provide the count, must >1, should be (n+1)*s or multiple 32k");
+        "Provide the count, must >1, should be (n+1)*s or multiple 32k")(
+        "thread_num", po::value<uint32_t>(&thread_num)->default_value(0),
+        "Provide the number of the parallel thread, 1: disable, 0: default.");
 
     boost::program_options::variables_map vmap;
 
@@ -55,6 +58,8 @@ int main(int argc, char** argv) {
     return -1;
   }
 
+  setenv("options:thread_num", std::to_string(thread_num).c_str(), true);
+
   if (!InitAll(data_dir)) {
     std::cerr << "Init failed\n";
     return -1;
@@ -77,7 +82,7 @@ int main(int argc, char** argv) {
   } else {
     assert(false);
     std::cout << "Save Failed: " << cache_file << "\n";
-  }  
+  }
 
   return ret ? 0 : -1;
 }

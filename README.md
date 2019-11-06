@@ -3,16 +3,23 @@
 Core code for https://github.com/sec-bit/zkPoD-lib  
 
 ### 获取代码
+0，安装依赖库  
+ubuntu18.04  
+需要gcc 7.x以上  
+sudo apt-get update   
+sudo apt-get install libcrypto++-dev libcrypto++-doc libcrypto++-utils  
+sudo apt-get install libboost-all-dev   
+
 1，拉libsnark代码并拉取依赖，注意不要递归拉取  
 git submodule init && git submodule update  
 cd depends/libsnark  
 git submodule init && git submodule update
 
-2，编译pod_core，pod_setup，pod_publish（linux or osx）  
+2，编译pod_core，pod_setup，pod_publish（linux or osx） 
 cd pod_core  
 make  
 
-cd ../pod_setup  
+cd ../vrs_cache  
 make  
 
 cd ../pod_publish  
@@ -30,4 +37,4 @@ cd linux/bin
 
 
 ### 编译 (windows + msvc2019)：  
-直接用msvc2019打开pod_all.sln。  
+直接用msvc2019打开all.sln。  

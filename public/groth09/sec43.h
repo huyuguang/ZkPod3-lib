@@ -148,10 +148,22 @@ inline void ComputeCom(CommitmentPub& com_pub, CommitmentSec& com_sec,
 
   std::cout << Tick::GetIndentString() << 3 * m << " multiexp(" << n << ")\n";
 
-//#ifdef MULTICORE
-//#pragma omp parallel for
-//#endif
-  for (int64_t i = 0; i < m; ++i) {
+////#ifdef MULTICORE
+////#pragma omp parallel for
+////#endif
+//  for (int64_t i = 0; i < m; ++i) {
+//    auto const& r = com_sec.r[i];
+//    auto const& s = com_sec.s[i];
+//    auto const& t = com_sec.t[i];
+//    auto const& x = input.x(i);
+//    auto const& y = input.y(i);
+//    auto const& z = input.z(i);
+//    com_pub.a[i] = ComputeCommitment(x, r);
+//    com_pub.b[i] = ComputeCommitment(y, s);
+//    com_pub.c[i] = ComputeCommitment(z, t);
+//  }
+
+  auto parallel_f = [&com_sec,&com_pub, &input](int64_t i) mutable {
     auto const& r = com_sec.r[i];
     auto const& s = com_sec.s[i];
     auto const& t = com_sec.t[i];
@@ -161,7 +173,8 @@ inline void ComputeCom(CommitmentPub& com_pub, CommitmentSec& com_sec,
     com_pub.a[i] = ComputeCommitment(x, r);
     com_pub.b[i] = ComputeCommitment(y, s);
     com_pub.c[i] = ComputeCommitment(z, t);
-  }
+  };
+  parallel::For(m, parallel_f, "ComputeCom");
 }
 
 inline void UpdateSeed(h256_t& seed, CommitmentPub const& com_pub) {
@@ -246,26 +259,33 @@ inline void RomProve(RomProof& rom_proof,
     sec53::CommitmentPub com_pub_53;
     std::vector<std::vector<Fr>> x_53(m);
 
-    for (int64_t i = 0; i < m; ++i) {
+    //for (int64_t i = 0; i < m; ++i) {
+    //  details::VectorMul(input_x[i], input_x[i], k[i]);
+    //}
+    auto parallel_f = [&input_x,&k](int64_t i) mutable {
       details::VectorMul(input_x[i], input_x[i], k[i]);
-    }
-    
+    };
+    parallel::For(m, parallel_f, "VectorMul");
+
     sec53::ProverInput input_53(std::move(input_x), std::move(input_y), &t);
     input_53_z = input_53.z();
 
     com_sec_53.r.resize(m);
-
-    for (int64_t i = 0; i < m; ++i) {
+    com_pub_53.a.resize(m);
+    //for (int64_t i = 0; i < m; ++i) {
+    //  com_sec_53.r[i] = com_sec.r[i] * k[i];
+    //  com_pub_53.a[i] = com_pub.a[i] * k[i];
+    //}
+    auto parallel_f2 = [&com_sec, &com_pub, &com_sec_53, &com_pub_53,
+                        &k](int64_t i) mutable {
       com_sec_53.r[i] = com_sec.r[i] * k[i];
-    }
+      com_pub_53.a[i] = com_pub.a[i] * k[i];
+    };
+    parallel::For(m, parallel_f2);
+
     com_sec_53.s = com_sec.s;
     com_sec_53.t = FrRand();
     com_sec_53_t = com_sec_53.t;
-
-    com_pub_53.a.resize(m);
-    for (int64_t i = 0; i < m; ++i) {
-      com_pub_53.a[i] = com_pub.a[i] * k[i];
-    }
 
     com_pub_53.b = com_pub.b;
     com_pub_53.c =
@@ -286,11 +306,17 @@ inline void RomProve(RomProof& rom_proof,
 
     std::fill(x_hy.begin(), x_hy.end(), FrZero());
 
-    for (int64_t j = 0; j < n; ++j) {
+    //for (int64_t j = 0; j < n; ++j) {
+    //  for (int64_t i = 0; i < m; ++i) {
+    //    x_hy[j] += input_z[i][j] * k[i];
+    //  }
+    //}
+    auto parallel_f = [&input_z, &x_hy, &k, m](int64_t j) mutable {
       for (int64_t i = 0; i < m; ++i) {
         x_hy[j] += input_z[i][j] * k[i];
       }
-    }
+    };
+    parallel::For(n, parallel_f);
 
     hyrax::a2::ProverInput input_hy(x_hy, t, input_53_z);
 
@@ -331,41 +357,63 @@ inline bool RomVerify(RomProof const& rom_proof,
   std::vector<Fr> t(n);
   ComputeChallengeKT(seed, k, t);
 
+  std::vector<parallel::Task> tasks(2);
   bool ret_53 = false;
+  tasks[0] = [&ret_53,&rom_proof,&input,m,&com_pub,&k,&t,&seed]() mutable {
+    sec53::CommitmentPub com_pub_53;
+    com_pub_53.c = rom_proof.c;
+    com_pub_53.b = input.com_pub.b;
+    com_pub_53.a.resize(m);
+    for (int64_t i = 0; i < m; ++i) {
+      com_pub_53.a[i] = com_pub.a[i] * k[i];
+    }
+
+    sec53::VerifierInput input_53(&t, com_pub_53);
+    ret_53 = sec53::RomVerify(rom_proof.proof_53, seed, input_53);
+  };
+
   bool ret_a2 = false;
+  tasks[1] = [&ret_a2, &com_pub,&rom_proof,&t,&k,&seed]() {
+    hyrax::a2::CommitmentPub com_pub_hy(MultiExpBdlo12(com_pub.c, k),
+                                        rom_proof.c);
+    hyrax::a2::VerifierInput input_hy(t, com_pub_hy);
+    ret_a2 = hyrax::a2::RomVerify(rom_proof.proof_a2, seed, input_hy);
+  };
+  
+  parallel::SyncExec(tasks);
 
-//#ifdef MULTICORE
-//#pragma omp parallel sections
-//#endif
-  {
-//#ifdef MULTICORE
-//#pragma omp section
-//#endif
-    {
-      // check sec53
-      sec53::CommitmentPub com_pub_53;
-      com_pub_53.c = rom_proof.c;
-      com_pub_53.b = input.com_pub.b;
-      com_pub_53.a.resize(m);
-      for (int64_t i = 0; i < m; ++i) {
-        com_pub_53.a[i] = com_pub.a[i] * k[i];
-      }
-
-      sec53::VerifierInput input_53(&t, com_pub_53);
-      ret_53 = sec53::RomVerify(rom_proof.proof_53, seed, input_53);
-    }
-//#ifdef MULTICORE
-//#pragma omp section
-//#endif
-    {
-      // check hyrax
-      hyrax::a2::CommitmentPub com_pub_hy(MultiExpBdlo12(com_pub.c, k),
-                                          rom_proof.c);
-      hyrax::a2::VerifierInput input_hy(t, com_pub_hy);
-      ret_a2 =
-          hyrax::a2::RomVerify(rom_proof.proof_a2, seed, input_hy);
-    }
-  }
+//  //#ifdef MULTICORE
+//                        //#pragma omp parallel sections
+////#endif
+//  {
+////#ifdef MULTICORE
+////#pragma omp section
+////#endif
+//    {
+//      // check sec53
+//      sec53::CommitmentPub com_pub_53;
+//      com_pub_53.c = rom_proof.c;
+//      com_pub_53.b = input.com_pub.b;
+//      com_pub_53.a.resize(m);
+//      for (int64_t i = 0; i < m; ++i) {
+//        com_pub_53.a[i] = com_pub.a[i] * k[i];
+//      }
+//
+//      sec53::VerifierInput input_53(&t, com_pub_53);
+//      ret_53 = sec53::RomVerify(rom_proof.proof_53, seed, input_53);
+//    }
+////#ifdef MULTICORE
+////#pragma omp section
+////#endif
+//    {
+//      // check hyrax
+//      hyrax::a2::CommitmentPub com_pub_hy(MultiExpBdlo12(com_pub.c, k),
+//                                          rom_proof.c);
+//      hyrax::a2::VerifierInput input_hy(t, com_pub_hy);
+//      ret_a2 =
+//          hyrax::a2::RomVerify(rom_proof.proof_a2, seed, input_hy);
+//    }
+//  }
   
   if (!ret_53 || !ret_a2) {
     std::cout << "ret_53: " << ret_53 << ", ret_a2: " << ret_a2 << "\n";

@@ -1,8 +1,5 @@
 #pragma once
 
-#ifdef MULTICORE
-#include <omp.h>
-#endif
 #include <algorithm>
 #include <array>
 #include <chrono>
@@ -25,6 +22,7 @@
 #include "basic_types.h"
 #include "msvc_hack.h"
 #include "rng.h"
+#include "parallel.h"
 
 #ifdef _WIN32
 #pragma warning(pop)
@@ -93,37 +91,56 @@ inline Fr FrRand() {
 inline void FrRand(Fr* r, size_t n) {
   std::vector<uint8_t> h(n * 32);
 
-#ifdef MULTICORE
-#pragma omp parallel for
-#endif
-  for (int64_t i = 0; i < 4; ++i) {
+//#ifdef MULTICORE
+//#pragma omp parallel for
+//#endif
+//  for (int64_t i = 0; i < 4; ++i) {
+//    tls_rng.GenerateBlock(h.data() + 8 * i * n, 8 * n);
+//  }
+  auto parallel_f = [&h,n](int64_t i) mutable {
     tls_rng.GenerateBlock(h.data() + 8 * i * n, 8 * n);
-  }
+  };
+  parallel::For(4LL, parallel_f, "GenerateBlock");
 
-#ifdef MULTICORE
-#pragma omp parallel for
-#endif
-  for (int64_t i = 0; i < (int64_t)n; ++i) {
+//#ifdef MULTICORE
+//#pragma omp parallel for
+//#endif
+//  for (int64_t i = 0; i < (int64_t)n; ++i) {
+//    r[i].setArrayMask(h.data() + i * 32, 32);
+//  }
+
+  auto parallel_f2 = [&h,n, r](int64_t i) mutable {
     r[i].setArrayMask(h.data() + i * 32, 32);
-  }
+  };
+  parallel::For((int64_t)n, parallel_f2, "setArrayMask");
+
 }
 
 inline void FrRand(std::vector<Fr*>& f) {
   auto n = f.size();
   std::vector<uint8_t> h(n * 32);
-#ifdef MULTICORE
-#pragma omp parallel for
-#endif
-  for (int64_t i = 0; i < 4; ++i) {
-    tls_rng.GenerateBlock(h.data() + 8 * i * n, 8 * n);
-  }
+//#ifdef MULTICORE
+//#pragma omp parallel for
+//#endif
+//  for (int64_t i = 0; i < 4; ++i) {
+//    tls_rng.GenerateBlock(h.data() + 8 * i * n, 8 * n);
+//  }
 
-#ifdef MULTICORE
-#pragma omp parallel for
-#endif
-  for (int64_t i = 0; i < (int64_t)f.size(); ++i) {
+  auto parallel_f = [&h,n](int64_t i) mutable {
+    tls_rng.GenerateBlock(h.data() + 8 * i * n, 8 * n);
+  };
+  parallel::For(4LL, parallel_f, "GenerateBlock");
+
+//#ifdef MULTICORE
+//#pragma omp parallel for
+//#endif
+//  for (int64_t i = 0; i < (int64_t)f.size(); ++i) {
+//    f[i]->setArrayMask(h.data() + i * 32, 32);
+//  }
+  auto parallel_f2 = [&h,n, &f](int64_t i) mutable {
     f[i]->setArrayMask(h.data() + i * 32, 32);
-  }
+  };
+  parallel::For((int64_t)n, parallel_f2, "setArrayMask");
 }
 
 inline Fr FrInv(Fr const& r) {

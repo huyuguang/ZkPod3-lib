@@ -23,6 +23,7 @@ endif
 
 HOME = ../linux
 THIRD_PARTY_HOME = ../thirdparty
+YAS_HOME = ../thirdparty/yas/include
 PUB_HOME = ../public
 SNARK_HOME = ../depends/libsnark
 FF_HOME = $(SNARK_HOME)/depends/libff
@@ -34,6 +35,7 @@ INC_FLAGS :=  \
  -isystem $(SNARK_HOME) \
  -isystem $(MCL_HOME) \
  -isystem $(FF_HOME) \
+ -isystem $(YAS_HOME) \
  -isystem $(THIRD_PARTY_HOME) \
  -I $(PUB_HOME) \
  -I. \
@@ -46,7 +48,6 @@ endif
 CXXFLAGS := \
  -g3 \
  -fPIC \
- -fopenmp \
  -std=c++17 \
  -Wall \
  -Wextra \
@@ -87,7 +88,6 @@ LIBS := \
  -lgmpxx \
  -lgmp \
  -lcryptopp \
- -lgomp \
  -lboost_filesystem \
  -lboost_system \
  -lboost_iostreams \
@@ -125,8 +125,8 @@ RELEASE_OBJ := $(patsubst %.cc, %.o, $(SRC))
 
 DEBUG_OBJ := $(patsubst %.cc, %.d.o, $(SRC))
 
-RELEASE_BIN := vrs_cache
-DEBUG_BIN := vrs_cached
+RELEASE_BIN := vrs_cache_tool
+DEBUG_BIN := vrs_cache_toold
 
 all: $(RELEASE_BIN) $(DEBUG_BIN)
 

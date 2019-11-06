@@ -1,9 +1,9 @@
 #pragma once
 
+#include "./vrs_cache.h"
+#include "./vrs_misc.h"
 #include "./vrs_prover.h"
 #include "./vrs_verifier.h"
-#include "./vrs_misc.h"
-#include "./vrs_cache.h"
 
 namespace vrs {
 
@@ -11,9 +11,9 @@ namespace details {
 template <typename Output>
 void MergeOutputs(Output& output, std::vector<Output> const& outputs) {
   output.h = outputs[0].h;
-  output.g = std::accumulate(
-      outputs.begin(), outputs.end(), G1Zero(),
-      [](G1 const& a, Output const& b) { return a + b.g; });
+  output.g =
+      std::accumulate(outputs.begin(), outputs.end(), G1Zero(),
+                      [](G1 const& a, Output const& b) { return a + b.g; });
   output.key_com = std::accumulate(
       outputs.begin(), outputs.end(), G1Zero(),
       [](G1 const& a, Output const& b) { return a + b.key_com; });
@@ -25,10 +25,9 @@ class LargeProver {
   LargeProver(PublicInput const& public_input, SecretInput const& secret_input,
               std::vector<std::vector<G1>> cached_var_coms,
               std::vector<std::vector<Fr>> cached_var_coms_r)
-      : public_input_(public_input),
-        secret_input_(secret_input) {
+      : public_input_(public_input), secret_input_(secret_input) {
     items_ = SplitLargeTask(public_input_.count);
-    
+
     assert(cached_var_coms.size() == cached_var_coms_r.size());
 
     auto secret_inputs = BuildSecretInputs(cached_var_coms_r);
@@ -57,14 +56,12 @@ class LargeProver {
 
   void Evaluate() {
     v_.resize(public_input_.count);
-#ifdef MULTICORE
-#pragma omp parallel for
-#endif
-    for (int64_t i = 0; i < (int64_t)provers_.size(); ++i) {
+    auto parallel_f = [this](int64_t i) mutable {
       provers_[i]->Evaluate();
       auto const& v = provers_[i]->v();
       std::copy(v.begin(), v.end(), v_.begin() + i * kMaxUnitPerZkp);
-    }
+    };
+    parallel::For(provers_.size(), parallel_f, "Prover Evaluate");
   }
 
   void Prove(h256_t const& rom_seed, std::function<Fr(int64_t)> get_w,
@@ -74,10 +71,8 @@ class LargeProver {
     std::vector<ProveOutput> outputs(size);
     std::vector<Fr> vws(size);
 
-#ifdef MULTICORE
-#pragma omp parallel for
-#endif    
-    for (int64_t i = 0; i < size; ++i) {
+    auto parallel_f = [this, &vws, &get_w, &rom_seed, &proofs,
+                       &outputs](int64_t i) mutable {
       auto const& item = items_[i];
       auto this_get_w = [&item, &get_w](int64_t j) {
         return get_w(j + item.first);
@@ -86,15 +81,16 @@ class LargeProver {
                          outputs[i]);
       vws[i] = provers_[i]->vw();
       provers_[i].reset();
-    }
+    };
+    parallel::For(size, parallel_f, "vrs Prove");
 
     details::MergeOutputs(output, outputs);
 
     vw_ = std::accumulate(vws.begin(), vws.end(), FrZero());
 
 #ifdef _DEBUG
-    auto com_vw1 = groth09::details::ComputeCommitment(vw_,
-                                                       secret_input_.vw_com_r);
+    auto com_vw1 =
+        groth09::details::ComputeCommitment(vw_, secret_input_.vw_com_r);
     auto op = [](G1 const& a, Proof const& b) { return a + b.com_vw; };
     auto com_vw2 =
         std::accumulate(proofs.begin(), proofs.end(), G1Zero(), std::move(op));
@@ -103,7 +99,7 @@ class LargeProver {
     auto com_key =
         output.h * secret_input_.key_com_r + output.g * secret_input_.key;
     assert(com_key == output.key_com);
-#endif              
+#endif
   }
 
   Fr const& vw() const { return vw_; }
@@ -114,7 +110,7 @@ class LargeProver {
 
  private:
   std::vector<SecretInput> BuildSecretInputs(
-    std::vector<std::vector<Fr>> const& cached_var_coms_r) {
+      std::vector<std::vector<Fr>> const& cached_var_coms_r) {
     auto size = (int64_t)items_.size();
     std::vector<SecretInput> ret(size);
     auto vw_com_rs = SplitFr(secret_input_.vw_com_r, size);
@@ -134,11 +130,12 @@ class LargeProver {
         ret[i].key_com_r = cached_var_coms_r[i][primary_input_size_];
       }
     }
-    
+
     return ret;
   }
+
  private:
-   int64_t const primary_input_size_ = 1;
+  int64_t const primary_input_size_ = 1;
   PublicInput public_input_;
   SecretInput secret_input_;
   std::vector<std::unique_ptr<Prover>> provers_;
@@ -149,8 +146,7 @@ class LargeProver {
 
 class LargeVerifier {
  public:
-  LargeVerifier(PublicInput const& public_input)
-      : public_input_(public_input) {
+  LargeVerifier(PublicInput const& public_input) : public_input_(public_input) {
     auto count = public_input_.count;
     items_.resize((count + kMaxUnitPerZkp - 1) / kMaxUnitPerZkp);
     for (int64_t i = 0; i < (int64_t)items_.size(); ++i) {
@@ -176,17 +172,14 @@ class LargeVerifier {
   }
 
   bool Verify(h256_t const& rom_seed, std::function<Fr(int64_t)> get_w,
-             std::vector<Proof> const& proofs, VerifyOutput& output) {
+              std::vector<Proof> const& proofs, VerifyOutput& output) {
     if (proofs.size() != verifiers_.size()) return false;
     auto size = (int64_t)verifiers_.size();
     std::vector<VerifyOutput> outputs(size);
-
     std::vector<int64_t> rets(size);
 
-#ifdef MULTICORE
-#pragma omp parallel for
-#endif
-    for (int64_t i = 0; i < size; ++i) {
+    auto parallel_f = [this, &rets, &get_w, &rom_seed, &proofs,
+                       &outputs](int64_t i) mutable {
       auto const& item = items_[i];
       auto this_get_w = [&item, &get_w](int64_t j) {
         return get_w(j + item.first);
@@ -194,7 +187,8 @@ class LargeVerifier {
       rets[i] = verifiers_[i]->Verify(rom_seed, std::move(this_get_w),
                                       proofs[i], outputs[i]);
       verifiers_[i].reset();
-    }
+    };
+    parallel::For(size, parallel_f, "vrs Verify");
 
     if (std::any_of(rets.begin(), rets.end(), [](int64_t r) { return !r; }))
       return false;
@@ -211,7 +205,7 @@ class LargeVerifier {
   G1 const& com_vw() const { return com_vw_; }
 
  private:
-   PublicInput public_input_;
+  PublicInput public_input_;
   std::vector<std::unique_ptr<Verifier>> verifiers_;
   std::vector<std::pair<int64_t, int64_t>> items_;
   G1 com_vw_;

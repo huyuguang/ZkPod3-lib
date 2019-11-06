@@ -248,25 +248,38 @@ inline void ComputeCom(CommitmentPub& com_pub, CommitmentSec& com_sec,
 
   std::cout << Tick::GetIndentString() << "2*multiexp(" << input.n() << ")\n";
 
-//#ifdef MULTICORE
-//#pragma omp parallel sections
-//#endif
-  {
-//#ifdef MULTICORE
-//#pragma omp section
-//#endif
+  std::vector<parallel::Task> tasks(3);
+  tasks[0] = [&com_pub,&input,&com_sec]() mutable {
     com_pub.a = ComputeCommitment(input.x(), com_sec.r);
-
-//#ifdef MULTICORE
-//#pragma omp section
-//#endif
+  };
+  tasks[1] = [&com_pub, &input, &com_sec]() mutable {
     com_pub.b = ComputeCommitment(input.y(), com_sec.s);
-
-//#ifdef MULTICORE
-//#pragma omp section
-//#endif
+  };
+  tasks[2] = [&com_pub, &input, &com_sec]() mutable {
     com_pub.c = ComputeCommitment(input.z(), com_sec.t);
-  }
+  };
+  parallel::SyncExec(tasks);
+
+//
+////#ifdef MULTICORE
+////#pragma omp parallel sections
+////#endif
+//  {
+////#ifdef MULTICORE
+////#pragma omp section
+////#endif
+//    com_pub.a = ComputeCommitment(input.x(), com_sec.r);
+//
+////#ifdef MULTICORE
+////#pragma omp section
+////#endif
+//    com_pub.b = ComputeCommitment(input.y(), com_sec.s);
+//
+////#ifdef MULTICORE
+////#pragma omp section
+////#endif
+//    com_pub.c = ComputeCommitment(input.z(), com_sec.t);
+//  }
 }
 
 inline void ComputeComExt(CommitmentExtPub& com_ext_pub, CommitmentExtSec& com_ext_sec,
@@ -295,33 +308,51 @@ inline void ComputeComExt(CommitmentExtPub& com_ext_pub, CommitmentExtSec& com_e
 
   std::cout << Tick::GetIndentString() << "2*multiexp(" << input.n() << ")\n";
 
-//#ifdef MULTICORE
-//#pragma omp parallel sections
-//#endif
-  {
-//#ifdef MULTICORE
-//#pragma omp section
-//#endif
+  std::vector<parallel::Task> tasks(4);
+  tasks[0] = [&com_ext_pub,&com_ext_sec]() mutable {
     com_ext_pub.ad =
         ComputeCommitment(com_ext_sec.dx, com_ext_sec.rd);
-
-//#ifdef MULTICORE
-//#pragma omp section
-//#endif
+  };
+  tasks[1] = [&com_ext_pub,&com_ext_sec]() mutable {
     com_ext_pub.bd =
         ComputeCommitment(com_ext_sec.dy, com_ext_sec.sd);
-
-//#ifdef MULTICORE
-//#pragma omp section
-//#endif
+  };
+  tasks[2] = [&com_ext_pub,&com_ext_sec,&xdy_dxy]() mutable {
     com_ext_pub.c1 = ComputeCommitment(xdy_dxy, com_ext_sec.t1);
-
-//#ifdef MULTICORE
-//#pragma omp section
-//#endif
+  };
+  tasks[3] = [&com_ext_pub,&com_ext_sec]() mutable {
     com_ext_pub.c0 =
         ComputeCommitment(com_ext_sec.dz, com_ext_sec.t0);
-  }
+  };
+  parallel::SyncExec(tasks);
+
+////#ifdef MULTICORE
+////#pragma omp parallel sections
+////#endif
+//  {
+////#ifdef MULTICORE
+////#pragma omp section
+////#endif
+//    com_ext_pub.ad =
+//        ComputeCommitment(com_ext_sec.dx, com_ext_sec.rd);
+//
+////#ifdef MULTICORE
+////#pragma omp section
+////#endif
+//    com_ext_pub.bd =
+//        ComputeCommitment(com_ext_sec.dy, com_ext_sec.sd);
+//
+////#ifdef MULTICORE
+////#pragma omp section
+////#endif
+//    com_ext_pub.c1 = ComputeCommitment(xdy_dxy, com_ext_sec.t1);
+//
+////#ifdef MULTICORE
+////#pragma omp section
+////#endif
+//    com_ext_pub.c0 =
+//        ComputeCommitment(com_ext_sec.dz, com_ext_sec.t0);
+//  }
 }
 
 inline void ComputeProof(Proof& proof, ProverInput const& input,
@@ -383,51 +414,90 @@ inline bool VerifyInternal(VerifierInput const& input,
   bool ret2 = false;
   auto const& com_pub = input.com_pub;
 
-//#ifdef MULTICORE
-//#pragma omp parallel sections
-//#endif
-  {
-//#ifdef MULTICORE
-//#pragma omp section
-//#endif
-    {
-      Fr alpha = FrRand();
-      // (a^e * a_d)^alpha * b^e * b_d
-      G1 left = (com_pub.a * challenge + com_ext_pub.ad) * alpha +
-                (com_pub.b * challenge + com_ext_pub.bd);
-      // com(alpha * fx + fy,alpha * rx + sy)
-      std::vector<Fr> alpha_fx_fy;
-      details::VectorMul(alpha_fx_fy, proof.fx, alpha);
-      details::VectorAdd(alpha_fx_fy, alpha_fx_fy, proof.fy);
-      Fr alpha_rx_sy = alpha * proof.rx + proof.sy;
-      G1 right = ComputeCommitment(alpha_fx_fy, alpha_rx_sy);
-      ret1 = left == right;
-      assert(ret1);
-    }
+  std::vector<parallel::Task> tasks(2);
+  tasks[0] = [&ret1, &com_pub, &challenge, &com_ext_pub, &proof]() mutable {
+    Fr alpha = FrRand();
+    // (a^e * a_d)^alpha * b^e * b_d
+    G1 left = (com_pub.a * challenge + com_ext_pub.ad) * alpha +
+              (com_pub.b * challenge + com_ext_pub.bd);
+    // com(alpha * fx + fy,alpha * rx + sy)
+    std::vector<Fr> alpha_fx_fy;
+    details::VectorMul(alpha_fx_fy, proof.fx, alpha);
+    details::VectorAdd(alpha_fx_fy, alpha_fx_fy, proof.fy);
+    Fr alpha_rx_sy = alpha * proof.rx + proof.sy;
+    G1 right = ComputeCommitment(alpha_fx_fy, alpha_rx_sy);
+    ret1 = left == right;
+    assert(ret1);
+  };
 
-//#ifdef MULTICORE
-//#pragma omp section
-//#endif
-    {
-      // c^(e^2) * c_1^e * c_0 == com(f_x * f_y , t_z)
-      Fr e2_square = challenge * challenge;
-      G1 left =
-          com_pub.c * e2_square + com_ext_pub.c1 * challenge + com_ext_pub.c0;
-      Fr fz = [&input, &proof, n]() {
-        if (input.t) {
-          std::vector<Fr> proof_fyt(n);
-          details::HadamardProduct(proof_fyt, proof.fy, *input.t);
-          return InnerProduct(proof.fx, proof_fyt);
-        } else {
-          return InnerProduct(proof.fx, proof.fy);
-        }
-      }();
+  tasks[1] = [&ret2, &com_pub, &challenge, &com_ext_pub, &proof, &input,
+              n]() mutable {
+    // c^(e^2) * c_1^e * c_0 == com(f_x * f_y , t_z)
+    Fr e2_square = challenge * challenge;
+    G1 left =
+        com_pub.c * e2_square + com_ext_pub.c1 * challenge + com_ext_pub.c0;
+    Fr fz = [&input, &proof, n]() {
+      if (input.t) {
+        std::vector<Fr> proof_fyt(n);
+        details::HadamardProduct(proof_fyt, proof.fy, *input.t);
+        return InnerProduct(proof.fx, proof_fyt);
+      } else {
+        return InnerProduct(proof.fx, proof.fy);
+      }
+    }();
 
-      G1 right = ComputeCommitment(fz, proof.tz);
-      ret2 = left == right;
-      assert(ret2);
-    }
-  }
+    G1 right = ComputeCommitment(fz, proof.tz);
+    ret2 = left == right;
+    assert(ret2);
+  };
+
+  parallel::SyncExec(tasks);
+
+////#ifdef MULTICORE
+////#pragma omp parallel sections
+////#endif
+//  {
+////#ifdef MULTICORE
+////#pragma omp section
+////#endif
+//    {
+//      Fr alpha = FrRand();
+//      // (a^e * a_d)^alpha * b^e * b_d
+//      G1 left = (com_pub.a * challenge + com_ext_pub.ad) * alpha +
+//                (com_pub.b * challenge + com_ext_pub.bd);
+//      // com(alpha * fx + fy,alpha * rx + sy)
+//      std::vector<Fr> alpha_fx_fy;
+//      details::VectorMul(alpha_fx_fy, proof.fx, alpha);
+//      details::VectorAdd(alpha_fx_fy, alpha_fx_fy, proof.fy);
+//      Fr alpha_rx_sy = alpha * proof.rx + proof.sy;
+//      G1 right = ComputeCommitment(alpha_fx_fy, alpha_rx_sy);
+//      ret1 = left == right;
+//      assert(ret1);
+//    }
+//
+////#ifdef MULTICORE
+////#pragma omp section
+////#endif
+//    {
+//      // c^(e^2) * c_1^e * c_0 == com(f_x * f_y , t_z)
+//      Fr e2_square = challenge * challenge;
+//      G1 left =
+//          com_pub.c * e2_square + com_ext_pub.c1 * challenge + com_ext_pub.c0;
+//      Fr fz = [&input, &proof, n]() {
+//        if (input.t) {
+//          std::vector<Fr> proof_fyt(n);
+//          details::HadamardProduct(proof_fyt, proof.fy, *input.t);
+//          return InnerProduct(proof.fx, proof_fyt);
+//        } else {
+//          return InnerProduct(proof.fx, proof.fy);
+//        }
+//      }();
+//
+//      G1 right = ComputeCommitment(fz, proof.tz);
+//      ret2 = left == right;
+//      assert(ret2);
+//    }
+//  }
   assert(ret1 && ret2);
   return ret1 && ret2;
 }

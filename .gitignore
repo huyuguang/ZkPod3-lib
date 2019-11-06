@@ -49,3 +49,8 @@ build/
 win/lib
 win/include
 depends/install
+
+win/pod_core
+win/pod_dummy
+win/pod_publish
+win/vrs_cache

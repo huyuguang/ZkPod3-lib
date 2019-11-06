@@ -4,6 +4,7 @@
 #include "serialize.h"
 #include "vrs_mimc5_gadget.h"
 #include "vrs_misc.h"
+#include "parallel.h"
 
 namespace vrs {
 
@@ -23,8 +24,14 @@ inline bool CheckVarComs(h256_t const& seed, Fr const& key, Fr const& key_com_r,
   Mimc5Gadget gadget(pb);
   pb.set_input_sizes(kPrimaryInputSize);
   auto num_var = (int64_t)pb.num_variables();
-  if ((int64_t)var_coms.size() != num_var) return false;
-  if ((int64_t)var_coms_r.size() != num_var) return false;
+  if ((int64_t)var_coms.size() != num_var) {
+    assert(false);
+    return false;
+  }
+  if ((int64_t)var_coms_r.size() != num_var) {
+    assert(false);
+    return false;
+  }
 
   for (int64_t i = 0; i < count; ++i) {
     auto plain = GeneratePlain(seed, i + begin);
@@ -82,15 +89,23 @@ inline bool CheckCache(Cache const& cache) {
   auto const& var_coms_r = cache.var_coms_r;
 
   std::vector<int64_t> rets(items.size());
-#ifdef MULTICORE
-#pragma omp parallel for
-#endif
-  for (int64_t i = 0; i < (int64_t)items.size(); ++i) {
+  auto f = [&var_coms_r, &items, &rets, &cache, &var_coms](int64_t i) mutable {
     auto const& item = items[i];
     auto const& key_com_r = var_coms_r[i][kPrimaryInputSize];
     rets[i] = CheckVarComs(cache.seed, cache.key, key_com_r, item.first,
                            item.second, var_coms[i], var_coms_r[i]);
-  }
+  };
+  parallel::For(items.size(), f, "CheckVarComs");
+
+  //#ifdef MULTICORE
+//#pragma omp parallel for
+//#endif
+//  for (int64_t i = 0; i < (int64_t)items.size(); ++i) {
+//    auto const& item = items[i];
+//    auto const& key_com_r = var_coms_r[i][kPrimaryInputSize];
+//    rets[i] = CheckVarComs(cache.seed, cache.key, key_com_r, item.first,
+//                           item.second, var_coms[i], var_coms_r[i]);
+//  }
 
   if (std::any_of(rets.begin(), rets.end(), [](int64_t r) { return !r; })) {
     assert(false);
@@ -145,6 +160,7 @@ inline void ComputeVarComs(h256_t const& seed, Fr const& key,
 inline void UpgradeVarComs(h256_t const& seed, Fr const& key, int64_t begin,
                            int64_t old_end, int64_t new_end,
                            std::vector<G1>& var_coms) {
+  Tick tick(__FUNCTION__);
   if (old_end == new_end) return;
   using groth09::details::ComputeCommitment;
   static constexpr int64_t kPrimaryInputSize = 1;
@@ -168,7 +184,8 @@ inline void UpgradeVarComs(h256_t const& seed, Fr const& key, int64_t begin,
   assert(num_var == (int64_t)var_coms.size());
   var_coms.resize(num_var);
   auto const* g = GetPdsPub().g().data() + min_end - begin;
-  for (int64_t i = 0; i < num_var; ++i) {
+  auto parallel_f = [&var_coms, &values, is_grow, count,
+                     g](uint64_t i) mutable {
     auto& var_com = var_coms[i];
     std::vector<Fr> data(count);
     for (int64_t j = 0; j < count; ++j) {
@@ -181,7 +198,8 @@ inline void UpgradeVarComs(h256_t const& seed, Fr const& key, int64_t begin,
     } else {
       var_com -= delta;
     }
-  }
+  };
+  parallel::For(num_var, parallel_f, "MultiExpBdlo12");
 }
 
 inline Cache CreateCache(int64_t count) {
@@ -203,15 +221,15 @@ inline Cache CreateCache(int64_t count) {
   auto& var_coms = cache.var_coms;
   auto& var_coms_r = cache.var_coms_r;
 
-#ifdef MULTICORE
-#pragma omp parallel for
-#endif
-  for (int64_t i = 0; i < (int64_t)items.size(); ++i) {
+  auto f = [&items, &cache, &key_com_rs, &var_coms,
+            &var_coms_r](int64_t i) mutable {
     auto const& item = items[i];
     ComputeVarComs(cache.seed, cache.key, key_com_rs[i], item.first,
                    item.second, var_coms[i], var_coms_r[i]);
-  }
+  };
+  parallel::For(items.size(), f, "ComputeVarComs");
 
+  assert(CheckCache(cache));
   return cache;
 }
 
@@ -368,6 +386,7 @@ inline void ExhaustCacheFile(std::string const& using_name) {
 }
 
 inline void UpgradeCache(Cache& cache, int64_t count) {
+  Tick tick(__FUNCTION__);
   static constexpr int64_t kPrimaryInputSize = 1;
   if (cache.count == count) return;
   auto old_count = cache.count;
@@ -383,17 +402,33 @@ inline void UpgradeCache(Cache& cache, int64_t count) {
     UpgradeVarComs(cache.seed, cache.key, old_item.first, old_item.second,
                    new_item.second, var_com);
 
+    std::cout << "add " << new_items.size() - old_items.size() << " items\n";
     cache.var_coms.resize(new_items.size());
     cache.var_coms_r.resize(new_items.size());
-    for (size_t i = old_items.size(); i < new_items.size(); ++i) {
+    std::vector<Fr> key_com_rs(new_items.size() - old_items.size());
+    auto parallel_f = [&cache, &key_com_rs, &new_items,
+                       old_item_size = old_items.size()](size_t i) mutable {
       auto const& add_new_item = new_items[i];
       auto& add_var_com = cache.var_coms[i];
       auto& add_var_com_r = cache.var_coms_r[i];
-      Fr key_com_r = FrRand();
+      auto& key_com_r = key_com_rs[i - old_item_size];
+      key_com_r = FrRand();
       ComputeVarComs(cache.seed, cache.key, key_com_r, add_new_item.first,
                      add_new_item.second, add_var_com, add_var_com_r);
-      cache.key_com_r += key_com_r;
-    }
+    };
+    parallel::For(old_items.size(), new_items.size(), parallel_f,
+                  "ComputeVarComs");
+    cache.key_com_r =
+        std::accumulate(key_com_rs.begin(), key_com_rs.end(), cache.key_com_r);
+    //for (size_t i = old_items.size(); i < new_items.size(); ++i) {
+    //  auto const& add_new_item = new_items[i];
+    //  auto& add_var_com = cache.var_coms[i];
+    //  auto& add_var_com_r = cache.var_coms_r[i];
+    //  Fr key_com_r = FrRand();
+    //  ComputeVarComs(cache.seed, cache.key, key_com_r, add_new_item.first,
+    //                 add_new_item.second, add_var_com, add_var_com_r);
+    //  cache.key_com_r += key_com_r;
+    //}
   } else {
     auto const& new_item = new_items.back();
     auto const& old_item = old_items[new_items.size() - 1];

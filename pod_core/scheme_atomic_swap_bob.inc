@@ -106,10 +106,20 @@ bool Bob<BobData>::CheckEncryptedM() {
 
   // uint64_t phantom_offset = phantom_.start - demand_.start;
   std::vector<int64_t> rets(mappings_.size());
-#ifdef MULTICORE
-#pragma omp parallel for
-#endif
-  for (int64_t i = 0; i < (int64_t)mappings_.size(); ++i) {
+//#ifdef MULTICORE
+//#pragma omp parallel for
+//#endif
+//  for (int64_t i = 0; i < (int64_t)mappings_.size(); ++i) {
+//    auto const& mapping = mappings_[i];
+//    G1 const& sigma = sigmas[mapping.global_index];
+//    G1 left = sigma * w_[i] + k_[i];
+//    G1 right = MultiExpU1(s_, [i, this](uint64_t j) -> Fr const& {
+//      return encrypted_m_[i * s_ + j];
+//    });
+//
+//    rets[i] = left == right;
+//  }
+  auto parallel_f = [this, &rets, &sigmas](int64_t i) mutable {
     auto const& mapping = mappings_[i];
     G1 const& sigma = sigmas[mapping.global_index];
     G1 left = sigma * w_[i] + k_[i];
@@ -118,7 +128,9 @@ bool Bob<BobData>::CheckEncryptedM() {
     });
 
     rets[i] = left == right;
-  }
+  };
+  parallel::For((int64_t)mappings_.size(), parallel_f, "CheckEncryptedM");
+
 
   if (std::any_of(rets.begin(), rets.end(), [](int64_t r) { return !r; })) {
     assert(false);
@@ -169,16 +181,24 @@ void Bob<BobData>::DecryptM(std::vector<Fr> const& v) {
   std::vector<Fr> inv_w = w_;
   FrInv(inv_w.data(), inv_w.size());
 
-#ifdef MULTICORE
-#pragma omp parallel for
-#endif
-  for (int64_t i = 0; i < (int64_t)mappings_.size(); ++i) {
+//#ifdef MULTICORE
+//#pragma omp parallel for
+//#endif
+//  for (int64_t i = 0; i < (int64_t)mappings_.size(); ++i) {
+//    auto is = i * s_;
+//    for (uint64_t j = 0; j < s_; ++j) {
+//      auto ij = is + j;
+//      encrypted_m_[ij] = (encrypted_m_[ij] - v[ij]) * inv_w[i];
+//    }
+//  }
+  auto parallel_f = [this, &inv_w, &v](int64_t i) mutable {
     auto is = i * s_;
     for (uint64_t j = 0; j < s_; ++j) {
       auto ij = is + j;
       encrypted_m_[ij] = (encrypted_m_[ij] - v[ij]) * inv_w[i];
     }
-  }
+  };
+  parallel::For((int64_t)mappings_.size(), parallel_f, "DecryptM");
 
   decrypted_m_ = std::move(encrypted_m_);
 }

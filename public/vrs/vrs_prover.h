@@ -137,10 +137,20 @@ class Prover {
     auto constraint_system = pb_->get_constraint_system();
     auto const& constraints = constraint_system.constraints;
 
-    //#ifdef MULTICORE
-    //#pragma omp parallel for
-    //#endif
-    for (int64_t j = 0; j < n; ++j) {
+    ////#ifdef MULTICORE
+    ////#pragma omp parallel for
+    ////#endif
+    //for (int64_t j = 0; j < n; ++j) {
+    //  auto const& values = values_[j];
+    //  for (int64_t i = 0; i < m; ++i) {
+    //    auto const& constraint = constraints[i];
+    //    x[i][j] = constraint.a.evaluate(values);
+    //    y[i][j] = constraint.b.evaluate(values);
+    //    z[i][j] = constraint.c.evaluate(values);
+    //    assert(z[i][j] == x[i][j] * y[i][j]);
+    //  }
+    //}
+    auto parallel_f = [this, &constraints, &x, &y, &z, &m](int64_t j) mutable {
       auto const& values = values_[j];
       for (int64_t i = 0; i < m; ++i) {
         auto const& constraint = constraints[i];
@@ -149,7 +159,8 @@ class Prover {
         z[i][j] = constraint.c.evaluate(values);
         assert(z[i][j] == x[i][j] * y[i][j]);
       }
-    }
+    };
+    parallel::For(n, parallel_f, "BuildHpInput");
 
     // now we do not need values_
     values_.clear();
@@ -179,10 +190,23 @@ class Prover {
     auto constraint_system = pb_->get_constraint_system();
     auto const& constraints = constraint_system.constraints;
 
-    //#ifdef MULTICORE
-    //#pragma omp parallel for
-    //#endif
-    for (int64_t i = 0; i < m; ++i) {
+    ////#ifdef MULTICORE
+    ////#pragma omp parallel for
+    ////#endif
+    //for (int64_t i = 0; i < m; ++i) {
+    //  auto& com_pub_a = com_pub.a[i];
+    //  auto& com_pub_b = com_pub.b[i];
+    //  auto& com_pub_c = com_pub.c[i];
+    //  auto& com_sec_r = com_sec.r[i];
+    //  auto& com_sec_s = com_sec.s[i];
+    //  auto& com_sec_t = com_sec.t[i];
+    //  auto const& constraint = constraints[i];
+    //  BuildHpCom(constraint.a, com_pub_a, com_sec_r, pds_sigma_g_);
+    //  BuildHpCom(constraint.b, com_pub_b, com_sec_s, pds_sigma_g_);
+    //  BuildHpCom(constraint.c, com_pub_c, com_sec_t, pds_sigma_g_);
+    //}
+    auto parallel_f = [this, &com_pub, &com_sec,
+                       &constraints](int64_t i) mutable {
       auto& com_pub_a = com_pub.a[i];
       auto& com_pub_b = com_pub.b[i];
       auto& com_pub_c = com_pub.c[i];
@@ -193,7 +217,8 @@ class Prover {
       BuildHpCom(constraint.a, com_pub_a, com_sec_r, pds_sigma_g_);
       BuildHpCom(constraint.b, com_pub_b, com_sec_s, pds_sigma_g_);
       BuildHpCom(constraint.c, com_pub_c, com_sec_t, pds_sigma_g_);
-    }
+    };
+    parallel::For(m, parallel_f, "BuildHpCom");
   }
 
   void BuildHpCom(libsnark::linear_combination<Fr> const& lc, G1& com_pub,

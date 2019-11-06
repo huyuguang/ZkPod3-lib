@@ -2,7 +2,7 @@
 
 #include "basic_types.h"
 #include "ecc.h"
-#include "omp_helper.h"
+#include "parallel.h"
 #include "public.h"
 #include "scheme_complaint_notary.h"
 #include "scheme_complaint_protocol.h"

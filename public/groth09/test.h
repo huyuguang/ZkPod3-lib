@@ -5,7 +5,7 @@ inline void Test() {
   std::vector<bool> ret;
 
 #ifdef _DEBUG
-  ret.push_back(sec52::TestRom(17, 20));
+  //ret.push_back(sec52::TestRom(17, 20));
   ret.push_back(sec53::TestRom(13, 104));
   ret.push_back(sec43::TestRom(12, 14));
   ret.push_back(sec51::TestRom(123));

@@ -12,7 +12,6 @@ MCL_HOME = $(SNARK_HOME)/depends/mcl/include
 CXXFLAGS := \
  -g3 \
  -fPIC \
- -fopenmp \
  -std=c++17 \
  -Wall \
  -Wextra \
@@ -50,7 +49,6 @@ RELEASE_FLAGS := \
  -O3 \
  -DNDEBUG \
  -DLINUX \
- -DMULTICORE \
 
 DEBUG_FLAGS := \
  -O0 \
@@ -66,7 +64,6 @@ LIBS := \
  -lgmpxx \
  -lgmp \
  -lcryptopp \
- -lgomp \
  -lboost_filesystem \
  -lboost_system \
  -lboost_iostreams \

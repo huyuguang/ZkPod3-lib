@@ -68,6 +68,7 @@ bool Alice<AliceData>::OnRequest(Request request, Response& response) {
   if (!vrs_cache_file_.empty()) {
     cache.reset(new vrs::Cache());
     if (!vrs::LoadCache(vrs_cache_file_, *cache, false)) {
+      std::cerr << "LoadCache failed\n";
       cache.reset();
       vrs_cache_file_.clear();      
     } else {
@@ -90,12 +91,10 @@ bool Alice<AliceData>::OnRequest(Request request, Response& response) {
   }
 
   std::vector<Fr> plain((demands_count_ + 1) * s_);
-#ifdef MULTICORE
-#pragma omp parallel for
-#endif
-  for (int64_t i = 0; i < (int64_t)plain.size(); ++i) {
+  auto parallel_f = [&plain, &response](uint64_t i) mutable {
     plain[i] = vrs::GeneratePlain(response.vrs_plain_seed, i);
-  }
+  };
+  parallel::For(plain.size(), parallel_f, "GeneratePlain");
 
   vrs::PublicInput public_input(plain.size(),
                                 [&plain](int64_t i) { return plain[i]; });
@@ -138,10 +137,7 @@ bool Alice<AliceData>::OnRequest(Request request, Response& response) {
   auto const& m = a_->m();
   response.m.resize(demands_count_ * s_);
 
-#ifdef MULTICORE
-#pragma omp parallel for
-#endif
-  for (int64_t i = 0; i < (int64_t)mappings_.size(); ++i) {
+  auto parallel_f2 = [this,&response,&m](uint64_t i) mutable {
     auto const& map = mappings_[i];
     auto is = i * s_;
     auto m_is = map.global_index * s_;
@@ -150,15 +146,24 @@ bool Alice<AliceData>::OnRequest(Request request, Response& response) {
       auto m_ij = m_is + j;
       response.m[ij] = v_[ij] + w_[i] * m[m_ij];
     }
-  }
+  };
+  parallel::For(mappings_.size(), parallel_f2, "Encrypt m");
 
   response.vw.resize(s_);
-  for (size_t j = 0; j < s_; ++j) {
+  auto parallel_f3 = [this, &response](int64_t j) mutable {
     response.vw[j] = FrZero();
     for (size_t i = 0; i <= demands_count_; ++i) {
       response.vw[j] += v_[i * s_ + j] * w_[i];
     }
-  }
+  };
+  parallel::For(s_, parallel_f3, "response.vw");
+
+  //for (size_t j = 0; j < s_; ++j) {
+  //  response.vw[j] = FrZero();
+  //  for (size_t i = 0; i <= demands_count_; ++i) {
+  //    response.vw[j] += v_[i * s_ + j] * w_[i];
+  //  }
+  //}
 
   // use seed2_ as rom_seed
   auto get_w = [this](int64_t i) { return w_[i / s_]; };

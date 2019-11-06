@@ -11,6 +11,7 @@
 #include "ecc.h"
 #include "mpz.h"
 #include "tick.h"
+#include "parallel.h"
 
 inline Fr ChainKeccak256(uint8_t const* seed_buf, uint64_t seed_len,
                          uint64_t index) {
@@ -42,28 +43,25 @@ inline Fr ChainKeccak256(h256_t const& seed, uint64_t index) {
   return ChainKeccak256(seed.data(), seed.size(), index);
 }
 
-inline void ChainKeccak256(h256_t const& seed, uint64_t count,
-                           std::vector<Fr>& v) {
-  Tick _tick_(__FUNCTION__);
-  v.resize(count);
-
-#ifdef MULTICORE
-#pragma omp parallel for
-#endif
-  for (int64_t i = 0; i < (int64_t)count; ++i) {
-    v[i] = ChainKeccak256(seed, i);
-  }
-}
-
 inline void ChainKeccak256(h256_t const& seed, uint64_t begin, uint64_t end,
                            std::vector<Fr>& v) {
   Tick _tick_(__FUNCTION__);
   v.resize(end - begin);
 
-#ifdef MULTICORE
-#pragma omp parallel for
-#endif
-  for (int64_t i = begin; i < (int64_t)end; ++i) {
+//#ifdef MULTICORE
+//#pragma omp parallel for
+//#endif
+//  for (int64_t i = begin; i < (int64_t)end; ++i) {
+//    v[i - begin] = ChainKeccak256(seed, i);
+//  }
+
+  auto parallel_f = [&v, &seed, begin](uint64_t i) mutable {
     v[i - begin] = ChainKeccak256(seed, i);
-  }
+  };
+  parallel::For(begin, end, parallel_f, "ChainKeccak256");
+}
+
+inline void ChainKeccak256(h256_t const& seed, uint64_t count,
+                           std::vector<Fr>& v) {
+  ChainKeccak256(seed, 0, count, v);
 }

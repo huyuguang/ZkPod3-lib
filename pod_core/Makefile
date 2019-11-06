@@ -47,7 +47,6 @@ endif
 CXXFLAGS := \
  -g3 \
  -fPIC \
- -fopenmp \
  -std=c++17 \
  -Wall \
  -Wextra \
@@ -105,7 +104,6 @@ LIBS := \
  -lgmpxx \
  -lgmp \
  -lcryptopp \
- -lgomp \
  -lboost_filesystem \
  -lboost_system \
  -lboost_iostreams \

@@ -14,6 +14,7 @@
 #include "../misc.h"
 #include "../multiexp.h"
 #include "../tick.h"
+#include "../parallel.h"
 #include "hyrax/hyrax.h"
 
 namespace groth09::details {
@@ -112,9 +113,13 @@ inline void PrintVector(std::vector<Fr> const& a) {
 inline void VectorMul(std::vector<Fr>& c, std::vector<Fr> const& a,
                       Fr const& b) {
   c.resize(a.size());
-  for (size_t i = 0; i < a.size(); ++i) {
+  //for (size_t i = 0; i < a.size(); ++i) {
+  //  c[i] = a[i] * b;
+  //}
+  auto parallel_f = [&c,&a,&b](size_t i) mutable {
     c[i] = a[i] * b;
-  }
+  };
+  parallel::For(a.size(), parallel_f, "VectorMul");
 }
 
 inline void VectorAdd(std::vector<Fr>& c, std::vector<Fr> const& a,

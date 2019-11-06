@@ -73,8 +73,7 @@ inline bool operator==(Proof const& left, Proof const& right) {
          left.z_beta == right.z_beta;
 }
 
-inline bool operator!=(Proof const& left,
-                       Proof const& right) {
+inline bool operator!=(Proof const& left, Proof const& right) {
   return !(left == right);
 }
 
@@ -84,13 +83,11 @@ struct RomProof {
   int64_t n() const { return proof.n(); }
 };
 
-inline bool operator==(RomProof const& left,
-                       RomProof const& right) {
+inline bool operator==(RomProof const& left, RomProof const& right) {
   return left.com_ext_pub == right.com_ext_pub && left.proof == right.proof;
 }
 
-inline bool operator!=(RomProof const& left,
-                       RomProof const& right) {
+inline bool operator!=(RomProof const& left, RomProof const& right) {
   return !(left == right);
 }
 
@@ -102,8 +99,7 @@ struct VerifierInput {
 };
 
 // com(n) + com(1) + ip(n)
-inline bool VerifyInternal(
-                           VerifierInput const& input, Fr const& challenge,
+inline bool VerifyInternal(VerifierInput const& input, Fr const& challenge,
                            CommitmentExtPub const& com_ext_pub,
                            Proof const& proof) {
   Tick tick(__FUNCTION__);
@@ -113,26 +109,51 @@ inline bool VerifyInternal(
 
   auto const& com_pub = input.com_pub;
 
-  G1 left, right;
-  auto const& xi = com_pub.xi;
-  auto const& delta = com_ext_pub.delta;
-  left = xi * challenge + delta;
-  right = ComputeCommitment(proof.z, proof.z_delta);
-  if (left != right) {
-    assert(false);
-    return false;
-  }
+  //G1 left, right;
+  //auto const& xi = com_pub.xi;
+  //auto const& delta = com_ext_pub.delta;
+  //left = xi * challenge + delta;
+  //right = ComputeCommitment(proof.z, proof.z_delta);
+  //if (left != right) {
+  //  assert(false);
+  //  return false;
+  //}
 
-  auto const& tau = com_pub.tau;
-  auto const& beta = com_ext_pub.beta;
-  left = tau * challenge + beta;
-  auto ip_za = InnerProduct(proof.z, input.a);
-  right = ComputeCommitment(ip_za, proof.z_beta);
-  if (left != right) {
-    assert(false);
-    return false;
-  }
-  return true;
+  //auto const& tau = com_pub.tau;
+  //auto const& beta = com_ext_pub.beta;
+  //left = tau * challenge + beta;
+  //auto ip_za = InnerProduct(proof.z, input.a);
+  //right = ComputeCommitment(ip_za, proof.z_beta);
+  //if (left != right) {
+  //  assert(false);
+  //  return false;
+  //}
+
+  std::vector<parallel::Task> tasks(2);
+  bool ret1 = false;
+  tasks[0] = [&ret1, &com_pub, &com_ext_pub, &challenge, &proof,
+              &input]() mutable {
+    auto const& xi = com_pub.xi;
+    auto const& delta = com_ext_pub.delta;
+    G1 left = xi * challenge + delta;
+    G1 right = ComputeCommitment(proof.z, proof.z_delta);
+    ret1 = left == right;
+  };
+
+  bool ret2 = false;
+  tasks[1] = [&ret2, &com_pub, &com_ext_pub, &challenge, &proof,
+              &input]() mutable {
+    auto const& tau = com_pub.tau;
+    auto const& beta = com_ext_pub.beta;
+    G1 left = tau * challenge + beta;
+    auto ip_za = InnerProduct(proof.z, input.a);
+    G1 right = ComputeCommitment(ip_za, proof.z_beta);
+    ret2 = left == right;
+  };
+  parallel::SyncExec(tasks);
+
+  assert(ret1 && ret2);
+  return ret1 && ret2;
 }
 
 // com(n) + com(1)
@@ -158,10 +179,9 @@ inline void ComputeCommitmentExt(CommitmentExtPub& com_ext_pub,
   FrRand(com_ext_sec.d.data(), n);
   com_ext_sec.r_beta = FrRand();
   com_ext_sec.r_delta = FrRand();
-  com_ext_pub.delta =
-      ComputeCommitment(com_ext_sec.d, com_ext_sec.r_delta);
-  com_ext_pub.beta = ComputeCommitment(
-      InnerProduct(input.a, com_ext_sec.d), com_ext_sec.r_beta);
+  com_ext_pub.delta = ComputeCommitment(com_ext_sec.d, com_ext_sec.r_delta);
+  com_ext_pub.beta = ComputeCommitment(InnerProduct(input.a, com_ext_sec.d),
+                                       com_ext_sec.r_beta);
   std::cout << Tick::GetIndentString() << "multiexp(" << input.n() << ")\n";
 }
 
@@ -188,9 +208,8 @@ inline void ComputeProof(Proof& proof, ProverInput const& input,
   proof.z_beta = challenge * com_sec.r_tau + com_ext_sec.r_beta;
 }
 
-inline void RomProve(RomProof& rom_proof, 
-                     h256_t const& common_seed, ProverInput input,
-                     CommitmentPub com_pub,
+inline void RomProve(RomProof& rom_proof, h256_t const& common_seed,
+                     ProverInput input, CommitmentPub com_pub,
                      CommitmentSec com_sec) {
   Tick tick(__FUNCTION__);
 
@@ -206,8 +225,8 @@ inline void RomProve(RomProof& rom_proof,
   ComputeProof(rom_proof.proof, input, com_sec, com_ext_sec, challenge);
 }
 
-inline bool RomVerify(RomProof const& rom_proof, 
-                      h256_t const& common_seed, VerifierInput const& input) {
+inline bool RomVerify(RomProof const& rom_proof, h256_t const& common_seed,
+                      VerifierInput const& input) {
   Tick tick(__FUNCTION__);
   assert(PdsPub::kGSize >= rom_proof.n());
   if (input.a.size() != rom_proof.proof.z.size() || input.a.empty())

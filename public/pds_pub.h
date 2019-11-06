@@ -70,12 +70,17 @@ class PdsPub : boost::noncopyable {
 
     GenerateG1(0xffffffff, &h_);
 
-#ifdef MULTICORE
-#pragma omp parallel for
-#endif
-    for (int64_t i = 0; i < (int64_t)kGSize; ++i) {
+//#ifdef MULTICORE
+//#pragma omp parallel for
+//#endif
+//    for (int64_t i = 0; i < (int64_t)kGSize; ++i) {
+//      GenerateG1(i, &g_[i]);
+//    }
+
+    auto parallel_f = [this](int64_t i) mutable {
       GenerateG1(i, &g_[i]);
-    }
+    };
+    parallel::For((int64_t)kGSize, parallel_f, "GenerateG1");
   }
 
   void SaveInternal(std::string const& file) {

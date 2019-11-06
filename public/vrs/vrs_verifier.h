@@ -98,10 +98,21 @@ class Verifier {
     auto constraint_system = pb_.get_constraint_system();
     auto const& constraints = constraint_system.constraints;    
 
-//#ifdef MULTICORE
-//#pragma omp parallel for
-//#endif
-    for (int64_t i = 0; i < m; ++i) {
+////#ifdef MULTICORE
+////#pragma omp parallel for
+////#endif
+//    for (int64_t i = 0; i < m; ++i) {
+//      auto& com_pub_a = com_pub.a[i];
+//      auto& com_pub_b = com_pub.b[i];
+//      auto& com_pub_c = com_pub.c[i];
+//      auto const& constraint = constraints[i];
+//      BuildHpCom(constraint.a, com_pub_a, pds_sigma_g_, proof);
+//      BuildHpCom(constraint.b, com_pub_b, pds_sigma_g_, proof);
+//      BuildHpCom(constraint.c, com_pub_c, pds_sigma_g_, proof);
+//    }
+
+    auto parallel_f = [this, &com_pub, &constraints,
+                       &proof](int64_t i) mutable {
       auto& com_pub_a = com_pub.a[i];
       auto& com_pub_b = com_pub.b[i];
       auto& com_pub_c = com_pub.c[i];
@@ -109,7 +120,8 @@ class Verifier {
       BuildHpCom(constraint.a, com_pub_a, pds_sigma_g_, proof);
       BuildHpCom(constraint.b, com_pub_b, pds_sigma_g_, proof);
       BuildHpCom(constraint.c, com_pub_c, pds_sigma_g_, proof);
-    }
+    };
+    parallel::For(m, parallel_f, "BuildHpCom");
   }
 
   void BuildHpCom(libsnark::linear_combination<Fr> const& lc, G1& com_pub,
