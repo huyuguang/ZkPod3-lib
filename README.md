@@ -15,7 +15,7 @@ git submodule init && git submodule update
 cd depends/libsnark  
 git submodule init && git submodule update
 
-2，编译pod_core，pod_setup，pod_publish（linux or osx） 
+2，编译pod_core，pod_setup，pod_publish（linux or osx）  
 cd pod_core  
 make  
 
