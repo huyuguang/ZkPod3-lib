@@ -122,7 +122,7 @@ class RecursiveTaskPool {
     std::vector<Task> wrapped_tasks(tasks.size());
     for (size_t i = 0; i < tasks.size(); ++i) {
       auto& task = tasks[i];
-      wrapped_tasks[i] = [this, &task, context]() mutable {
+      wrapped_tasks[i] = [&task, context]() mutable {
         task();
         std::unique_lock<std::mutex> lock(context->mutex);
         if (0 == --context->left_count) {

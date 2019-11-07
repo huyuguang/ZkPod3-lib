@@ -109,7 +109,7 @@ inline void FrRand(Fr* r, size_t n) {
 //    r[i].setArrayMask(h.data() + i * 32, 32);
 //  }
 
-  auto parallel_f2 = [&h,n, r](int64_t i) mutable {
+  auto parallel_f2 = [&h, r](int64_t i) mutable {
     r[i].setArrayMask(h.data() + i * 32, 32);
   };
   parallel::For((int64_t)n, parallel_f2, "setArrayMask");
@@ -137,7 +137,7 @@ inline void FrRand(std::vector<Fr*>& f) {
 //  for (int64_t i = 0; i < (int64_t)f.size(); ++i) {
 //    f[i]->setArrayMask(h.data() + i * 32, 32);
 //  }
-  auto parallel_f2 = [&h,n, &f](int64_t i) mutable {
+  auto parallel_f2 = [&h, &f](int64_t i) mutable {
     f[i]->setArrayMask(h.data() + i * 32, 32);
   };
   parallel::For((int64_t)n, parallel_f2, "setArrayMask");

@@ -144,6 +144,7 @@ inline bool CalcRoot(std::string const& file, h256_t* root) {
     uint64_t n = view.size() / 32;
     auto get_item = [start, n](uint64_t i) -> h256_t {
       assert(i < n);
+      (void)n;
       h256_t h;
       memcpy(h.data(), start + i * 32, 32);
       return h;

@@ -168,6 +168,7 @@ inline bool LoadSigma(std::string const& input, uint64_t n, h256_t const* root,
     if (root) {
       auto get_sigma = [start, n](uint64_t i) -> h256_t {
         assert(i < n);
+        (void)n;
         h256_t h;
         memcpy(h.data(), start + i * kG1CompBinSize, kG1CompBinSize);
         return h;

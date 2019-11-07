@@ -329,7 +329,6 @@ inline std::string SelectCacheFile(std::string const& dir, int64_t count) {
   if (files.empty()) return "";
   std::sort(files.begin(), files.end());
 
-  static std::mutex mutex;
   while (!files.empty()) {
     auto it = std::upper_bound(files.begin(), files.end(), Item(count));
     if (it == files.begin()) {
@@ -356,7 +355,6 @@ inline std::string SelectCacheFile(std::string const& dir, int64_t count) {
     auto using_name = ori_name + kExtensionUsing;
     // auto using_name = fs::change_extension(ori_name, "use");
 
-    std::lock_guard<std::mutex> lock(mutex);
     try {
       fs::rename(ori_name, using_name);
       return using_name;

@@ -131,8 +131,7 @@ inline bool VerifyInternal(VerifierInput const& input, Fr const& challenge,
 
   std::vector<parallel::Task> tasks(2);
   bool ret1 = false;
-  tasks[0] = [&ret1, &com_pub, &com_ext_pub, &challenge, &proof,
-              &input]() mutable {
+  tasks[0] = [&ret1, &com_pub, &com_ext_pub, &challenge, &proof]() mutable {
     auto const& xi = com_pub.xi;
     auto const& delta = com_ext_pub.delta;
     G1 left = xi * challenge + delta;
