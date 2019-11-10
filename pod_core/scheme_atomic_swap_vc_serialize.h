@@ -21,14 +21,16 @@ void serialize(Ar &ar, Request &t) {
 template <typename Ar>
 void serialize(Ar &ar, Response const &t) {
   ar &YAS_OBJECT_NVP("Response", ("a", t.alice_nonce), ("k", t.k), ("m", t.m),
-                     ("vw", t.vw), ("vrs_proofs", t.vrs_proofs));
+                     ("vw", t.vw), ("vrsps", t.vrs_plain_seed),
+                     ("vwcr", t.vw_com_r), ("vrs_proofs", t.vrs_proofs));
 }
 
 // load from bin
 template <typename Ar>
 void serialize(Ar &ar, Response &t) {
   ar &YAS_OBJECT_NVP("Response", ("a", t.alice_nonce), ("k", t.k), ("m", t.m),
-                     ("vw", t.vw), ("vrs_proofs", t.vrs_proofs));
+                     ("vw", t.vw), ("vrsps", t.vrs_plain_seed),
+                     ("vwcr", t.vw_com_r), ("vrs_proofs", t.vrs_proofs));
 }
 
 // save to json

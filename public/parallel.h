@@ -188,7 +188,12 @@ inline void Exec(std::vector<std::function<void()>>& executors,
 namespace parallel {
 
 namespace details {
-inline RecursiveTaskPool recursive_task_pool;
+
+inline RecursiveTaskPool& GetTaskPool() {
+  static RecursiveTaskPool recursive_task_pool;
+  return recursive_task_pool;
+}
+
 }  // namespace details
 
 template <typename T, typename F>
@@ -197,8 +202,8 @@ void For(T count, F& f, std::string const& desc = "") {
   (void)desc;
 
   // Tick _tick_(__FUNCTION__, desc + " " + std::to_string(count));
-  static const size_t thread_sum = details::recursive_task_pool.thread_sum();
-
+  auto& task_pool = details::GetTaskPool();
+  size_t thread_sum = task_pool.thread_sum();  
   if (!thread_sum) {
     for (T i = 0; i < count; ++i) {
       f(i);
@@ -228,7 +233,7 @@ void For(T count, F& f, std::string const& desc = "") {
       tasks.emplace_back([&f, i]() { f(i); });
     }
   }
-  details::recursive_task_pool.PostAndWait(tasks);
+  task_pool.PostAndWait(tasks);
 }
 
 template <typename T, typename F>
@@ -239,7 +244,8 @@ void For(T begin, T end, F& f, std::string const& desc = "") {
 }
 
 inline void SyncExec(std::vector<Task>& tasks) {
-  static const size_t thread_sum = details::recursive_task_pool.thread_sum();
+  auto& task_pool = details::GetTaskPool();
+  static const size_t thread_sum = task_pool.thread_sum();
   if (!thread_sum) {
     for (auto& task : tasks) {
       task();
@@ -247,6 +253,6 @@ inline void SyncExec(std::vector<Task>& tasks) {
     return;
   }
 
-  details::recursive_task_pool.PostAndWait(tasks);
+  task_pool.PostAndWait(tasks);
 }
 }  // namespace parallel
