@@ -27,7 +27,8 @@ class LargeProver {
               std::vector<std::vector<Fr>> cached_var_coms_r)
       : public_input_(public_input), secret_input_(secret_input) {
     items_ = SplitLargeTask(public_input_.count);
-
+    std::cout << "items: " << items_.size() - 1 << "*" << kMaxUnitPerZkp << "+"
+              << items_.back().second - items_.back().first << "\n";
     assert(cached_var_coms.size() == cached_var_coms_r.size());
 
     auto secret_inputs = BuildSecretInputs(cached_var_coms_r);
@@ -55,17 +56,19 @@ class LargeProver {
   }
 
   void Evaluate() {
+    Tick tick(__FUNCTION__);
     v_.resize(public_input_.count);
     auto parallel_f = [this](int64_t i) mutable {
       provers_[i]->Evaluate();
       auto const& v = provers_[i]->v();
       std::copy(v.begin(), v.end(), v_.begin() + i * kMaxUnitPerZkp);
     };
-    parallel::For(provers_.size(), parallel_f, "Prover Evaluate");
+    parallel::For(provers_.size(), parallel_f);
   }
 
   void Prove(h256_t const& rom_seed, std::function<Fr(int64_t)> get_w,
              std::vector<Proof>& proofs, ProveOutput& output) {
+    Tick tick(__FUNCTION__);
     auto size = (int64_t)provers_.size();
     proofs.resize(size);
     std::vector<ProveOutput> outputs(size);
@@ -82,7 +85,7 @@ class LargeProver {
       vws[i] = provers_[i]->vw();
       provers_[i].reset();
     };
-    parallel::For(size, parallel_f, "vrs Prove");
+    parallel::For(size, parallel_f);
 
     details::MergeOutputs(output, outputs);
 
@@ -173,6 +176,7 @@ class LargeVerifier {
 
   bool Verify(h256_t const& rom_seed, std::function<Fr(int64_t)> get_w,
               std::vector<Proof> const& proofs, VerifyOutput& output) {
+    Tick tick(__FUNCTION__);
     if (proofs.size() != verifiers_.size()) return false;
     auto size = (int64_t)verifiers_.size();
     std::vector<VerifyOutput> outputs(size);
@@ -188,7 +192,7 @@ class LargeVerifier {
                                       proofs[i], outputs[i]);
       verifiers_[i].reset();
     };
-    parallel::For(size, parallel_f, "vrs Verify");
+    parallel::For(size, parallel_f);
 
     if (std::any_of(rets.begin(), rets.end(), [](int64_t r) { return !r; }))
       return false;

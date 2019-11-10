@@ -102,10 +102,10 @@ struct VerifierInput {
 inline bool VerifyInternal(VerifierInput const& input, Fr const& challenge,
                            CommitmentExtPub const& com_ext_pub,
                            Proof const& proof) {
-  Tick tick(__FUNCTION__);
+  //Tick tick(__FUNCTION__);
   using details::ComputeCommitment;
 
-  std::cout << Tick::GetIndentString() << "multiexp(" << proof.n() << ")\n";
+  //std::cout << Tick::GetIndentString() << "multiexp(" << proof.n() << ")\n";
 
   auto const& com_pub = input.com_pub;
 
@@ -158,20 +158,20 @@ inline bool VerifyInternal(VerifierInput const& input, Fr const& challenge,
 // com(n) + com(1)
 inline void ComputeCom(CommitmentPub& com_pub, CommitmentSec& com_sec,
                        ProverInput const& input) {
-  Tick tick(__FUNCTION__);
+  //Tick tick(__FUNCTION__);
   using details::ComputeCommitment;
   com_sec.r_xi = FrRand();
   com_sec.r_tau = FrRand();
   com_pub.xi = ComputeCommitment(input.x, com_sec.r_xi);
   com_pub.tau = ComputeCommitment(input.y, com_sec.r_tau);
-  std::cout << Tick::GetIndentString() << "multiexp(" << input.n() << ")\n";
+  //std::cout << Tick::GetIndentString() << "multiexp(" << input.n() << ")\n";
 }
 
 // com(n) + com(1) + ip(n)
 inline void ComputeCommitmentExt(CommitmentExtPub& com_ext_pub,
                                  CommitmentExtSec& com_ext_sec,
                                  ProverInput const& input) {
-  Tick tick(__FUNCTION__);
+  //Tick tick(__FUNCTION__);
   using details::ComputeCommitment;
   auto n = input.n();
   com_ext_sec.d.resize(n);
@@ -181,7 +181,7 @@ inline void ComputeCommitmentExt(CommitmentExtPub& com_ext_pub,
   com_ext_pub.delta = ComputeCommitment(com_ext_sec.d, com_ext_sec.r_delta);
   com_ext_pub.beta = ComputeCommitment(InnerProduct(input.a, com_ext_sec.d),
                                        com_ext_sec.r_beta);
-  std::cout << Tick::GetIndentString() << "multiexp(" << input.n() << ")\n";
+  //std::cout << Tick::GetIndentString() << "multiexp(" << input.n() << ")\n";
 }
 
 inline void UpdateSeed(h256_t& seed, CommitmentPub const& com_pub,
@@ -210,7 +210,7 @@ inline void ComputeProof(Proof& proof, ProverInput const& input,
 inline void RomProve(RomProof& rom_proof, h256_t const& common_seed,
                      ProverInput input, CommitmentPub com_pub,
                      CommitmentSec com_sec) {
-  Tick tick(__FUNCTION__);
+  //Tick tick(__FUNCTION__);
 
   assert(PdsPub::kGSize >= input.n());
 
@@ -226,7 +226,7 @@ inline void RomProve(RomProof& rom_proof, h256_t const& common_seed,
 
 inline bool RomVerify(RomProof const& rom_proof, h256_t const& common_seed,
                       VerifierInput const& input) {
-  Tick tick(__FUNCTION__);
+  //Tick tick(__FUNCTION__);
   assert(PdsPub::kGSize >= rom_proof.n());
   if (input.a.size() != rom_proof.proof.z.size() || input.a.empty())
     return false;

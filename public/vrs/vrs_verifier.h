@@ -19,7 +19,7 @@ class Verifier {
 
   bool Verify(h256_t const& rom_seed, std::function<Fr(int64_t)> get_w,
               Proof const& proof, VerifyOutput& output) {
-    Tick tick(__FUNCTION__);
+    //Tick tick(__FUNCTION__);
     using groth09::details::ComputeCommitment;
     auto count = public_input_.count;
 
@@ -86,7 +86,7 @@ class Verifier {
   }
 
   void BuildHpCom(Proof const& proof, groth09::sec43::CommitmentPub& com_pub) {
-    Tick tick(__FUNCTION__);
+    //Tick tick(__FUNCTION__);
     auto m = num_constraints();
     com_pub.a.resize(m);
     G1Zero(com_pub.a);
@@ -121,7 +121,7 @@ class Verifier {
       BuildHpCom(constraint.b, com_pub_b, pds_sigma_g_, proof);
       BuildHpCom(constraint.c, com_pub_c, pds_sigma_g_, proof);
     };
-    parallel::For(m, parallel_f, "BuildHpCom");
+    parallel::For(m, parallel_f);
   }
 
   void BuildHpCom(libsnark::linear_combination<Fr> const& lc, G1& com_pub,

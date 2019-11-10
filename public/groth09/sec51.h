@@ -239,14 +239,14 @@ inline bool operator!=(RomProof const& left,
 
 inline void ComputeCom(CommitmentPub& com_pub, CommitmentSec& com_sec,
                 ProverInput const& input) {
-  Tick tick(__FUNCTION__);
+  //Tick tick(__FUNCTION__);
   com_sec.r = FrRand();
   com_sec.s = FrRand();
   com_sec.t = FrRand();
 
   using details::ComputeCommitment;
 
-  std::cout << Tick::GetIndentString() << "2*multiexp(" << input.n() << ")\n";
+  //std::cout << Tick::GetIndentString() << "2*multiexp(" << input.n() << ")\n";
 
   std::vector<parallel::Task> tasks(3);
   tasks[0] = [&com_pub,&input,&com_sec]() mutable {
@@ -284,7 +284,7 @@ inline void ComputeCom(CommitmentPub& com_pub, CommitmentSec& com_sec,
 
 inline void ComputeComExt(CommitmentExtPub& com_ext_pub, CommitmentExtSec& com_ext_sec,
                    ProverInput const& input) {
-  Tick tick(__FUNCTION__);
+  //Tick tick(__FUNCTION__);
   auto const n = input.n();
   com_ext_sec.dx.resize(n);
   FrRand(com_ext_sec.dx.data(), n);
@@ -306,7 +306,7 @@ inline void ComputeComExt(CommitmentExtPub& com_ext_pub, CommitmentExtSec& com_e
   Fr xdy_dxy = InnerProduct(input.x(), com_ext_sec.dyt) +
                InnerProduct(com_ext_sec.dx, input.yt());
 
-  std::cout << Tick::GetIndentString() << "2*multiexp(" << input.n() << ")\n";
+  //std::cout << Tick::GetIndentString() << "2*multiexp(" << input.n() << ")\n";
 
   std::vector<parallel::Task> tasks(4);
   tasks[0] = [&com_ext_pub,&com_ext_sec]() mutable {
@@ -358,7 +358,7 @@ inline void ComputeComExt(CommitmentExtPub& com_ext_pub, CommitmentExtSec& com_e
 inline void ComputeProof(Proof& proof, ProverInput const& input,
                   CommitmentSec const& com_sec,
                   CommitmentExtSec const& com_ext_sec, Fr const& challenge) {
-  Tick tick(__FUNCTION__);
+  //Tick tick(__FUNCTION__);
   auto n = input.n();
   proof.fx.resize(n);
   for (int64_t i = 0; i < n; ++i) {
@@ -408,7 +408,7 @@ inline bool VerifyInternal(VerifierInput const& input,
   auto const n = proof.fx.size();
   assert(n == proof.fy.size());
 
-  std::cout << Tick::GetIndentString() << "multiexp(" << n << ")\n";
+  //std::cout << Tick::GetIndentString() << "multiexp(" << n << ")\n";
 
   bool ret1 = false;
   bool ret2 = false;
@@ -506,7 +506,7 @@ inline void RomProve(RomProof& rom_proof,
                      h256_t const& common_seed, ProverInput const& input,
                      CommitmentPub const& com_pub,
                      CommitmentSec const& com_sec) {
-  Tick tick(__FUNCTION__);
+  //Tick tick(__FUNCTION__);
 
   assert(PdsPub::kGSize >= input.n());
 
@@ -522,7 +522,7 @@ inline void RomProve(RomProof& rom_proof,
 
 inline bool RomVerify(RomProof const& rom_proof, 
                h256_t const& common_seed, VerifierInput const& input) {
-  Tick tick(__FUNCTION__);
+  //Tick tick(__FUNCTION__);
   assert(PdsPub::kGSize >= rom_proof.n());
 
   auto seed = common_seed;

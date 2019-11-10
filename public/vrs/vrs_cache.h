@@ -394,7 +394,10 @@ inline void UpgradeCache(Cache& cache, int64_t count) {
   auto new_count = count;
   auto old_items = SplitLargeTask(old_count);
   auto new_items = SplitLargeTask(new_count);
-
+  std::cout << "old_count: " << old_count
+            << ", old_items: " << old_items.size() << "\n";
+  std::cout << "new_count: " << new_count
+            << ", new_items: " << new_items.size() << "\n";
   if (old_items.size() <= new_items.size()) {
     auto const& old_item = old_items.back();
     auto const& new_item = new_items[old_items.size() - 1];

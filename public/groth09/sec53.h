@@ -90,7 +90,7 @@ class ProverInput {
   ProverInput(std::vector<std::vector<Fr>> xd, std::vector<std::vector<Fr>> yd,
               std::vector<Fr> const* t)
       : x_data_(std::move(xd)), y_data_(std::move(yd)), t_(t) {
-    Tick tick(__FUNCTION__);
+    //Tick tick(__FUNCTION__);
     if (!CheckFormat(false, false)) throw std::invalid_argument("");
     ComputeZ();
   }
@@ -140,7 +140,7 @@ class ProverInput {
 
   // pad some trivial values
   void Align() {
-    Tick tick(__FUNCTION__);
+    //Tick tick(__FUNCTION__);
     int64_t old_m = m();
     int64_t new_m = (int64_t)misc::Pow2UB(old_m);
     if (old_m == new_m) return;
@@ -304,15 +304,15 @@ inline bool operator!=(RomProof const& left, RomProof const& right) {
 
 inline void ComputeCom(ProverInput const& input,
                        CommitmentPub* com_pub, CommitmentSec const& com_sec) {
-  Tick tick(__FUNCTION__);
+  //Tick tick(__FUNCTION__);
   using details::ComputeCommitment;
   auto const m = input.m();
 
   com_pub->a.resize(m);
   com_pub->b.resize(m);
 
-  std::cout << Tick::GetIndentString() << 2 * m << " times multiexp("
-            << input.n() << ")\n";
+  //std::cout << Tick::GetIndentString() << 2 * m << " times multiexp("
+  //          << input.n() << ")\n";
 
   ////#ifdef MULTICORE
   ////#pragma omp parallel for
@@ -333,7 +333,7 @@ inline void ComputeCom(ProverInput const& input,
 
 inline void ComputeCom(ProverInput const& input, 
                        CommitmentPub* com_pub, CommitmentSec* com_sec) {
-  Tick tick(__FUNCTION__);
+  //Tick tick(__FUNCTION__);
   using details::ComputeCommitment;
   auto const m = input.m();
   com_sec->r.resize(m);
@@ -351,7 +351,7 @@ inline void RomProveFinal(RomProof& rom_proof,
                           h256_t const& seed, ProverInput const& input,
                           CommitmentPub const& com_pub,
                           CommitmentSec const& com_sec) {
-  Tick tick(__FUNCTION__);
+  //Tick tick(__FUNCTION__);
   assert(input.m() == 1);
 
   sec51::ProverInput input_51(&input.x(0), &input.y(0), input.t(), &input.yt(0),
@@ -400,7 +400,7 @@ inline void ComputeSigmaXY(ProverInput const& input, Fr* sigma_xy1,
 inline void UpdateCom(CommitmentPub& com_pub, CommitmentSec& com_sec,
                       Fr const& tl, Fr const& tu, G1 const& cl, G1 const& cu,
                       Fr const& e, Fr const& ee) {
-  Tick tick(__FUNCTION__);
+  //Tick tick(__FUNCTION__);
   CommitmentPub com_pub2;
   CommitmentSec com_sec2;
   auto m2 = com_pub.a.size() / 2;
@@ -475,7 +475,7 @@ inline Fr ComputeChallenge(h256_t const& seed, CommitmentPub const& com_pub,
 // pad some trivial value
 inline void AlignData(ProverInput& input, CommitmentPub& com_pub,
                       CommitmentSec& com_sec) {
-  Tick tick(__FUNCTION__);
+  //Tick tick(__FUNCTION__);
   input.Align();
   com_sec.Align();
   com_pub.Align();
@@ -484,7 +484,7 @@ inline void AlignData(ProverInput& input, CommitmentPub& com_pub,
 inline void RomProveRecursive(RomProof& rom_proof, 
                               h256_t& seed, ProverInput& input,
                               CommitmentPub& com_pub, CommitmentSec& com_sec) {
-  Tick tick(__FUNCTION__);
+  //Tick tick(__FUNCTION__);
   assert(input.m() > 1);
 
   Fr sigma_xy1, sigma_xy2;
@@ -519,7 +519,7 @@ inline void RomProveRecursive(RomProof& rom_proof,
 inline void RomProve(RomProof& rom_proof, h256_t seed,
                      ProverInput input, CommitmentPub com_pub,
                      CommitmentSec com_sec) {
-  Tick tick(__FUNCTION__);
+  //Tick tick(__FUNCTION__);
   assert(PdsPub::kGSize >= input.n());
 
   while (input.m() > 1) {
@@ -530,7 +530,7 @@ inline void RomProve(RomProof& rom_proof, h256_t seed,
 
 inline bool RomVerify(RomProof const& rom_proof, 
                       h256_t seed, VerifierInput const& input) {
-  Tick tick(__FUNCTION__);
+  //Tick tick(__FUNCTION__);
   using details::HashUpdate;
   if (!rom_proof.CheckFormat(input.m())) {
     assert(false);

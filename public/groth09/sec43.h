@@ -91,7 +91,7 @@ class ProverInput {
   ProverInput(std::vector<std::vector<Fr>> x, std::vector<std::vector<Fr>> y,
               std::vector<std::vector<Fr>> z)
       : x_(std::move(x)), y_(std::move(y)), z_(std::move(z)) {
-    Tick tick(__FUNCTION__);
+    //Tick tick(__FUNCTION__);
     assert(!x_.empty());
     assert(x_.size() == y_.size());
     assert(x_.size() == z_.size());
@@ -104,7 +104,7 @@ class ProverInput {
 
   // pad some trivial value
   void Align() {
-    Tick tick(__FUNCTION__);
+    //Tick tick(__FUNCTION__);
     int64_t old_m = m();
     int64_t new_m = (int64_t)misc::Pow2UB(old_m);
     if (old_m == new_m) return;
@@ -129,7 +129,7 @@ class ProverInput {
 
 inline void ComputeCom(CommitmentPub& com_pub, CommitmentSec& com_sec,
                        ProverInput const& input) {
-  Tick tick(__FUNCTION__);
+  //Tick tick(__FUNCTION__);
   auto const m = input.m();
   auto const n = input.n();
   com_sec.r.resize(m);
@@ -146,7 +146,7 @@ inline void ComputeCom(CommitmentPub& com_pub, CommitmentSec& com_sec,
   com_pub.b.resize(m);
   com_pub.c.resize(m);
 
-  std::cout << Tick::GetIndentString() << 3 * m << " multiexp(" << n << ")\n";
+  //std::cout << Tick::GetIndentString() << 3 * m << " multiexp(" << n << ")\n";
 
 ////#ifdef MULTICORE
 ////#pragma omp parallel for
@@ -219,7 +219,7 @@ inline void ComputeChallengeKT(h256_t const& seed, std::vector<Fr>& k,
 // pad some trivial value
 inline void AlignData(ProverInput& input, CommitmentPub& com_pub,
                       CommitmentSec& com_sec) {
-  Tick tick(__FUNCTION__);
+  //Tick tick(__FUNCTION__);
   input.Align();
   com_pub.Align();
   com_sec.Align();
@@ -232,7 +232,7 @@ inline void RomProve(RomProof& rom_proof,
                      h256_t const& rom_seed, ProverInput input,
                      CommitmentPub com_pub,
                      CommitmentSec com_sec) {
-  Tick tick(__FUNCTION__);
+  //Tick tick(__FUNCTION__);
   using details::ComputeCommitment;
   auto m = input.m();
   auto n = input.n();
@@ -253,7 +253,7 @@ inline void RomProve(RomProof& rom_proof,
   input.Take(input_x, input_y, input_z);
 
   {
-    Tick tick53(" prepare for sec53");
+    //Tick tick53(" prepare for sec53");
 
     sec53::CommitmentSec com_sec_53;
     sec53::CommitmentPub com_pub_53;
@@ -265,7 +265,7 @@ inline void RomProve(RomProof& rom_proof,
     auto parallel_f = [&input_x,&k](int64_t i) mutable {
       details::VectorMul(input_x[i], input_x[i], k[i]);
     };
-    parallel::For(m, parallel_f, "VectorMul");
+    parallel::For(m, parallel_f);
 
     sec53::ProverInput input_53(std::move(input_x), std::move(input_y), &t);
     input_53_z = input_53.z();
@@ -298,7 +298,7 @@ inline void RomProve(RomProof& rom_proof,
   }
 
   {
-    Tick tick53("prepare for hyrax");
+    //Tick tick53("prepare for hyrax");
     hyrax::a2::CommitmentPub com_pub_hy;
     hyrax::a2::CommitmentSec com_sec_hy;
     
@@ -346,7 +346,7 @@ struct VerifierInput {
 
 inline bool RomVerify(RomProof const& rom_proof, 
                h256_t const& rom_seed, VerifierInput const& input) {
-  Tick tick(__FUNCTION__);
+  //Tick tick(__FUNCTION__);
   auto m = rom_proof.m();
   auto n = rom_proof.n();
 
