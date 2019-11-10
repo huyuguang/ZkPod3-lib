@@ -26,6 +26,7 @@ class LargeProver {
               std::vector<std::vector<G1>> cached_var_coms,
               std::vector<std::vector<Fr>> cached_var_coms_r)
       : public_input_(public_input), secret_input_(secret_input) {
+    Tick tick(__FUNCTION__);
     items_ = SplitLargeTask(public_input_.count);
     std::cout << "items: " << items_.size() - 1 << "*" << kMaxUnitPerZkp << "+"
               << items_.back().second - items_.back().first << "\n";
