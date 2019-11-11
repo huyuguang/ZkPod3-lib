@@ -131,7 +131,7 @@ inline void ComputeCom(CommitmentPub& com_pub, CommitmentSec& com_sec,
                        ProverInput const& input) {
   //Tick tick(__FUNCTION__);
   auto const m = input.m();
-  auto const n = input.n();
+  //auto const n = input.n();
   com_sec.r.resize(m);
   FrRand(com_sec.r.data(), m);
 

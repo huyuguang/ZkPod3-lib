@@ -56,6 +56,8 @@ CXXFLAGS := \
  -Wno-parentheses \
  -Wdeprecated-declarations \
  -fmerge-all-constants  \
+ -mtune=native \
+ -march=native \
  $(INC_FLAGS) \
 
 SNARK_FLAGS = \
