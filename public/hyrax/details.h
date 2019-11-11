@@ -10,6 +10,7 @@
 #include "../ecc_pub.h"
 #include "../misc.h"
 #include "../multiexp.h"
+#include "../parallel.h"
 #include "../pds_pub.h"
 #include "../tick.h"
 
@@ -38,8 +39,7 @@ inline void HashUpdate(CryptoPP::Keccak_256& hash, std::vector<Fr> const& d) {
   }
 }
 
-inline G1 ComputeCommitment(std::vector<Fr> const& x,
-                            Fr const& r) {
+inline G1 ComputeCommitment(std::vector<Fr> const& x, Fr const& r) {
   auto const& pds_pub = GetPdsPub();
   // Tick tick(__FUNCTION__, std::to_string(x.size()));
   assert(PdsPub::kGSize >= x.size());
@@ -56,9 +56,11 @@ inline G1 ComputeCommitment(Fr const& x, Fr const& r) {
 
 inline void VectorMul(std::vector<Fr>& c, std::vector<Fr> const& a, Fr b) {
   c.resize(a.size());
-  for (size_t i = 0; i < a.size(); ++i) {
-    c[i] = a[i] * b;
-  }
+  // for (size_t i = 0; i < a.size(); ++i) {
+  //  c[i] = a[i] * b;
+  //}
+  auto parallel_f = [&c, &a, &b](size_t i) mutable { c[i] = a[i] * b; };
+  parallel::For(a.size(), parallel_f, "VectorMul");
 }
 
 inline void VectorInc(std::vector<Fr>& a, std::vector<Fr> const& b) {

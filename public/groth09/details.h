@@ -70,7 +70,7 @@ inline G1 ComputeCommitment(Fr const& x,
 
 inline void ComputePowOfE(Fr const& e, int64_t m, std::vector<Fr>& vec,
                           std::vector<Fr>& rev) {
-  Tick tick(__FUNCTION__, std::to_string(m));
+  //Tick tick(__FUNCTION__, std::to_string(m));
   vec.resize(m * 2 - 1);
   rev.resize(m);
 
@@ -83,23 +83,25 @@ inline void ComputePowOfE(Fr const& e, int64_t m, std::vector<Fr>& vec,
   }
 }
 
-inline std::vector<Fr> HadamardProduct(std::vector<Fr> const& a,
-                                       std::vector<Fr> const& b) {
-  assert(a.size() == b.size());
-  std::vector<Fr> c(a.size());
-  for (size_t i = 0; i < a.size(); ++i) {
-    c[i] = a[i] * b[i];
-  }
-  return c;
-}
-
 inline void HadamardProduct(std::vector<Fr>& c, std::vector<Fr> const& a,
                             std::vector<Fr> const& b) {
   assert(a.size() == b.size());
   c.resize(a.size());
-  for (size_t i = 0; i < a.size(); ++i) {
+  //for (size_t i = 0; i < a.size(); ++i) {
+  //  c[i] = a[i] * b[i];
+  //}
+  auto parallel_f = [&c,&a,&b](size_t i) mutable {
     c[i] = a[i] * b[i];
-  }
+  };
+  parallel::For(a.size(), parallel_f, "HadamardProduct");
+}
+
+inline std::vector<Fr> HadamardProduct(std::vector<Fr> const& a,
+                                       std::vector<Fr> const& b) {
+  assert(a.size() == b.size());
+  std::vector<Fr> c(a.size());
+  HadamardProduct(c, a, b);
+  return c;
 }
 
 inline void PrintVector(std::vector<Fr> const& a) {

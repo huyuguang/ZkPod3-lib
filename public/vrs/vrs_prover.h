@@ -102,14 +102,30 @@ class Prover {
     var_coms_.resize(num_variables());
     var_coms_r_.resize(var_coms_.size());
     // std::cout << "commitment: " << var_coms_.size() << " * " << count << "\n";
+    
+    //for (int64_t i = 0; i < (int64_t)var_coms_.size(); ++i) {
+    //  std::vector<Fr> data(count);
+    //  auto& var_com = var_coms_[i];
+    //  auto& var_com_r = var_coms_r_[i];      
+    //  for (int64_t j = 0; j < count; ++j) {
+    //    data[j] = values_[j][i];
+    //  }
+    //  if (i < primary_input_size_) {
+    //    var_com_r = FrZero();
+    //  } else if (i == primary_input_size_) {
+    //    var_com_r = secret_input_.key_com_r;
+    //  } else {
+    //    var_com_r = FrRand();
+    //  }
+    //  var_com = ComputeCommitment(data, var_com_r);
+    //}
 
-    std::vector<Fr> data(count);
-    for (int64_t i = 0; i < (int64_t)var_coms_.size(); ++i) {
+    auto parallel_f = [this, count](int64_t i) mutable {
+      std::vector<Fr> data(count);
       auto& var_com = var_coms_[i];
       auto& var_com_r = var_coms_r_[i];      
       for (int64_t j = 0; j < count; ++j) {
-        auto const& values = values_[j];
-        data[j] = values[i];
+        data[j] = values_[j][i];
       }
       if (i < primary_input_size_) {
         var_com_r = FrZero();
@@ -119,7 +135,8 @@ class Prover {
         var_com_r = FrRand();
       }
       var_com = ComputeCommitment(data, var_com_r);
-    }
+    };
+    parallel::For((int64_t)var_coms_.size(), parallel_f);
   }
 
   groth09::sec43::ProverInput BuildHpInput() {

@@ -12,6 +12,7 @@
 #include <thread>
 #include <vector>
 #include <queue>
+#include <deque>
 #include <atomic>
 #include <algorithm>
 #include <numeric>
@@ -96,14 +97,15 @@ class RecursiveTaskPool {
     std::unique_lock<std::mutex> lock(mutex_);
     if (tasks_.empty()) return false;
     task = tasks_.front();
-    tasks_.pop();
+    tasks_.pop_front();
     return true;
   }
 
-  void PushTasks(std::vector<Task>&& tasks) {
+  void PushTasks(std::vector<Task>&& tasks, bool front) {
     std::unique_lock<std::mutex> lock(mutex_);
     for (auto&& i : tasks) {
-      tasks_.emplace(std::move(i));
+      front ? tasks_.emplace_front(std::move(i))
+            : tasks_.emplace_back(std::move(i));
     }
     cv_.notify_all();
   }
@@ -131,7 +133,7 @@ class RecursiveTaskPool {
       };
     }
 
-    PushTasks(std::move(wrapped_tasks));
+    PushTasks(std::move(wrapped_tasks), false);
 
     if (context->left_count) {
       std::unique_lock<std::mutex> lock(context->mutex);
@@ -160,7 +162,7 @@ class RecursiveTaskPool {
       };
     }
 
-    PushTasks(std::move(wrapped_tasks));
+    PushTasks(std::move(wrapped_tasks), true);
 
     Task current_task;
     for (;;) {
@@ -177,7 +179,7 @@ class RecursiveTaskPool {
   std::vector<std::thread> threads_;
   std::mutex mutex_;
   std::condition_variable cv_;
-  std::queue<Task> tasks_;
+  std::deque<Task> tasks_;
   std::atomic<bool> exit_{false};
 };
 
