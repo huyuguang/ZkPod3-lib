@@ -56,7 +56,8 @@ class RecursiveTaskPool {
     if (threads_.empty()) {
       PostAndWaitSync(tasks);
     } else if (details::in_pool_thread) {
-      PostAndWaitSync(tasks);//PostAndWaitBySelf(tasks);
+      PostAndWaitSync(tasks);
+      //PostAndWaitBySelf(tasks);
     } else {
       PostAndWaitByOuter(tasks);
     }
@@ -162,7 +163,7 @@ class RecursiveTaskPool {
       };
     }
 
-    PushTasks(std::move(wrapped_tasks), true);
+    PushTasks(std::move(wrapped_tasks), false);//true);
 
     Task current_task;
     for (;;) {

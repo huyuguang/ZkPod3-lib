@@ -14,7 +14,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LocalDebuggerWorkingDirectory>$(OutDir)</LocalDebuggerWorkingDirectory>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
-    <LocalDebuggerCommandArguments>-m plain -a atomic_swap_pod_vc -p plain_data -o plain_output --demand_ranges 1-1834</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-m plain -a atomic_swap_pod_vc -p plain_data -o plain_output --demand_ranges 1-1535</LocalDebuggerCommandArguments>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDll|x64'">
     <LocalDebuggerWorkingDirectory>$(OutDir)</LocalDebuggerWorkingDirectory>

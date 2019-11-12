@@ -166,13 +166,22 @@ class LargeVerifier {
     };
 
     verifiers_.resize(items_.size());
-    for (int64_t i = 0; i < (int64_t)verifiers_.size(); ++i) {
+
+    //for (int64_t i = 0; i < (int64_t)verifiers_.size(); ++i) {
+    //  auto const& item = items_[i];
+    //  PublicInput this_input(pair_size(item), [&item, this](int64_t j) {
+    //    return public_input_.get_p(item.first + j);
+    //  });
+    //  verifiers_[i].reset(new Verifier(this_input));
+    //}
+    auto parallel_f = [this, &pair_size](int64_t i) mutable {
       auto const& item = items_[i];
       PublicInput this_input(pair_size(item), [&item, this](int64_t j) {
         return public_input_.get_p(item.first + j);
       });
       verifiers_[i].reset(new Verifier(this_input));
-    }
+    };
+    parallel::For((int64_t)verifiers_.size(), parallel_f);
   }
 
   bool Verify(h256_t const& rom_seed, std::function<Fr(int64_t)> get_w,

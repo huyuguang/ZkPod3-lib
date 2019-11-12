@@ -11,54 +11,94 @@ namespace vrs {
 
 class Verifier {
  public:
-  Verifier(PublicInput const& public_input)
-      : public_input_(public_input) {
-    pds_sigma_g_ = ComputePdsSigmaG(public_input_.count);    
+  Verifier(PublicInput const& public_input) : public_input_(public_input) {
+    pds_sigma_g_ = ComputePdsSigmaG(public_input_.count);
     Evaluate();
   }
 
   bool Verify(h256_t const& rom_seed, std::function<Fr(int64_t)> get_w,
               Proof const& proof, VerifyOutput& output) {
-    //Tick tick(__FUNCTION__);
+    // Tick tick(__FUNCTION__);
     using groth09::details::ComputeCommitment;
     auto count = public_input_.count;
 
+    std::vector<parallel::Task> tasks(3);
     // check com_plain
-    G1 const& com_plain = proof.var_coms[0];
-    Fr com_plain_r = FrZero();
-    std::vector<Fr> data(count);
-    for (int64_t i = 0; i < count; ++i) {
-      data[i] = public_input_.get_p(i);      
-    }
-    auto check_value = ComputeCommitment(data, com_plain_r);
-    if (check_value != com_plain) {
-      std::cout << "check_value != com_plain\n";
-      assert(false);
-      return false;
-    }
+    // G1 const& com_plain = proof.var_coms[0];
+    // Fr com_plain_r = FrZero();
+    // std::vector<Fr> data(count);
+    // for (int64_t i = 0; i < count; ++i) {
+    //  data[i] = public_input_.get_p(i);
+    //}
+    // auto check_value = ComputeCommitment(data, com_plain_r);
+    // if (check_value != com_plain) {
+    //  std::cout << "check_value != com_plain\n";
+    //  assert(false);
+    //  return false;
+    //}
+    bool ret_com_plain = false;
+    tasks[0] = [this, &proof, &ret_com_plain, count]() mutable {
+      G1 const& com_plain = proof.var_coms[0];
+      Fr com_plain_r = FrZero();
+      std::vector<Fr> data(count);
+      for (int64_t i = 0; i < count; ++i) {
+        data[i] = public_input_.get_p(i);
+      }
+      auto check_value = ComputeCommitment(data, com_plain_r);
+      ret_com_plain = check_value == com_plain;
+    };
 
     // check hadamard product
-    groth09::sec43::CommitmentPub com_pub_hp;
-    BuildHpCom(proof, com_pub_hp);
-    com_pub_hp.Align();
-    groth09::sec43::VerifierInput input_hp(com_pub_hp);
-    if (!groth09::sec43::RomVerify(proof.proof_hp, rom_seed,
-                                   input_hp)) {
-      std::cout << "groth09::sec43::RomVerify failed\n";
-      assert(false);
-      return false;
-    }
+    // groth09::sec43::CommitmentPub com_pub_hp;
+    // BuildHpCom(proof, com_pub_hp);
+    // com_pub_hp.Align();
+    // groth09::sec43::VerifierInput input_hp(com_pub_hp);
+    // if (!groth09::sec43::RomVerify(proof.proof_hp, rom_seed,
+    //                               input_hp)) {
+    //  std::cout << "groth09::sec43::RomVerify failed\n";
+    //  assert(false);
+    //  return false;
+    //}
+    bool ret_hp = false;
+    tasks[1] = [this, &proof, &ret_hp, &rom_seed]() mutable {
+      groth09::sec43::CommitmentPub com_pub_hp;
+      BuildHpCom(proof, com_pub_hp);
+      com_pub_hp.Align();
+      groth09::sec43::VerifierInput input_hp(com_pub_hp);
+      ret_hp = groth09::sec43::RomVerify(proof.proof_hp, rom_seed, input_hp);
+    };
 
     // check inner product
-    std::vector<Fr> input_w(public_input_.count);
-    for (int64_t i = 0; i < (int64_t)input_w.size(); ++i) {
-      input_w[i] = get_w(i);
-    }
-    hyrax::a2::CommitmentPub com_pub_ip;
-    BuildIpCom(proof, com_pub_ip);
-    hyrax::a2::VerifierInput input_ip(input_w, com_pub_ip);
-    if (!hyrax::a2::RomVerify(proof.proof_ip, rom_seed, input_ip)) {
-      std::cout << "hyrax::a2::RomVerify failed\n";
+    // std::vector<Fr> input_w(count);
+    // for (int64_t i = 0; i < (int64_t)input_w.size(); ++i) {
+    //  input_w[i] = get_w(i);
+    //}
+    // hyrax::a2::CommitmentPub com_pub_ip;
+    // BuildIpCom(proof, com_pub_ip);
+    // hyrax::a2::VerifierInput input_ip(input_w, com_pub_ip);
+    // if (!hyrax::a2::RomVerify(proof.proof_ip, rom_seed, input_ip)) {
+    //  std::cout << "hyrax::a2::RomVerify failed\n";
+    //  assert(false);
+    //  return false;
+    //}
+
+    bool ret_ip = false;
+    tasks[2] = [this, &proof, &ret_ip, count, &get_w, &rom_seed]() mutable {
+      std::vector<Fr> input_w(count);
+      for (int64_t i = 0; i < (int64_t)input_w.size(); ++i) {
+        input_w[i] = get_w(i);
+      }
+      hyrax::a2::CommitmentPub com_pub_ip;
+      BuildIpCom(proof, com_pub_ip);
+      hyrax::a2::VerifierInput input_ip(input_w, com_pub_ip);
+      ret_ip = hyrax::a2::RomVerify(proof.proof_ip, rom_seed, input_ip);
+    };
+
+    parallel::SyncExec(tasks);
+
+    if (!ret_com_plain || !ret_hp || !ret_ip) {
+      std::cout << "ret_com_plain: " << ret_com_plain << ", ret_hp: " << ret_hp
+                << ", ret_ip" << ret_ip << "\n";
       assert(false);
       return false;
     }
@@ -75,7 +115,7 @@ class Verifier {
   int64_t num_constraints() const { return (int64_t)pb_.num_constraints(); }
 
   void Evaluate() {
-    //Tick tick(__FUNCTION__);
+    // Tick tick(__FUNCTION__);
     gadget_.reset(new Mimc5Gadget(pb_));
     pb_.set_input_sizes(primary_input_size_);  // var_plain is public statement
   }
@@ -86,7 +126,7 @@ class Verifier {
   }
 
   void BuildHpCom(Proof const& proof, groth09::sec43::CommitmentPub& com_pub) {
-    //Tick tick(__FUNCTION__);
+    // Tick tick(__FUNCTION__);
     auto m = num_constraints();
     com_pub.a.resize(m);
     G1Zero(com_pub.a);
@@ -96,20 +136,20 @@ class Verifier {
     G1Zero(com_pub.c);
 
     auto constraint_system = pb_.get_constraint_system();
-    auto const& constraints = constraint_system.constraints;    
+    auto const& constraints = constraint_system.constraints;
 
-////#ifdef MULTICORE
-////#pragma omp parallel for
-////#endif
-//    for (int64_t i = 0; i < m; ++i) {
-//      auto& com_pub_a = com_pub.a[i];
-//      auto& com_pub_b = com_pub.b[i];
-//      auto& com_pub_c = com_pub.c[i];
-//      auto const& constraint = constraints[i];
-//      BuildHpCom(constraint.a, com_pub_a, pds_sigma_g_, proof);
-//      BuildHpCom(constraint.b, com_pub_b, pds_sigma_g_, proof);
-//      BuildHpCom(constraint.c, com_pub_c, pds_sigma_g_, proof);
-//    }
+    ////#ifdef MULTICORE
+    ////#pragma omp parallel for
+    ////#endif
+    //    for (int64_t i = 0; i < m; ++i) {
+    //      auto& com_pub_a = com_pub.a[i];
+    //      auto& com_pub_b = com_pub.b[i];
+    //      auto& com_pub_c = com_pub.c[i];
+    //      auto const& constraint = constraints[i];
+    //      BuildHpCom(constraint.a, com_pub_a, pds_sigma_g_, proof);
+    //      BuildHpCom(constraint.b, com_pub_b, pds_sigma_g_, proof);
+    //      BuildHpCom(constraint.c, com_pub_c, pds_sigma_g_, proof);
+    //    }
 
     auto parallel_f = [this, &com_pub, &constraints,
                        &proof](int64_t i) mutable {

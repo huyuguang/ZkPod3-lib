@@ -24,8 +24,8 @@ class Bob {
 
  private:
   void BuildMapping();
-  bool CheckEncryptedM();
-  bool CheckKVW();
+  bool CheckEncryptedM() const;
+  bool CheckKVW() const;
   void DecryptM(std::vector<Fr> const& v);
 
  private:

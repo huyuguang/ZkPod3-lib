@@ -130,7 +130,7 @@ bool Bob<BobData>::OnResponse(Response response, Receipt& receipt) {
 }
 
 template <typename BobData>
-bool Bob<BobData>::CheckEncryptedM() {
+bool Bob<BobData>::CheckEncryptedM() const {
   Tick _tick_(__FUNCTION__);
 
   auto const& sigmas = b_->sigmas();
@@ -172,13 +172,20 @@ bool Bob<BobData>::CheckEncryptedM() {
 }
 
 template <typename BobData>
-bool Bob<BobData>::CheckKVW() {
+bool Bob<BobData>::CheckKVW() const {
   Tick _tick_(__FUNCTION__);
 
-  G1 right = MultiExpU1(s_, [this](uint64_t j) -> Fr const& { return vw_[j]; });
-
-  G1 left = MultiExpBdlo12(k_, w_);
-
+  G1 left, right;
+  std::vector<parallel::Task> tasks(2);
+  tasks[0] = [this,&right]() mutable {
+    right = MultiExpU1(s_, [this](uint64_t j) -> Fr const& { return vw_[j]; });
+  };
+  tasks[1] = [this, &left]() mutable {
+    left = MultiExpBdlo12(k_, w_);
+  };
+  
+  parallel::SyncExec(tasks);
+  
   if (right != left) {
     assert(false);
     std::cerr << "ASSERT: " << __FUNCTION__ << ": " << __LINE__ << "\n";
