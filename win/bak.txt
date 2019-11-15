@@ -59,3 +59,8 @@ void validate(boost::any& v, std::vector<std::string> const& values,
 }  // namespace boost::program_options
 
 // https://stackoverflow.com/questions/994353/static-variable-inside-template-function
+
+tbb install
+https://askubuntu.com/questions/1170054/install-newest-tbb-thread-building-blocks-on-ubuntu-18-04
+https://stackoverflow.com/questions/3181468/how-do-you-install-intel-tbb-on-os-x
+brew install tbb

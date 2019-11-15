@@ -26,9 +26,9 @@ inline thread_local bool in_pool_thread = false;
 
 typedef std::function<void()> Task;
 
-class RecursiveTaskPool {
+class SimpleTaskPool {
  public:
-  RecursiveTaskPool() {
+  SimpleTaskPool() {
     char const* thread_num_env = std::getenv("options:thread_num");  
     size_t thread_num =
         thread_num_env ? std::strtoul(thread_num_env, nullptr, 10) : 0;
@@ -42,7 +42,7 @@ class RecursiveTaskPool {
     }
   }
 
-  ~RecursiveTaskPool() {
+  ~SimpleTaskPool() {
     exit_ = true;
     cv_.notify_all();
     for (auto& t : threads_) {
@@ -52,14 +52,13 @@ class RecursiveTaskPool {
 
   size_t thread_sum() const { return threads_.size(); }
 
-  void PostAndWait(std::vector<Task>& tasks) {
+  void Execute(std::vector<Task>& tasks) {
     if (threads_.empty()) {
-      PostAndWaitSync(tasks);
+      ExecuteSerial(tasks);
     } else if (details::in_pool_thread) {
-      PostAndWaitSync(tasks);
-      //PostAndWaitBySelf(tasks);
+      ExecuteSerial(tasks);
     } else {
-      PostAndWaitByOuter(tasks);
+      ExecuteParallel(tasks);
     }
   }
 
@@ -86,32 +85,23 @@ class RecursiveTaskPool {
     cv_.wait(lock, [this]() { return !tasks_.empty() || exit_; });
   }
 
-  bool WaitNewTaskOrTaskFinished(std::atomic<size_t>& left_count) {
-    std::unique_lock<std::mutex> lock(mutex_);
-    cv_.wait(lock, [this, &left_count]() {
-      return !tasks_.empty() || !left_count;
-    });
-    return left_count == 0;
-  }
-
   bool PopTask(Task& task) {
     std::unique_lock<std::mutex> lock(mutex_);
     if (tasks_.empty()) return false;
-    task = tasks_.front();
-    tasks_.pop_front();
+    task = std::move(tasks_.front());
+    tasks_.pop();
     return true;
   }
 
-  void PushTasks(std::vector<Task>&& tasks, bool front) {
+  void PushTasks(std::vector<Task>&& tasks) {
     std::unique_lock<std::mutex> lock(mutex_);
     for (auto&& i : tasks) {
-      front ? tasks_.emplace_front(std::move(i))
-            : tasks_.emplace_back(std::move(i));
+      tasks_.emplace(std::move(i));
     }
     cv_.notify_all();
   }
 
-  void PostAndWaitByOuter(std::vector<Task>& tasks) {
+  void ExecuteParallel(std::vector<Task>& tasks) {
     assert(!details::in_pool_thread);
 
     struct Context {
@@ -125,7 +115,7 @@ class RecursiveTaskPool {
     std::vector<Task> wrapped_tasks(tasks.size());
     for (size_t i = 0; i < tasks.size(); ++i) {
       auto& task = tasks[i];
-      wrapped_tasks[i] = [&task, context]() mutable {
+      wrapped_tasks[i] = [&task, context]() {
         task();
         std::unique_lock<std::mutex> lock(context->mutex);
         if (0 == --context->left_count) {
@@ -134,45 +124,15 @@ class RecursiveTaskPool {
       };
     }
 
-    PushTasks(std::move(wrapped_tasks), false);
+    PushTasks(std::move(wrapped_tasks));
 
-    if (context->left_count) {
-      std::unique_lock<std::mutex> lock(context->mutex);
-      context->cv.wait(lock, [context]() { return !context->left_count; });
-    }
+    std::unique_lock<std::mutex> lock(context->mutex);
+    context->cv.wait(lock, [context]() { return !context->left_count; });
   }
 
-  void PostAndWaitSync(std::vector<Task>& tasks) {
+  void ExecuteSerial(std::vector<Task>& tasks) {
     for (auto& t : tasks) {
       t();
-    }
-  }
-
-  void PostAndWaitBySelf(std::vector<Task>& tasks) {
-    assert(details::in_pool_thread);
-    std::atomic<size_t> left_count = tasks.size();
-    std::vector<Task> wrapped_tasks(tasks.size());
-    for (size_t i = 0; i < tasks.size(); ++i) {
-      auto& task = tasks[i];
-      wrapped_tasks[i] = [this, &task, &left_count]() mutable {
-        task();
-        std::unique_lock<std::mutex> lock(mutex_);
-        if (0 == --left_count) {
-          cv_.notify_all(); // NOTE: here use cv_ and mutex_
-        }
-      };
-    }
-
-    PushTasks(std::move(wrapped_tasks), false);//true);
-
-    Task current_task;
-    for (;;) {
-      if (!left_count) break;
-      if (PopTask(current_task)) {
-        current_task();
-      } else {
-        if (WaitNewTaskOrTaskFinished(left_count)) break;
-      }
     }
   }
 
@@ -180,7 +140,7 @@ class RecursiveTaskPool {
   std::vector<std::thread> threads_;
   std::mutex mutex_;
   std::condition_variable cv_;
-  std::deque<Task> tasks_;
+  std::queue<Task> tasks_;
   std::atomic<bool> exit_{false};
 };
 

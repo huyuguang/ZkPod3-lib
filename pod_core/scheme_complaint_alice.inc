@@ -96,7 +96,7 @@ bool Alice<AliceData>::OnRequest(Request request, Response& response) {
       response.m[ij] = v_[ij] + w_[i] * m[m_ij];
     }
   };
-  parallel::For((int64_t)mappings_.size(), parallel_f, "");
+  parallel::For((int64_t)mappings_.size(), parallel_f);
 
   return true;
 }

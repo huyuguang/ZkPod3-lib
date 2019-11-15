@@ -190,7 +190,7 @@ inline bool LoadSigma(std::string const& input, uint64_t n, h256_t const* root,
     auto parallel_f = [start, &sigmas](int64_t i) mutable {
       sigmas[i] = BinToG1(start + i * kG1CompBinSize);
     };
-    parallel::For((int64_t)n, parallel_f, "BinToG1");
+    parallel::For((int64_t)n, parallel_f);
     return true;
   } catch (std::exception&) {
     assert(false);
@@ -263,7 +263,7 @@ inline std::vector<G1> CalcSigma(std::vector<Fr> const& m, uint64_t n,
     Fr const* mi0 = &m[is];
     sigma = MultiExpBdlo12(u1.data(), mi0, s);
   };
-  parallel::For((int64_t)n, parallel_f, "MultiExpBdlo12");
+  parallel::For((int64_t)n, parallel_f);
   return sigmas;
 }
 
@@ -392,7 +392,7 @@ inline void BuildK(std::vector<Fr> const& v, std::vector<G1>& k, uint64_t s) {
     k[i] = MultiExpU1(s, [vi0](uint64_t j) -> Fr const& { return vi0[j]; });
     k[i].normalize();
   };
-  parallel::For(n, parallel_f, "BuildK");
+  parallel::For(n, parallel_f);
 }
 
 inline h256_t CalcSeed2(std::vector<h256_t> const& h) {

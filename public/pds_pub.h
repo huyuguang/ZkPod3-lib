@@ -80,7 +80,7 @@ class PdsPub : boost::noncopyable {
     auto parallel_f = [this](int64_t i) mutable {
       GenerateG1(i, &g_[i]);
     };
-    parallel::For((int64_t)kGSize, parallel_f, "GenerateG1");
+    parallel::For((int64_t)kGSize, parallel_f);
   }
 
   void SaveInternal(std::string const& file) {

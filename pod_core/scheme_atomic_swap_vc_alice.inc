@@ -94,7 +94,7 @@ bool Alice<AliceData>::OnRequest(Request request, Response& response) {
   auto parallel_f = [&plain, &response](uint64_t i) mutable {
     plain[i] = vrs::GeneratePlain(response.vrs_plain_seed, i);
   };
-  parallel::For(plain.size(), parallel_f, "GeneratePlain");
+  parallel::For(plain.size(), parallel_f);
 
   vrs::PublicInput public_input(plain.size(),
                                 [&plain](int64_t i) { return plain[i]; });
@@ -147,7 +147,7 @@ bool Alice<AliceData>::OnRequest(Request request, Response& response) {
       response.m[ij] = v_[ij] + w_[i] * m[m_ij];
     }
   };
-  parallel::For(mappings_.size(), parallel_f2, "Encrypt m");
+  parallel::For(mappings_.size(), parallel_f2);
 
   response.vw.resize(s_);
   auto parallel_f3 = [this, &response](int64_t j) mutable {
@@ -156,7 +156,7 @@ bool Alice<AliceData>::OnRequest(Request request, Response& response) {
       response.vw[j] += v_[i * s_ + j] * w_[i];
     }
   };
-  parallel::For(s_, parallel_f3, "response.vw");
+  parallel::For(s_, parallel_f3);
 
   //for (size_t j = 0; j < s_; ++j) {
   //  response.vw[j] = FrZero();
@@ -177,7 +177,7 @@ bool Alice<AliceData>::OnRequest(Request request, Response& response) {
 
 #ifdef _DEBUG
   if (!evil_) {
-    assert(std::accumulate(response.vw.begin(), response.vw.end(), FrZero()) ==
+    assert(parallel::Accumulate(response.vw.begin(), response.vw.end(), FrZero()) ==
            prover.vw());
   }
 #endif

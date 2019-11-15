@@ -95,6 +95,11 @@ LIBS := \
  -lboost_iostreams \
  -lboost_program_options \
 
+ifdef USE_TBB
+LIBS += -ltbb
+CXXFLAGS += -DUSE_TBB
+endif
+
 ifeq ($(OS_TYPE),Darwin)
   TMPVAR := $(CXXFLAGS)
   CXXFLAGS := $(filter-out -fopenmp, $(TMPVAR))

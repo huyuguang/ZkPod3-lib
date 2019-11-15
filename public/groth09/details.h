@@ -10,11 +10,11 @@
 
 #include "../ecc.h"
 #include "../ecc_pub.h"
-#include "../pds_pub.h"
 #include "../misc.h"
 #include "../multiexp.h"
-#include "../tick.h"
 #include "../parallel.h"
+#include "../pds_pub.h"
+#include "../tick.h"
 #include "hyrax/hyrax.h"
 
 namespace groth09::details {
@@ -51,8 +51,7 @@ inline void HashUpdate(CryptoPP::Keccak_256& hash, std::vector<Fr> const& d) {
   }
 }
 
-inline G1 ComputeCommitment(std::vector<Fr> const& x,
-                            Fr const& r) {
+inline G1 ComputeCommitment(std::vector<Fr> const& x, Fr const& r) {
   auto const& pds_pub = GetPdsPub();
   // Tick tick(__FUNCTION__, std::to_string(x.size()));
   assert(PdsPub::kGSize >= x.size());
@@ -63,14 +62,13 @@ inline G1 ComputeCommitment(std::vector<Fr> const& x,
   return MultiExpBdlo12Inner<G1>(get_g, get_f, x.size() + 1);
 }
 
-inline G1 ComputeCommitment(Fr const& x,
-                            Fr const& r) {
+inline G1 ComputeCommitment(Fr const& x, Fr const& r) {
   return ComputeCommitment(std::vector<Fr>{x}, r);
 }
 
 inline void ComputePowOfE(Fr const& e, int64_t m, std::vector<Fr>& vec,
                           std::vector<Fr>& rev) {
-  //Tick tick(__FUNCTION__, std::to_string(m));
+  // Tick tick(__FUNCTION__, std::to_string(m));
   vec.resize(m * 2 - 1);
   rev.resize(m);
 
@@ -87,13 +85,11 @@ inline void HadamardProduct(std::vector<Fr>& c, std::vector<Fr> const& a,
                             std::vector<Fr> const& b) {
   assert(a.size() == b.size());
   c.resize(a.size());
-  //for (size_t i = 0; i < a.size(); ++i) {
+  // for (size_t i = 0; i < a.size(); ++i) {
   //  c[i] = a[i] * b[i];
   //}
-  auto parallel_f = [&c,&a,&b](size_t i) mutable {
-    c[i] = a[i] * b[i];
-  };
-  parallel::For(a.size(), parallel_f, "HadamardProduct");
+  auto parallel_f = [&c, &a, &b](size_t i) mutable { c[i] = a[i] * b[i]; };
+  parallel::For(a.size(), parallel_f, a.size() < 16 * 1024);
 }
 
 inline std::vector<Fr> HadamardProduct(std::vector<Fr> const& a,
@@ -115,13 +111,11 @@ inline void PrintVector(std::vector<Fr> const& a) {
 inline void VectorMul(std::vector<Fr>& c, std::vector<Fr> const& a,
                       Fr const& b) {
   c.resize(a.size());
-  //for (size_t i = 0; i < a.size(); ++i) {
+  // for (size_t i = 0; i < a.size(); ++i) {
   //  c[i] = a[i] * b;
   //}
-  auto parallel_f = [&c,&a,&b](size_t i) mutable {
-    c[i] = a[i] * b;
-  };
-  parallel::For(a.size(), parallel_f, "VectorMul");
+  auto parallel_f = [&c, &a, &b](size_t i) mutable { c[i] = a[i] * b; };
+  parallel::For(a.size(), parallel_f, a.size() < 16 * 1024);
 }
 
 inline void VectorAdd(std::vector<Fr>& c, std::vector<Fr> const& a,

@@ -50,7 +50,7 @@ class Prover {
   // We need to compute the plain and v even have cache because we can not cache
   // the v (too large)
   void Evaluate() {
-    //Tick tick(__FUNCTION__);
+    // Tick tick(__FUNCTION__);
     auto count = public_input_.count;
     for (int64_t i = 0; i < count; ++i) {
       auto plain = public_input_.get_p(i);
@@ -63,7 +63,7 @@ class Prover {
 
   void Prove(h256_t const& rom_seed, std::function<Fr(int64_t)> get_w,
              Proof& proof, ProveOutput& output) {
-    //Tick tick(__FUNCTION__);
+    // Tick tick(__FUNCTION__);
 
     BuildVarComs();
     HpProve(rom_seed, proof.proof_hp);
@@ -96,17 +96,18 @@ class Prover {
   }
 
   void ComputeVarComs() {
-    //Tick tick(__FUNCTION__);
+    // Tick tick(__FUNCTION__);
     using groth09::details::ComputeCommitment;
     auto count = public_input_.count;
     var_coms_.resize(num_variables());
     var_coms_r_.resize(var_coms_.size());
-    // std::cout << "commitment: " << var_coms_.size() << " * " << count << "\n";
-    
-    //for (int64_t i = 0; i < (int64_t)var_coms_.size(); ++i) {
+    // std::cout << "commitment: " << var_coms_.size() << " * " << count <<
+    // "\n";
+
+    // for (int64_t i = 0; i < (int64_t)var_coms_.size(); ++i) {
     //  std::vector<Fr> data(count);
     //  auto& var_com = var_coms_[i];
-    //  auto& var_com_r = var_coms_r_[i];      
+    //  auto& var_com_r = var_coms_r_[i];
     //  for (int64_t j = 0; j < count; ++j) {
     //    data[j] = values_[j][i];
     //  }
@@ -123,7 +124,7 @@ class Prover {
     auto parallel_f = [this, count](int64_t i) mutable {
       std::vector<Fr> data(count);
       auto& var_com = var_coms_[i];
-      auto& var_com_r = var_coms_r_[i];      
+      auto& var_com_r = var_coms_r_[i];
       for (int64_t j = 0; j < count; ++j) {
         data[j] = values_[j][i];
       }
@@ -140,7 +141,7 @@ class Prover {
   }
 
   groth09::sec43::ProverInput BuildHpInput() {
-    //Tick tick(__FUNCTION__);
+    // Tick tick(__FUNCTION__);
     auto m = num_constraints();
     auto n = public_input_.count;
     std::vector<std::vector<Fr>> x(m);
@@ -149,7 +150,7 @@ class Prover {
     for (auto& i : x) i.resize(n);
     for (auto& i : y) i.resize(n);
     for (auto& i : z) i.resize(n);
-    //std::cout << "sec43: " << m << "*" << n << "\n";
+    // std::cout << "sec43: " << m << "*" << n << "\n";
 
     auto constraint_system = pb_->get_constraint_system();
     auto const& constraints = constraint_system.constraints;
@@ -157,7 +158,7 @@ class Prover {
     ////#ifdef MULTICORE
     ////#pragma omp parallel for
     ////#endif
-    //for (int64_t j = 0; j < n; ++j) {
+    // for (int64_t j = 0; j < n; ++j) {
     //  auto const& values = values_[j];
     //  for (int64_t i = 0; i < m; ++i) {
     //    auto const& constraint = constraints[i];
@@ -189,7 +190,7 @@ class Prover {
 
   void BuildHpCom(groth09::sec43::CommitmentPub& com_pub,
                   groth09::sec43::CommitmentSec& com_sec) {
-    //Tick tick(__FUNCTION__);
+    // Tick tick(__FUNCTION__);
     auto m = num_constraints();
     com_pub.a.resize(m);
     G1Zero(com_pub.a);
@@ -210,7 +211,7 @@ class Prover {
     ////#ifdef MULTICORE
     ////#pragma omp parallel for
     ////#endif
-    //for (int64_t i = 0; i < m; ++i) {
+    // for (int64_t i = 0; i < m; ++i) {
     //  auto& com_pub_a = com_pub.a[i];
     //  auto& com_pub_b = com_pub.b[i];
     //  auto& com_pub_c = com_pub.c[i];
@@ -286,7 +287,7 @@ class Prover {
   }
 
   void HpProve(h256_t const& rom_seed, groth09::sec43::RomProof& rom_proof) {
-    //Tick tick(__FUNCTION__);
+    // Tick tick(__FUNCTION__);
     auto input = BuildHpInput();
     groth09::sec43::CommitmentPub com_pub;
     groth09::sec43::CommitmentSec com_sec;
@@ -303,7 +304,7 @@ class Prover {
 
   void IpProve(h256_t const& rom_seed, std::function<Fr(int64_t)> get_w,
                hyrax::a2::RomProof& rom_proof) {
-    //Tick tick(__FUNCTION__);
+    // Tick tick(__FUNCTION__);
     using groth09::details::ComputeCommitment;
     std::vector<Fr> input_w(public_input_.count);
     for (int64_t i = 0; i < public_input_.count; ++i) {

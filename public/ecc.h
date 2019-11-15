@@ -21,8 +21,8 @@
 
 #include "basic_types.h"
 #include "msvc_hack.h"
-#include "rng.h"
 #include "parallel.h"
+#include "rng.h"
 
 #ifdef _WIN32
 #pragma warning(pop)
@@ -91,56 +91,55 @@ inline Fr FrRand() {
 inline void FrRand(Fr* r, size_t n) {
   std::vector<uint8_t> h(n * 32);
 
-//#ifdef MULTICORE
-//#pragma omp parallel for
-//#endif
-//  for (int64_t i = 0; i < 4; ++i) {
-//    tls_rng.GenerateBlock(h.data() + 8 * i * n, 8 * n);
-//  }
-  auto parallel_f = [&h,n](int64_t i) mutable {
+  //#ifdef MULTICORE
+  //#pragma omp parallel for
+  //#endif
+  //  for (int64_t i = 0; i < 4; ++i) {
+  //    tls_rng.GenerateBlock(h.data() + 8 * i * n, 8 * n);
+  //  }
+  auto parallel_f = [&h, n](int64_t i) mutable {
     tls_rng.GenerateBlock(h.data() + 8 * i * n, 8 * n);
   };
-  parallel::For(4LL, parallel_f, "GenerateBlock");
+  parallel::For(4LL, parallel_f);
 
-//#ifdef MULTICORE
-//#pragma omp parallel for
-//#endif
-//  for (int64_t i = 0; i < (int64_t)n; ++i) {
-//    r[i].setArrayMask(h.data() + i * 32, 32);
-//  }
+  //#ifdef MULTICORE
+  //#pragma omp parallel for
+  //#endif
+  //  for (int64_t i = 0; i < (int64_t)n; ++i) {
+  //    r[i].setArrayMask(h.data() + i * 32, 32);
+  //  }
 
   auto parallel_f2 = [&h, r](int64_t i) mutable {
     r[i].setArrayMask(h.data() + i * 32, 32);
   };
-  parallel::For((int64_t)n, parallel_f2, "setArrayMask");
-
+  parallel::For((int64_t)n, parallel_f2);
 }
 
 inline void FrRand(std::vector<Fr*>& f) {
   auto n = f.size();
   std::vector<uint8_t> h(n * 32);
-//#ifdef MULTICORE
-//#pragma omp parallel for
-//#endif
-//  for (int64_t i = 0; i < 4; ++i) {
-//    tls_rng.GenerateBlock(h.data() + 8 * i * n, 8 * n);
-//  }
+  //#ifdef MULTICORE
+  //#pragma omp parallel for
+  //#endif
+  //  for (int64_t i = 0; i < 4; ++i) {
+  //    tls_rng.GenerateBlock(h.data() + 8 * i * n, 8 * n);
+  //  }
 
-  auto parallel_f = [&h,n](int64_t i) mutable {
+  auto parallel_f = [&h, n](int64_t i) mutable {
     tls_rng.GenerateBlock(h.data() + 8 * i * n, 8 * n);
   };
-  parallel::For(4LL, parallel_f, "GenerateBlock");
+  parallel::For(4LL, parallel_f);
 
-//#ifdef MULTICORE
-//#pragma omp parallel for
-//#endif
-//  for (int64_t i = 0; i < (int64_t)f.size(); ++i) {
-//    f[i]->setArrayMask(h.data() + i * 32, 32);
-//  }
+  //#ifdef MULTICORE
+  //#pragma omp parallel for
+  //#endif
+  //  for (int64_t i = 0; i < (int64_t)f.size(); ++i) {
+  //    f[i]->setArrayMask(h.data() + i * 32, 32);
+  //  }
   auto parallel_f2 = [&h, &f](int64_t i) mutable {
     f[i]->setArrayMask(h.data() + i * 32, 32);
   };
-  parallel::For((int64_t)n, parallel_f2, "setArrayMask");
+  parallel::For((int64_t)n, parallel_f2);
 }
 
 inline Fr FrInv(Fr const& r) {
@@ -393,11 +392,15 @@ inline G1 MultiExp(G1 const* g, Fr const* a, G1 const* h, Fr const* b,
 }
 
 inline Fr InnerProduct(Fr const* a, Fr const* b, size_t n) {
-  Fr ret = FrZero();
-  for (size_t i = 0; i < n; ++i) {
-    ret += a[i] * b[i];
-  }
-  return ret;
+  // Fr ret = FrZero();
+  // for (size_t i = 0; i < n; ++i) {
+  //  ret += a[i] * b[i];
+  //}
+  // return ret;
+  std::vector<Fr> rets(n);
+  auto parallel_f = [&rets, a, b](int64_t i) { rets[i] = a[i] * b[i]; };
+  parallel::For(n, parallel_f, n < 16 * 1024);
+  return parallel::Accumulate(rets.begin(), rets.end(), FrZero());
 }
 
 inline Fr InnerProduct(std::vector<Fr> const& a, std::vector<Fr> const& b) {
@@ -407,11 +410,17 @@ inline Fr InnerProduct(std::vector<Fr> const& a, std::vector<Fr> const& b) {
 
 inline Fr InnerProduct(std::function<Fr(size_t)> const& get_a,
                        std::function<Fr(size_t)> const& get_b, size_t n) {
-  Fr ret = FrZero();
-  for (size_t i = 0; i < n; ++i) {
-    ret += get_a(i) * get_b(i);
-  }
-  return ret;
+  // Fr ret = FrZero();
+  // for (size_t i = 0; i < n; ++i) {
+  //  ret += get_a(i) * get_b(i);
+  //}
+  // return ret;
+  std::vector<Fr> rets(n);
+  auto parallel_f = [&rets, &get_a, &get_b](size_t i) {
+    rets[i] = get_a(i) * get_b(i);
+  };
+  parallel::For(n, parallel_f, n < 16 * 1024);
+  return parallel::Accumulate(rets.begin(), rets.end(), FrZero());
 }
 
 inline Fr StrHashToFr(std::string const& s) {

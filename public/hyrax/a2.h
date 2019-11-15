@@ -149,7 +149,7 @@ inline bool VerifyInternal(VerifierInput const& input, Fr const& challenge,
     G1 right = ComputeCommitment(ip_za, proof.z_beta);
     ret2 = left == right;
   };
-  parallel::SyncExec(tasks);
+  parallel::Invoke(tasks, true);
 
   assert(ret1 && ret2);
   return ret1 && ret2;
@@ -162,8 +162,16 @@ inline void ComputeCom(CommitmentPub& com_pub, CommitmentSec& com_sec,
   using details::ComputeCommitment;
   com_sec.r_xi = FrRand();
   com_sec.r_tau = FrRand();
-  com_pub.xi = ComputeCommitment(input.x, com_sec.r_xi);
-  com_pub.tau = ComputeCommitment(input.y, com_sec.r_tau);
+  //com_pub.xi = ComputeCommitment(input.x, com_sec.r_xi);
+  //com_pub.tau = ComputeCommitment(input.y, com_sec.r_tau);
+  std::vector<parallel::Task> tasks(2);
+  tasks[0] = [&com_pub,&input,&com_sec]() {
+    com_pub.xi = ComputeCommitment(input.x, com_sec.r_xi);
+  };
+  tasks[1] = [&com_pub, &input, &com_sec]() {
+    com_pub.tau = ComputeCommitment(input.y, com_sec.r_tau);
+  };
+  parallel::Invoke(tasks, true);
   //std::cout << Tick::GetIndentString() << "multiexp(" << input.n() << ")\n";
 }
 
@@ -178,9 +186,19 @@ inline void ComputeCommitmentExt(CommitmentExtPub& com_ext_pub,
   FrRand(com_ext_sec.d.data(), n);
   com_ext_sec.r_beta = FrRand();
   com_ext_sec.r_delta = FrRand();
-  com_ext_pub.delta = ComputeCommitment(com_ext_sec.d, com_ext_sec.r_delta);
-  com_ext_pub.beta = ComputeCommitment(InnerProduct(input.a, com_ext_sec.d),
-                                       com_ext_sec.r_beta);
+  //com_ext_pub.delta = ComputeCommitment(com_ext_sec.d, com_ext_sec.r_delta);
+  //com_ext_pub.beta = ComputeCommitment(InnerProduct(input.a, com_ext_sec.d),
+  //                                     com_ext_sec.r_beta);
+  std::vector<parallel::Task> tasks(2);
+  tasks[0] = [&com_ext_pub,&com_ext_sec]() {
+    com_ext_pub.delta = ComputeCommitment(com_ext_sec.d, com_ext_sec.r_delta);
+  };
+  tasks[1] = [&com_ext_pub, &input, &com_ext_sec]() {
+    com_ext_pub.beta = ComputeCommitment(InnerProduct(input.a, com_ext_sec.d),
+                                         com_ext_sec.r_beta);
+  };
+  parallel::Invoke(tasks, true);
+
   //std::cout << Tick::GetIndentString() << "multiexp(" << input.n() << ")\n";
 }
 

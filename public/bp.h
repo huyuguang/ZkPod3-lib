@@ -308,7 +308,7 @@ P2Proof P2Prove(P1Committment const& p1_committment, GET_G const& get_g,
     tasks[1] = [&R, &g, &a, &h, &b, nn]() mutable {
       R = MultiExpGH(&g[0], &a[nn], &h[nn], &b[0], nn);
     };
-    parallel::SyncExec(tasks);
+    parallel::Invoke(tasks);
 
     if (!zero_u) {
       auto CL = InnerProduct(&a[0], &b[nn], nn);
@@ -328,7 +328,7 @@ P2Proof P2Prove(P1Committment const& p1_committment, GET_G const& get_g,
     auto parallel_f = [&x_inverse, &gg, &g, &x, nn](int64_t i) mutable {
       gg[i] = MultiExp(g[i], x_inverse, g[nn + i], x);
     };
-    parallel::For((int64_t)nn, parallel_f, "");
+    parallel::For((int64_t)nn, parallel_f);
 
     std::vector<G1> hh;
     hh.resize(nn);
@@ -341,7 +341,7 @@ P2Proof P2Prove(P1Committment const& p1_committment, GET_G const& get_g,
     auto parallel_f2 = [&x_inverse, &hh, &h, &x, nn](int64_t i) mutable {
       hh[i] = MultiExp(h[i], x, h[nn + i], x_inverse);
     };
-    parallel::For((int64_t)nn, parallel_f2, "");
+    parallel::For((int64_t)nn, parallel_f2);
 
     auto pp = p + MultiExp(L, x_square, R, x_square_inverse);
 
@@ -356,7 +356,7 @@ P2Proof P2Prove(P1Committment const& p1_committment, GET_G const& get_g,
     auto parallel_f3 = [&aa, &a, &x_inverse, &x, nn](int64_t i) mutable {
       aa[i] = a[i] * x + a[nn + i] * x_inverse;
     };
-    parallel::For((int64_t)nn, parallel_f3, "");
+    parallel::For((int64_t)nn, parallel_f3);
 
     std::vector<Fr> bb;
     bb.resize(nn);
@@ -369,7 +369,7 @@ P2Proof P2Prove(P1Committment const& p1_committment, GET_G const& get_g,
     auto parallel_f4 = [&bb, &b, &x_inverse, &x, nn](int64_t i) mutable {
       bb[i] = b[i] * x_inverse + b[nn + i] * x;
     };
-    parallel::For((int64_t)nn, parallel_f4, "");
+    parallel::For((int64_t)nn, parallel_f4);
 
     g.swap(gg);
     h.swap(hh);
@@ -455,7 +455,7 @@ bool P2Verify(P1Committment const& p1_committment, GET_G const& get_g,
     }
     Fr::inv(ss_inverse[i], ss[i]);
   };
-  parallel::For((int64_t)g_count, parallel_f, "");
+  parallel::For((int64_t)g_count, parallel_f);
 
   G1 last_g, last_h;
 
@@ -481,7 +481,7 @@ bool P2Verify(P1Committment const& p1_committment, GET_G const& get_g,
   tasks[1] = [&last_h, &h, &ss_inverse, g_count]() mutable {
     last_h = MultiExpBdlo12(&h[0], &ss_inverse[0], g_count);
   };
-  parallel::SyncExec(tasks);
+  parallel::Invoke(tasks);
 
   G1 out = MultiExp(last_g, p2_proof.a, last_h, p2_proof.b);
 

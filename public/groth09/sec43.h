@@ -81,17 +81,18 @@ class ProverInput {
   std::vector<Fr> const& y(size_t i) const { return y_[i]; }
   std::vector<std::vector<Fr>> const& z() const { return z_; }
   std::vector<Fr> const& z(size_t i) const { return z_[i]; }
-  void Take(std::vector<std::vector<Fr>>& x,std::vector<std::vector<Fr>>& y,
+  void Take(std::vector<std::vector<Fr>>& x, std::vector<std::vector<Fr>>& y,
             std::vector<std::vector<Fr>>& z) {
     x = std::move(x_);
     y = std::move(y_);
     z = std::move(z_);
   }
+
  public:
   ProverInput(std::vector<std::vector<Fr>> x, std::vector<std::vector<Fr>> y,
               std::vector<std::vector<Fr>> z)
       : x_(std::move(x)), y_(std::move(y)), z_(std::move(z)) {
-    //Tick tick(__FUNCTION__);
+    // Tick tick(__FUNCTION__);
     assert(!x_.empty());
     assert(x_.size() == y_.size());
     assert(x_.size() == z_.size());
@@ -104,7 +105,7 @@ class ProverInput {
 
   // pad some trivial value
   void Align() {
-    //Tick tick(__FUNCTION__);
+    // Tick tick(__FUNCTION__);
     int64_t old_m = m();
     int64_t new_m = (int64_t)misc::Pow2UB(old_m);
     if (old_m == new_m) return;
@@ -129,9 +130,9 @@ class ProverInput {
 
 inline void ComputeCom(CommitmentPub& com_pub, CommitmentSec& com_sec,
                        ProverInput const& input) {
-  //Tick tick(__FUNCTION__);
+  // Tick tick(__FUNCTION__);
   auto const m = input.m();
-  //auto const n = input.n();
+  // auto const n = input.n();
   com_sec.r.resize(m);
   FrRand(com_sec.r.data(), m);
 
@@ -146,24 +147,25 @@ inline void ComputeCom(CommitmentPub& com_pub, CommitmentSec& com_sec,
   com_pub.b.resize(m);
   com_pub.c.resize(m);
 
-  //std::cout << Tick::GetIndentString() << 3 * m << " multiexp(" << n << ")\n";
+  // std::cout << Tick::GetIndentString() << 3 * m << " multiexp(" << n <<
+  // ")\n";
 
-////#ifdef MULTICORE
-////#pragma omp parallel for
-////#endif
-//  for (int64_t i = 0; i < m; ++i) {
-//    auto const& r = com_sec.r[i];
-//    auto const& s = com_sec.s[i];
-//    auto const& t = com_sec.t[i];
-//    auto const& x = input.x(i);
-//    auto const& y = input.y(i);
-//    auto const& z = input.z(i);
-//    com_pub.a[i] = ComputeCommitment(x, r);
-//    com_pub.b[i] = ComputeCommitment(y, s);
-//    com_pub.c[i] = ComputeCommitment(z, t);
-//  }
+  ////#ifdef MULTICORE
+  ////#pragma omp parallel for
+  ////#endif
+  //  for (int64_t i = 0; i < m; ++i) {
+  //    auto const& r = com_sec.r[i];
+  //    auto const& s = com_sec.s[i];
+  //    auto const& t = com_sec.t[i];
+  //    auto const& x = input.x(i);
+  //    auto const& y = input.y(i);
+  //    auto const& z = input.z(i);
+  //    com_pub.a[i] = ComputeCommitment(x, r);
+  //    com_pub.b[i] = ComputeCommitment(y, s);
+  //    com_pub.c[i] = ComputeCommitment(z, t);
+  //  }
 
-  auto parallel_f = [&com_sec,&com_pub, &input](int64_t i) mutable {
+  auto parallel_f = [&com_sec, &com_pub, &input](int64_t i) mutable {
     auto const& r = com_sec.r[i];
     auto const& s = com_sec.s[i];
     auto const& t = com_sec.t[i];
@@ -174,11 +176,11 @@ inline void ComputeCom(CommitmentPub& com_pub, CommitmentSec& com_sec,
     com_pub.b[i] = ComputeCommitment(y, s);
     com_pub.c[i] = ComputeCommitment(z, t);
   };
-  parallel::For(m, parallel_f, "ComputeCom");
+  parallel::For(m, parallel_f);
 }
 
 inline void UpdateSeed(h256_t& seed, CommitmentPub const& com_pub) {
-  //Tick tick(__FUNCTION__);
+  // Tick tick(__FUNCTION__);
   using details::HashUpdate;
   CryptoPP::Keccak_256 hash;
   HashUpdate(hash, seed);
@@ -194,7 +196,16 @@ inline void ComputeChallengeKT(h256_t const& seed, std::vector<Fr>& k,
   assert(!k.empty() && !t.empty());
 
   const int64_t kConstK = 0x123456789abcdef0LL;
-  for (size_t i = 0; i < k.size(); ++i) {
+  // for (size_t i = 0; i < k.size(); ++i) {
+  //  CryptoPP::Keccak_256 hash;
+  //  h256_t digest;
+  //  HashUpdate(hash, seed);
+  //  HashUpdate(hash, "challenge k ");
+  //  HashUpdate(hash, kConstK + i);
+  //  hash.Final(digest.data());
+  //  k[i] = H256ToFr(digest);
+  //}
+  auto parallel_f = [&seed, &k, &kConstK](int64_t i) {
     CryptoPP::Keccak_256 hash;
     h256_t digest;
     HashUpdate(hash, seed);
@@ -202,10 +213,20 @@ inline void ComputeChallengeKT(h256_t const& seed, std::vector<Fr>& k,
     HashUpdate(hash, kConstK + i);
     hash.Final(digest.data());
     k[i] = H256ToFr(digest);
-  }
+  };
+  parallel::For(k.size(), parallel_f, k.size() < 16 * 1024);
 
   const int64_t kConstT = 0xabcdef1011121314LL;
-  for (size_t i = 0; i < t.size(); ++i) {
+  // for (size_t i = 0; i < t.size(); ++i) {
+  //  CryptoPP::Keccak_256 hash;
+  //  h256_t digest;
+  //  HashUpdate(hash, seed);
+  //  HashUpdate(hash, "challenge t ");
+  //  HashUpdate(hash, kConstT + i);
+  //  hash.Final(digest.data());
+  //  t[i] = H256ToFr(digest);
+  //}
+  auto parallel_f2 = [&seed, &t, &kConstT](int64_t i) {
     CryptoPP::Keccak_256 hash;
     h256_t digest;
     HashUpdate(hash, seed);
@@ -213,26 +234,23 @@ inline void ComputeChallengeKT(h256_t const& seed, std::vector<Fr>& k,
     HashUpdate(hash, kConstT + i);
     hash.Final(digest.data());
     t[i] = H256ToFr(digest);
-  }
+  };
+  parallel::For(t.size(), parallel_f2, t.size() < 16 * 1024);
 }
 
 // pad some trivial value
 inline void AlignData(ProverInput& input, CommitmentPub& com_pub,
                       CommitmentSec& com_sec) {
-  //Tick tick(__FUNCTION__);
+  // Tick tick(__FUNCTION__);
   input.Align();
   com_pub.Align();
   com_sec.Align();
 }
 
-inline void RomProve53() {}
-inline void RomProveHy() {}
-
-inline void RomProve(RomProof& rom_proof,
-                     h256_t const& rom_seed, ProverInput input,
-                     CommitmentPub com_pub,
+inline void RomProve(RomProof& rom_proof, h256_t const& rom_seed,
+                     ProverInput input, CommitmentPub com_pub,
                      CommitmentSec com_sec) {
-  //Tick tick(__FUNCTION__);
+  // Tick tick(__FUNCTION__);
   using details::ComputeCommitment;
   auto m = input.m();
   auto n = input.n();
@@ -253,26 +271,26 @@ inline void RomProve(RomProof& rom_proof,
   input.Take(input_x, input_y, input_z);
 
   {
-    //Tick tick53(" prepare for sec53");
+    // Tick tick53(" prepare for sec53");
 
     sec53::CommitmentSec com_sec_53;
     sec53::CommitmentPub com_pub_53;
     std::vector<std::vector<Fr>> x_53(m);
 
-    //for (int64_t i = 0; i < m; ++i) {
+    // for (int64_t i = 0; i < m; ++i) {
     //  details::VectorMul(input_x[i], input_x[i], k[i]);
     //}
-    auto parallel_f = [&input_x,&k](int64_t i) mutable {
+    auto parallel_f = [&input_x, &k](int64_t i) mutable {
       details::VectorMul(input_x[i], input_x[i], k[i]);
     };
-    parallel::For(m, parallel_f);
+    parallel::For(m, parallel_f, m < 1024);
 
     sec53::ProverInput input_53(std::move(input_x), std::move(input_y), &t);
     input_53_z = input_53.z();
 
     com_sec_53.r.resize(m);
     com_pub_53.a.resize(m);
-    //for (int64_t i = 0; i < m; ++i) {
+    // for (int64_t i = 0; i < m; ++i) {
     //  com_sec_53.r[i] = com_sec.r[i] * k[i];
     //  com_pub_53.a[i] = com_pub.a[i] * k[i];
     //}
@@ -281,15 +299,14 @@ inline void RomProve(RomProof& rom_proof,
       com_sec_53.r[i] = com_sec.r[i] * k[i];
       com_pub_53.a[i] = com_pub.a[i] * k[i];
     };
-    parallel::For(m, parallel_f2);
+    parallel::For(m, parallel_f2, m < 16 * 1024);
 
     com_sec_53.s = com_sec.s;
     com_sec_53.t = FrRand();
     com_sec_53_t = com_sec_53.t;
 
     com_pub_53.b = com_pub.b;
-    com_pub_53.c =
-        details::ComputeCommitment(input_53_z, com_sec_53.t);
+    com_pub_53.c = details::ComputeCommitment(input_53_z, com_sec_53.t);
     rom_proof.c = com_pub_53.c;  // verifier can not compute c by com_pub.c
     com_pub_53_c = com_pub_53.c;
 
@@ -298,15 +315,15 @@ inline void RomProve(RomProof& rom_proof,
   }
 
   {
-    //Tick tick53("prepare for hyrax");
+    // Tick tick53("prepare for hyrax");
     hyrax::a2::CommitmentPub com_pub_hy;
     hyrax::a2::CommitmentSec com_sec_hy;
-    
+
     std::vector<Fr> x_hy(n);
 
     std::fill(x_hy.begin(), x_hy.end(), FrZero());
 
-    //for (int64_t j = 0; j < n; ++j) {
+    // for (int64_t j = 0; j < n; ++j) {
     //  for (int64_t i = 0; i < m; ++i) {
     //    x_hy[j] += input_z[i][j] * k[i];
     //  }
@@ -316,7 +333,7 @@ inline void RomProve(RomProof& rom_proof,
         x_hy[j] += input_z[i][j] * k[i];
       }
     };
-    parallel::For(n, parallel_f);
+    parallel::For(n, parallel_f, n < 16 * 1024);
 
     hyrax::a2::ProverInput input_hy(x_hy, t, input_53_z);
 
@@ -344,9 +361,9 @@ struct VerifierInput {
   CommitmentPub const& com_pub;
 };
 
-inline bool RomVerify(RomProof const& rom_proof, 
-               h256_t const& rom_seed, VerifierInput const& input) {
-  //Tick tick(__FUNCTION__);
+inline bool RomVerify(RomProof const& rom_proof, h256_t const& rom_seed,
+                      VerifierInput const& input) {
+  // Tick tick(__FUNCTION__);
   auto m = rom_proof.m();
   auto n = rom_proof.n();
 
@@ -359,62 +376,67 @@ inline bool RomVerify(RomProof const& rom_proof,
 
   std::vector<parallel::Task> tasks(2);
   bool ret_53 = false;
-  tasks[0] = [&ret_53,&rom_proof,&input,m,&com_pub,&k,&t,&seed]() mutable {
+  tasks[0] = [&ret_53, &rom_proof, &input, m, &com_pub, &k, &t,
+              &seed]() mutable {
     sec53::CommitmentPub com_pub_53;
     com_pub_53.c = rom_proof.c;
     com_pub_53.b = input.com_pub.b;
     com_pub_53.a.resize(m);
-    for (int64_t i = 0; i < m; ++i) {
+    //for (int64_t i = 0; i < m; ++i) {
+    //  com_pub_53.a[i] = com_pub.a[i] * k[i];
+    //}
+    auto parallel_f = [&com_pub_53, &com_pub, &k](int64_t i) {
       com_pub_53.a[i] = com_pub.a[i] * k[i];
-    }
+    };
+    parallel::For(m, parallel_f, m < 1024);
 
     sec53::VerifierInput input_53(&t, com_pub_53);
     ret_53 = sec53::RomVerify(rom_proof.proof_53, seed, input_53);
   };
 
   bool ret_a2 = false;
-  tasks[1] = [&ret_a2, &com_pub,&rom_proof,&t,&k,&seed]() {
+  tasks[1] = [&ret_a2, &com_pub, &rom_proof, &t, &k, &seed]() {
     hyrax::a2::CommitmentPub com_pub_hy(MultiExpBdlo12(com_pub.c, k),
                                         rom_proof.c);
     hyrax::a2::VerifierInput input_hy(t, com_pub_hy);
     ret_a2 = hyrax::a2::RomVerify(rom_proof.proof_a2, seed, input_hy);
   };
-  
-  parallel::SyncExec(tasks);
 
-//  //#ifdef MULTICORE
-//                        //#pragma omp parallel sections
-////#endif
-//  {
-////#ifdef MULTICORE
-////#pragma omp section
-////#endif
-//    {
-//      // check sec53
-//      sec53::CommitmentPub com_pub_53;
-//      com_pub_53.c = rom_proof.c;
-//      com_pub_53.b = input.com_pub.b;
-//      com_pub_53.a.resize(m);
-//      for (int64_t i = 0; i < m; ++i) {
-//        com_pub_53.a[i] = com_pub.a[i] * k[i];
-//      }
-//
-//      sec53::VerifierInput input_53(&t, com_pub_53);
-//      ret_53 = sec53::RomVerify(rom_proof.proof_53, seed, input_53);
-//    }
-////#ifdef MULTICORE
-////#pragma omp section
-////#endif
-//    {
-//      // check hyrax
-//      hyrax::a2::CommitmentPub com_pub_hy(MultiExpBdlo12(com_pub.c, k),
-//                                          rom_proof.c);
-//      hyrax::a2::VerifierInput input_hy(t, com_pub_hy);
-//      ret_a2 =
-//          hyrax::a2::RomVerify(rom_proof.proof_a2, seed, input_hy);
-//    }
-//  }
-  
+  parallel::Invoke(tasks);
+
+  //  //#ifdef MULTICORE
+  //                        //#pragma omp parallel sections
+  ////#endif
+  //  {
+  ////#ifdef MULTICORE
+  ////#pragma omp section
+  ////#endif
+  //    {
+  //      // check sec53
+  //      sec53::CommitmentPub com_pub_53;
+  //      com_pub_53.c = rom_proof.c;
+  //      com_pub_53.b = input.com_pub.b;
+  //      com_pub_53.a.resize(m);
+  //      for (int64_t i = 0; i < m; ++i) {
+  //        com_pub_53.a[i] = com_pub.a[i] * k[i];
+  //      }
+  //
+  //      sec53::VerifierInput input_53(&t, com_pub_53);
+  //      ret_53 = sec53::RomVerify(rom_proof.proof_53, seed, input_53);
+  //    }
+  ////#ifdef MULTICORE
+  ////#pragma omp section
+  ////#endif
+  //    {
+  //      // check hyrax
+  //      hyrax::a2::CommitmentPub com_pub_hy(MultiExpBdlo12(com_pub.c, k),
+  //                                          rom_proof.c);
+  //      hyrax::a2::VerifierInput input_hy(t, com_pub_hy);
+  //      ret_a2 =
+  //          hyrax::a2::RomVerify(rom_proof.proof_a2, seed, input_hy);
+  //    }
+  //  }
+
   if (!ret_53 || !ret_a2) {
     std::cout << "ret_53: " << ret_53 << ", ret_a2: " << ret_a2 << "\n";
     assert(false);

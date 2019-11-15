@@ -11,10 +11,10 @@ namespace details {
 template <typename Output>
 void MergeOutputs(Output& output, std::vector<Output> const& outputs) {
   output.h = outputs[0].h;
-  output.g =
-      std::accumulate(outputs.begin(), outputs.end(), G1Zero(),
-                      [](G1 const& a, Output const& b) { return a + b.g; });
-  output.key_com = std::accumulate(
+  output.g = parallel::Accumulate(
+      outputs.begin(), outputs.end(), G1Zero(),
+      [](G1 const& a, Output const& b) { return a + b.g; });
+  output.key_com = parallel::Accumulate(
       outputs.begin(), outputs.end(), G1Zero(),
       [](G1 const& a, Output const& b) { return a + b.key_com; });
 }
@@ -90,14 +90,14 @@ class LargeProver {
 
     details::MergeOutputs(output, outputs);
 
-    vw_ = std::accumulate(vws.begin(), vws.end(), FrZero());
+    vw_ = parallel::Accumulate(vws.begin(), vws.end(), FrZero());
 
 #ifdef _DEBUG
     auto com_vw1 =
         groth09::details::ComputeCommitment(vw_, secret_input_.vw_com_r);
     auto op = [](G1 const& a, Proof const& b) { return a + b.com_vw; };
-    auto com_vw2 =
-        std::accumulate(proofs.begin(), proofs.end(), G1Zero(), std::move(op));
+    auto com_vw2 = parallel::Accumulate(proofs.begin(), proofs.end(), G1Zero(),
+                                        std::move(op));
     assert(com_vw1 == com_vw2);
 
     auto com_key =
@@ -167,7 +167,7 @@ class LargeVerifier {
 
     verifiers_.resize(items_.size());
 
-    //for (int64_t i = 0; i < (int64_t)verifiers_.size(); ++i) {
+    // for (int64_t i = 0; i < (int64_t)verifiers_.size(); ++i) {
     //  auto const& item = items_[i];
     //  PublicInput this_input(pair_size(item), [&item, this](int64_t j) {
     //    return public_input_.get_p(item.first + j);
@@ -193,7 +193,7 @@ class LargeVerifier {
     std::vector<int64_t> rets(size);
 
     auto parallel_f = [this, &rets, &get_w, &rom_seed, &proofs,
-                       &outputs](int64_t i) mutable {
+                       &outputs](int64_t i) /*mutable*/ {
       auto const& item = items_[i];
       auto this_get_w = [&item, &get_w](int64_t j) {
         return get_w(j + item.first);
@@ -209,7 +209,7 @@ class LargeVerifier {
 
     details::MergeOutputs(output, outputs);
 
-    com_vw_ = std::accumulate(
+    com_vw_ = parallel::Accumulate(
         proofs.begin(), proofs.end(), G1Zero(),
         [](G1 const& a, Proof const& b) { return a + b.com_vw; });
 

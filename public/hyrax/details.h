@@ -60,7 +60,7 @@ inline void VectorMul(std::vector<Fr>& c, std::vector<Fr> const& a, Fr b) {
   //  c[i] = a[i] * b;
   //}
   auto parallel_f = [&c, &a, &b](size_t i) mutable { c[i] = a[i] * b; };
-  parallel::For(a.size(), parallel_f, "VectorMul");
+  parallel::For(a.size(), parallel_f, a.size() < 16 * 1024);
 }
 
 inline void VectorInc(std::vector<Fr>& a, std::vector<Fr> const& b) {

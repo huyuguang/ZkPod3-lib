@@ -258,7 +258,7 @@ inline void ComputeCom(CommitmentPub& com_pub, CommitmentSec& com_sec,
   tasks[2] = [&com_pub, &input, &com_sec]() mutable {
     com_pub.c = ComputeCommitment(input.z(), com_sec.t);
   };
-  parallel::SyncExec(tasks);
+  parallel::Invoke(tasks);
 
 //
 ////#ifdef MULTICORE
@@ -308,7 +308,7 @@ inline void ComputeComExt(CommitmentExtPub& com_ext_pub, CommitmentExtSec& com_e
 
   //std::cout << Tick::GetIndentString() << "2*multiexp(" << input.n() << ")\n";
 
-  std::vector<parallel::Task> tasks(4);
+  std::vector<parallel::Task> tasks(3);
   tasks[0] = [&com_ext_pub,&com_ext_sec]() mutable {
     com_ext_pub.ad =
         ComputeCommitment(com_ext_sec.dx, com_ext_sec.rd);
@@ -319,12 +319,10 @@ inline void ComputeComExt(CommitmentExtPub& com_ext_pub, CommitmentExtSec& com_e
   };
   tasks[2] = [&com_ext_pub,&com_ext_sec,&xdy_dxy]() mutable {
     com_ext_pub.c1 = ComputeCommitment(xdy_dxy, com_ext_sec.t1);
-  };
-  tasks[3] = [&com_ext_pub,&com_ext_sec]() mutable {
     com_ext_pub.c0 =
         ComputeCommitment(com_ext_sec.dz, com_ext_sec.t0);
   };
-  parallel::SyncExec(tasks);
+  parallel::Invoke(tasks);
 
 ////#ifdef MULTICORE
 ////#pragma omp parallel sections
@@ -361,16 +359,22 @@ inline void ComputeProof(Proof& proof, ProverInput const& input,
   //Tick tick(__FUNCTION__);
   auto n = input.n();
   proof.fx.resize(n);
-  for (int64_t i = 0; i < n; ++i) {
+  proof.fy.resize(n);
+  //for (int64_t i = 0; i < n; ++i) {
+  //  // fx = e * x + dx
+  //  proof.fx[i] = challenge * input.x(i) + com_ext_sec.dx[i];
+  //} 
+  //for (int64_t i = 0; i < n; ++i) {
+  //  // fy = e * y + dy
+  //  proof.fy[i] = challenge * input.y(i) + com_ext_sec.dy[i];
+  //}
+  auto parallel_f = [&proof, &challenge, &input, &com_ext_sec](int64_t i) {
     // fx = e * x + dx
     proof.fx[i] = challenge * input.x(i) + com_ext_sec.dx[i];
-  }
-
-  proof.fy.resize(n);
-  for (int64_t i = 0; i < n; ++i) {
     // fy = e * y + dy
     proof.fy[i] = challenge * input.y(i) + com_ext_sec.dy[i];
-  }
+  };
+  parallel::For(n, parallel_f, n < 16 * 1024);
 
   proof.rx = challenge * com_sec.r + com_ext_sec.rd;
   proof.sy = challenge * com_sec.s + com_ext_sec.sd;
@@ -415,7 +419,7 @@ inline bool VerifyInternal(VerifierInput const& input,
   auto const& com_pub = input.com_pub;
 
   std::vector<parallel::Task> tasks(2);
-  tasks[0] = [&ret1, &com_pub, &challenge, &com_ext_pub, &proof]() mutable {
+  tasks[0] = [&ret1, &com_pub, &challenge, &com_ext_pub, &proof]() {
     Fr alpha = FrRand();
     // (a^e * a_d)^alpha * b^e * b_d
     G1 left = (com_pub.a * challenge + com_ext_pub.ad) * alpha +
@@ -431,7 +435,7 @@ inline bool VerifyInternal(VerifierInput const& input,
   };
 
   tasks[1] = [&ret2, &com_pub, &challenge, &com_ext_pub, &proof, &input,
-              n]() mutable {
+              n]() {
     // c^(e^2) * c_1^e * c_0 == com(f_x * f_y , t_z)
     Fr e2_square = challenge * challenge;
     G1 left =
@@ -451,7 +455,7 @@ inline bool VerifyInternal(VerifierInput const& input,
     assert(ret2);
   };
 
-  parallel::SyncExec(tasks);
+  parallel::Invoke(tasks);
 
 ////#ifdef MULTICORE
 ////#pragma omp parallel sections

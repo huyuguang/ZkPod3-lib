@@ -100,7 +100,7 @@ bool Bob<BobData>::OnResponse(Response response, Receipt& receipt) {
   auto parallel_f = [this, &response](int64_t i) mutable {
     plain_[i] = vrs::GeneratePlain(response.vrs_plain_seed, i);
   };
-  parallel::For((int64_t)plain_.size(), parallel_f, "GeneratePlain");
+  parallel::For((int64_t)plain_.size(), parallel_f);
 
   vrs::PublicInput public_input(plain_.size(),
                                 [this](int64_t i) { return plain_[i]; });
@@ -113,7 +113,7 @@ bool Bob<BobData>::OnResponse(Response response, Receipt& receipt) {
     return false;
   }
 
-  sigma_vw_ = std::accumulate(vw_.begin(), vw_.end(), FrZero());
+  sigma_vw_ = parallel::Accumulate(vw_.begin(), vw_.end(), FrZero());
   G1 check_vw_com = groth09::details::ComputeCommitment(
       sigma_vw_, response.vw_com_r);
   if (verifier.com_vw() != check_vw_com) {
@@ -161,7 +161,7 @@ bool Bob<BobData>::CheckEncryptedM() const {
 
     rets[i] = left == right;
   };
-  parallel::For((int64_t)mappings_.size(), parallel_f, "CheckEncryptedM");
+  parallel::For((int64_t)mappings_.size(), parallel_f);
 
   if (std::any_of(rets.begin(), rets.end(), [](int64_t r) { return !r; })) {
     assert(false);
@@ -184,7 +184,7 @@ bool Bob<BobData>::CheckKVW() const {
     left = MultiExpBdlo12(k_, w_);
   };
   
-  parallel::SyncExec(tasks);
+  parallel::Invoke(tasks);
   
   if (right != left) {
     assert(false);
@@ -215,7 +215,7 @@ bool Bob<BobData>::OnSecret(Secret const& secret) {
   auto parallel_f = [this, &secret, &v](int64_t i) mutable {
     v[i] = vrs::Mimc5Enc(plain_[i], secret.seed0);
   };
-  parallel::For((int64_t)plain_.size(), parallel_f, "compute v");
+  parallel::For((int64_t)plain_.size(), parallel_f);
 
 #ifdef _DEBUG
   Fr check_sigma_vw = FrZero();
@@ -254,7 +254,7 @@ void Bob<BobData>::DecryptM(std::vector<Fr> const& v) {
       encrypted_m_[ij] = (encrypted_m_[ij] - v[ij]) * inv_w[i];
     }
   };
-  parallel::For((int64_t)mappings_.size(), parallel_f, "DecryptM");
+  parallel::For((int64_t)mappings_.size(), parallel_f);
 
   decrypted_m_ = std::move(encrypted_m_);
 }

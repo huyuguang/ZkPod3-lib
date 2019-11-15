@@ -58,7 +58,7 @@ inline void ChainKeccak256(h256_t const& seed, uint64_t begin, uint64_t end,
   auto parallel_f = [&v, &seed, begin](uint64_t i) mutable {
     v[i - begin] = ChainKeccak256(seed, i);
   };
-  parallel::For(begin, end, parallel_f, "ChainKeccak256");
+  parallel::For(begin, end, parallel_f);
 }
 
 inline void ChainKeccak256(h256_t const& seed, uint64_t count,

@@ -11,7 +11,6 @@
 
 int main(int argc, char** argv) {
   setlocale(LC_ALL, "");
-
   using scheme::Mode;
   using scheme::table::Type;
 
@@ -117,7 +116,12 @@ int main(int argc, char** argv) {
     return -1;
   }
 
+#ifdef USE_TBB
+  tbb::task_scheduler_init init(thread_num);
+  std::cout << "use tbb\n";
+#else
   setenv("options:thread_num", std::to_string(thread_num).c_str(), true);
+#endif
 
   InitEcc();
 

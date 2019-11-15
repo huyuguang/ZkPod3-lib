@@ -102,7 +102,7 @@ bool Alice<AliceData>::OnRequest(Request request, Response& response) {
   auto parallel_f = [this, &response](int64_t j) mutable {
     response.ot_ui[j] = ot_vi_[j] * ot_rand_c_;
   };
-  parallel::For((int64_t)response.ot_ui.size(), parallel_f, "");
+  parallel::For((int64_t)response.ot_ui.size(), parallel_f);
 
   std::vector<h256_t> seed2_h{{peer_id_, self_id_, alice_nonce_, bob_nonce_,
                                CalcRangesDigest(phantoms_),
@@ -166,7 +166,7 @@ bool Alice<AliceData>::OnRequest(Request request, Response& response) {
       response.m[ij] += fr_e;
     }
   };
-  parallel::For((int64_t)mappings_.size(), parallel_f2, "");
+  parallel::For((int64_t)mappings_.size(), parallel_f2);
 
   return true;
 }

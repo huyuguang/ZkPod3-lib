@@ -69,6 +69,11 @@ LIBS := \
  -lboost_iostreams \
  -lboost_program_options \
 
+ifdef USE_TBB
+LIBS += -ltbb
+CXXFLAGS += -DUSE_TBB
+endif
+
 BUILD := ./build/self
 BUILDPUB := ./build/public
 

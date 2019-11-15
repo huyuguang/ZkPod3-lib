@@ -182,7 +182,7 @@ inline void DataToM(Table const& table, std::vector<uint64_t> columens_index,
       m[offset++] = BinToFr31(p, p + 31);
     }
   };
-  parallel::For((int64_t)n, parallel_f, "DataToM");
+  parallel::For((int64_t)n, parallel_f);
 }
 
 inline VrfKeyMeta const* GetKeyMetaByName(VrfMeta const& vrf_meta,

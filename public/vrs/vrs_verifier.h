@@ -94,7 +94,7 @@ class Verifier {
       ret_ip = hyrax::a2::RomVerify(proof.proof_ip, rom_seed, input_ip);
     };
 
-    parallel::SyncExec(tasks);
+    parallel::Invoke(tasks);
 
     if (!ret_com_plain || !ret_hp || !ret_ip) {
       std::cout << "ret_com_plain: " << ret_com_plain << ", ret_hp: " << ret_hp

@@ -151,7 +151,7 @@ bool Bob<BobData>::OnResponse(Response response, Receipt& receipt) {
       encrypted_m_[i * s_ + j] = response.m[phantom_offset * s_ + j] - fr_e;
     }
   };
-  parallel::For((int64_t)ot_ui_.size(), parallel_f, "");
+  parallel::For((int64_t)ot_ui_.size(), parallel_f);
 
   if (!CheckEncryptedM()) {
     assert(false);
@@ -197,7 +197,7 @@ bool Bob<BobData>::CheckEncryptedM() {
 
     rets[i] = left == right;
   };
-  parallel::For((int64_t)mappings_.size(), parallel_f, "CheckEncryptedM");
+  parallel::For((int64_t)mappings_.size(), parallel_f);
 
   if (std::any_of(rets.begin(), rets.end(), [](int64_t r) { return !r; })) {
     assert(false);
@@ -296,7 +296,7 @@ void Bob<BobData>::DecryptM(std::vector<Fr> const& v) {
           inv_w;
     }
   };
-  parallel::For((int64_t)mappings_.size(), parallel_f, "DecryptM");
+  parallel::For((int64_t)mappings_.size(), parallel_f);
 
   decrypted_m_ = std::move(encrypted_m_);
 }

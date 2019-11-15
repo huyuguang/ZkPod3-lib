@@ -4,206 +4,141 @@
 #include <condition_variable>
 #include <functional>
 #include <mutex>
+#include <numeric>
 #include <string>
 #include <thread>
+#include <utility>
 #include <vector>
-
 #include "tick.h"
+
+#ifdef USE_TBB
+#include <tbb/blocked_range.h>
+#include <tbb/parallel_for.h>
+#include <tbb/parallel_invoke.h>
+#include <tbb/parallel_reduce.h>
+#include <tbb/task_scheduler_init.h>
+// #include <tbb/tbb.h>
+namespace parallel {
+
+typedef std::function<void()> Task;
+
+template <typename T, typename F>
+void For(T count, F& f, bool direct = false) {
+  if (!count) return;
+  if (direct) {
+    for (T i = 0; i < count; ++i) f(i);
+    return;
+  }
+
+  auto f2 = [&f](const tbb::blocked_range<T>& range) {
+    for (T i = range.begin(); i != range.end(); ++i) {
+      f(i);
+    }
+  };
+  tbb::parallel_for(tbb::blocked_range<T>(0, count), f2);
+}
+
+template <typename T, typename F>
+void For(T begin, T end, F& f, bool direct = false) {
+  auto count = end - begin;
+  auto f2 = [begin, &f](T i) { return f(begin + i); };
+  For(count, f2, direct);
+}
+
+inline void Invoke(std::vector<Task>& tasks, bool direct = false) {
+  if (tasks.empty()) return;
+
+  if (tasks.size() == 1) return tasks[0]();
+
+  if (direct) {
+    for (auto& task : tasks) {
+      task();
+    }
+    return;
+  }
+
+  if (tasks.size() == 2) {
+    tbb::parallel_invoke(tasks[0], tasks[1]);
+  } else if (tasks.size() == 3) {
+    tbb::parallel_invoke(tasks[0], tasks[1], tasks[2]);
+  } else if (tasks.size() == 4) {
+    tbb::parallel_invoke(tasks[0], tasks[1], tasks[2], tasks[3]);
+  } else if (tasks.size() == 5) {
+    tbb::parallel_invoke(tasks[0], tasks[1], tasks[2], tasks[3], tasks[4]);
+  } else if (tasks.size() == 6) {
+    tbb::parallel_invoke(tasks[0], tasks[1], tasks[2], tasks[3], tasks[4],
+                         tasks[5]);
+  } else if (tasks.size() == 7) {
+    tbb::parallel_invoke(tasks[0], tasks[1], tasks[2], tasks[3], tasks[4],
+                         tasks[5], tasks[6]);
+  } else if (tasks.size() == 8) {
+    tbb::parallel_invoke(tasks[0], tasks[1], tasks[2], tasks[3], tasks[4],
+                         tasks[5], tasks[6], tasks[7]);
+  } else if (tasks.size() == 9) {
+    tbb::parallel_invoke(tasks[0], tasks[1], tasks[2], tasks[3], tasks[4],
+                         tasks[5], tasks[6], tasks[7], tasks[8]);
+  } else {
+    throw std::runtime_error("");
+  }
+}
+
+template <class InputIt, class T>
+T Accumulate(InputIt first, InputIt last, T init) {
+  auto count = std::distance(first, last);
+  if (count < 16 * 1024) {
+    return std::accumulate(first, last, init);
+  }
+
+  return tbb::parallel_reduce(
+      tbb::blocked_range<InputIt>(first, last), init,
+      [](tbb::blocked_range<InputIt> const& range, T init) {
+        return std::accumulate(range.begin(), range.end(), init);
+      },
+      std::plus<T>());
+}
+
+template <class InputIt, class T, class BinaryOperation>
+T Accumulate(InputIt first, InputIt last, T init, BinaryOperation op) {
+  auto count = std::distance(first, last);
+  if (count < 16 * 1024) {
+    return std::accumulate(first, last, init, std::move(op));
+  }
+
+  return tbb::parallel_reduce(
+      tbb::blocked_range<InputIt>(first, last), init,
+      [&op](tbb::blocked_range<InputIt> const& range, T init) {
+        return std::accumulate(range.begin(), range.end(), init, op);
+      },
+      std::plus<T>());
+}
+
+}  // namespace parallel
+
+#else
 #include "recursive_taskpool.h"
-
-#if 0
-#if defined(_MSC_VER)
-#pragma warning(push, 0)
-#endif
-#include <boost/asio.hpp>
-#if defined(_MSC_VER)
-#pragma warning(pop)
-#endif
-
-namespace parallel {
-
-namespace details {
-inline thread_local bool running_in_this_thread = false;
-
-inline boost::asio::thread_pool basic_thread_pool;
-}  // namespace details
-
-template <typename T, typename F>
-void For(T count, F& f, std::string const& desc = "") {
-  using details::basic_thread_pool;
-  if (!count) return;
-  Tick _tick_(__FUNCTION__, desc + " " + std::to_string(count));
-  if (basic_thread_pool.get_executor().running_in_this_thread()) {
-    for (T i = 0; i < count; ++i) {
-      f(i);
-    }
-  } else {
-    std::mutex mutex;
-    std::condition_variable cv;
-    auto left_count = count;
-
-    auto notify = [&left_count, &mutex, &cv]() {
-      std::unique_lock<std::mutex> lock(mutex);
-      if (0 == --left_count) {
-        cv.notify_one();
-      }
-    };
-
-    auto wait = [&left_count, &mutex, &cv]() {
-      std::unique_lock<std::mutex> lock(mutex);
-      while (left_count) cv.wait(lock);
-    };
-
-    for (T i = 0; i < count; ++i) {
-      boost::asio::post(basic_thread_pool,
-                        [i, &left_count, &f, &notify]() mutable {
-                          f(i);
-                          notify();
-                        });
-    }
-    wait();
-  }
-}
-
-template <typename T, typename F>
-void For(T begin, T end, F& f, std::string const& desc = "") {
-  auto count = end - begin;
-  auto f2 = [begin, &f](T i) { return f(begin + i); };
-  For(count, f2, desc);
-}
-
-}  // namespace parallel
-#endif
-
-#if 0
-
-#include <boost/thread/executors/basic_thread_pool.hpp>
-
-namespace parallel {
-
-namespace details {
-inline thread_local bool running_in_this_thread = false;
-
-inline void AtThreadEntry(boost::basic_thread_pool& /*pool*/) {
-  running_in_this_thread = true;
-}
-
-inline boost::basic_thread_pool basic_thread_pool(
-    boost::thread::hardware_concurrency(), &AtThreadEntry);
-}  // namespace details
-
-template <typename T, typename F>
-void For(T count, F& f, std::string const& desc = "") {
-  using details::basic_thread_pool;
-  using details::running_in_this_thread;
-  if (!count) return;
-  std::cout << "parallel::For " << desc << " " << count << "\n";
-
-  std::mutex mutex;
-  std::condition_variable cv;
-  auto left_count = count;
-  auto notify = [&left_count, &mutex, &cv]() {
-    std::unique_lock<std::mutex> lock(mutex);
-    if (0 == --left_count) {
-      cv.notify_one();
-    }
-  };
-
-  auto wait = [&left_count, &mutex, &cv]() {
-    std::unique_lock<std::mutex> lock(mutex);
-    while (left_count) cv.wait(lock);
-  };
-
-  auto is_ready = [&left_count, &mutex]() {
-    std::unique_lock<std::mutex> lock(mutex);
-    return left_count == 0;
-  };
-
-  for (T i = 0; i < count; ++i) {
-    basic_thread_pool.submit([i, &f, &notify]() mutable {
-      f(i);
-      notify();
-    });
-  }
-
-  if (running_in_this_thread) {
-    if (!basic_thread_pool.reschedule_until(std::move(is_ready))) wait();
-  } else {
-    wait();
-  }
-}
-
-template <typename T, typename F>
-void For(T begin, T end, F& f, std::string const& desc = "") {
-  auto count = end - begin;
-  auto f2 = [begin, &f](T i) { return f(begin + i); };
-  For(count, f2, desc);
-}
-
-inline void Exec(std::vector<std::function<void()>>& executors,
-                 std::string const& desc = "") {
-  using details::basic_thread_pool;
-  using details::running_in_this_thread;
-  if (executors.empty()) return;
-  std::cout << "parallel::Exec " << desc << " " << executors.size() << "\n";
-
-  std::mutex mutex;
-  std::condition_variable cv;
-  auto left_count = executors.size();
-  
-  auto notify = [&left_count, &mutex, &cv]() {
-    std::unique_lock<std::mutex> lock(mutex);
-    if (0 == --left_count) {
-      cv.notify_one();
-    }
-  };
-
-  auto wait = [&left_count, &mutex, &cv]() {
-    std::unique_lock<std::mutex> lock(mutex);
-    while (left_count) cv.wait(lock);
-  };
-
-  auto is_ready = [&left_count, &mutex]() {
-    std::unique_lock<std::mutex> lock(mutex);
-    return left_count == 0;
-  };
-
-  for (auto& executor : executors) {
-    basic_thread_pool.submit([&executor, &notify]() mutable {
-      executor();
-      notify();
-    });
-  }
-
-  if (running_in_this_thread) {
-    if (!basic_thread_pool.reschedule_until(std::move(is_ready))) wait();
-  } else {
-    wait();
-  }
-}
-}  // namespace parallel
-#endif
-
-
 namespace parallel {
 
 namespace details {
 
-inline RecursiveTaskPool& GetTaskPool() {
-  static RecursiveTaskPool recursive_task_pool;
-  return recursive_task_pool;
+inline SimpleTaskPool& GetTaskPool() {
+  static SimpleTaskPool instance;
+  return instance;
 }
 
 }  // namespace details
 
-template <typename T, typename F>
-void For(T count, F& f, std::string const& desc = "") {
-  if (!count) return;
-  (void)desc;
+typedef std::function<void()> Task;
 
-  // Tick _tick_(__FUNCTION__, desc + " " + std::to_string(count));
+template <typename T, typename F>
+void For(T count, F& f, bool direct = false) {
+  if (!count) return;
+  if (direct) {
+    for (T i = 0; i < count; ++i) f(i);
+    return;
+  }
+
   auto& task_pool = details::GetTaskPool();
-  size_t thread_sum = task_pool.thread_sum();  
+  size_t thread_sum = task_pool.thread_sum();
   if (!thread_sum) {
     for (T i = 0; i < count; ++i) {
       f(i);
@@ -233,26 +168,43 @@ void For(T count, F& f, std::string const& desc = "") {
       tasks.emplace_back([&f, i]() { f(i); });
     }
   }
-  task_pool.PostAndWait(tasks);
+  task_pool.Execute(tasks);
 }
 
 template <typename T, typename F>
-void For(T begin, T end, F& f, std::string const& desc = "") {
+void For(T begin, T end, F& f, bool direct = false) {
   auto count = end - begin;
   auto f2 = [begin, &f](T i) { return f(begin + i); };
-  For(count, f2, desc);
+  For(count, f2, direct);
 }
 
-inline void SyncExec(std::vector<Task>& tasks) {
-  auto& task_pool = details::GetTaskPool();
-  static const size_t thread_sum = task_pool.thread_sum();
-  if (!thread_sum) {
+inline void Invoke(std::vector<Task>& tasks, bool direct = false) {
+  if (tasks.empty()) return;
+
+  if (tasks.size() == 1) return tasks[0]();
+
+  if (direct) {
     for (auto& task : tasks) {
       task();
     }
     return;
   }
 
-  task_pool.PostAndWait(tasks);
+  details::GetTaskPool().Execute(tasks);
 }
+
+template <class InputIt, class T>
+T Accumulate(InputIt first, InputIt last, T init) {
+  return std::accumulate(std::forward<InputIt>(first),
+                         std::forward<InputIt>(last), std::forward<T>(init));
+}
+
+template <class InputIt, class T, class BinaryOperation>
+T Accumulate(InputIt first, InputIt last, T init, BinaryOperation op) {
+  return std::accumulate(std::forward<InputIt>(first),
+                         std::forward<InputIt>(last), std::forward<T>(init),
+                         std::forward<BinaryOperation>(op));
+}
+
 }  // namespace parallel
+#endif
