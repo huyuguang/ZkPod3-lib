@@ -90,6 +90,7 @@ inline bool CopyData(std::string const& src, std::string const& dst) {
 
 inline bool SaveMkl(std::string const& output,
                     std::vector<h256_t> const& mkl_tree) {
+  Tick _tick_(__FUNCTION__);
   constexpr size_t kItemSize = 32; // h256_t
   try {
     io::mapped_file_params params;
@@ -268,6 +269,7 @@ inline std::vector<G1> CalcSigma(std::vector<Fr> const& m, uint64_t n,
 }
 
 inline std::vector<h256_t> BuildSigmaMklTree(std::vector<G1> const& sigmas) {
+  Tick _tick_(__FUNCTION__);
   auto get_sigma = [&sigmas](uint64_t i) -> h256_t {
     return G1ToBin(sigmas[i]);
   };

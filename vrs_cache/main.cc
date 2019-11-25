@@ -60,7 +60,7 @@ int main(int argc, char** argv) {
 
 #ifdef USE_TBB
   int tbb_thread_num =
-      thread_num ? (int)thread_num : task_scheduler_init::automatic;
+      thread_num ? (int)thread_num : tbb::task_scheduler_init::automatic;
   tbb::task_scheduler_init init(tbb_thread_num);
   std::cout << "use tbb\n";
 #else

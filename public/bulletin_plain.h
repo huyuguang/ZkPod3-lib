@@ -33,6 +33,7 @@ inline bool IsBulletinValid(Bulletin const& bulletin) {
 }
 
 inline bool SaveBulletin(std::string const& output, Bulletin const& bulletin) {
+  Tick _tick_(__FUNCTION__);
   try {
     pt::ptree tree;
     tree.put("mode", "plain");
