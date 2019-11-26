@@ -13,7 +13,7 @@ Alice<AliceData>::Alice(std::shared_ptr<AliceData> a, h256_t const& self_id,
       self_id_(self_id),
       peer_id_(peer_id),
       n_(a_->bulletin().n),
-      s_(a_->bulletin().s) {  
+      s_(a_->bulletin().s) {
   alice_nonce_ = misc::RandH256();
 }
 
@@ -55,27 +55,27 @@ bool Alice<AliceData>::OnRequest(Request request, Response& response) {
 
   demands_ = std::move(request.demands);
   bob_nonce_ = request.bob_nonce;
-  response.alice_nonce = alice_nonce_;  
+  response.alice_nonce = alice_nonce_;
   BuildMapping();
 
-  char const* data_dir = std::getenv("options:data_dir");  
+  char const* data_dir = std::getenv("options:data_dir");
   std::string cache_dir = data_dir ? data_dir : ".";
   cache_dir += "/vrs_cache";
   auto vrs_count = (demands_count_ + 1) * s_;
 
   vrs::CacheUPtr cache;
-  vrs_cache_file_ = vrs::SelectCacheFile(cache_dir, vrs_count); 
+  vrs_cache_file_ = vrs::SelectCacheFile(cache_dir, vrs_count);
   if (!vrs_cache_file_.empty()) {
     cache.reset(new vrs::Cache());
     if (!vrs::LoadCache(vrs_cache_file_, *cache, false)) {
       std::cerr << "LoadCache failed\n";
       cache.reset();
-      vrs_cache_file_.clear();      
+      vrs_cache_file_.clear();
     } else {
       vrs::UpgradeCache(*cache, vrs_count);
     }
   }
-  
+
   std::vector<std::vector<G1>> cached_var_coms;
   std::vector<std::vector<Fr>> cached_var_coms_r;
   if (cache) {
@@ -87,33 +87,20 @@ bool Alice<AliceData>::OnRequest(Request request, Response& response) {
   } else {
     response.vrs_plain_seed = misc::RandH256();
     seed0_ = FrRand();
-    seed0_com_r_ = FrRand();    
+    seed0_com_r_ = FrRand();
   }
 
   std::vector<Fr> plain((demands_count_ + 1) * s_);
-  auto parallel_f = [&plain, &response](uint64_t i) mutable {
+  auto parallel_f = [&plain, &response](uint64_t i) {
     plain[i] = vrs::GeneratePlain(response.vrs_plain_seed, i);
   };
   parallel::For(plain.size(), parallel_f);
 
-  vrs::PublicInput public_input(plain.size(),
-                                [&plain](int64_t i) { return plain[i]; });
-
-  vw_com_r_ = FrRand();
-  vrs::SecretInput secret_input(seed0_, seed0_com_r_, vw_com_r_);
-  vrs::LargeProver prover(public_input, secret_input,std::move(cached_var_coms),
-                          std::move(cached_var_coms_r));
-  prover.Evaluate();
-
-  v_ = std::move(prover.TakeV());
-
-#ifdef _DEBUG
-  std::vector<Fr> check_v(plain.size());
-  for (size_t i = 0; i < plain.size(); ++i) {
-    check_v[i] = vrs::Mimc5Enc(plain[i], seed0_);
-  }
-  assert(check_v == v_);
-#endif
+  v_.resize(plain.size());
+  auto parallel_f_v = [this, &plain](uint64_t i) {
+    v_[i] = vrs::Mimc5Enc(plain[i], seed0_);
+  };
+  parallel::For(plain.size(), parallel_f_v);
 
   if (evil_) {
     // NOTE: use rand() for test
@@ -137,7 +124,7 @@ bool Alice<AliceData>::OnRequest(Request request, Response& response) {
   auto const& m = a_->m();
   response.m.resize(demands_count_ * s_);
 
-  auto parallel_f2 = [this,&response,&m](uint64_t i) mutable {
+  auto parallel_f2 = [this, &response, &m](uint64_t i) mutable {
     auto const& map = mappings_[i];
     auto is = i * s_;
     auto m_is = map.global_index * s_;
@@ -158,7 +145,7 @@ bool Alice<AliceData>::OnRequest(Request request, Response& response) {
   };
   parallel::For(s_, parallel_f3);
 
-  //for (size_t j = 0; j < s_; ++j) {
+  // for (size_t j = 0; j < s_; ++j) {
   //  response.vw[j] = FrZero();
   //  for (size_t i = 0; i <= demands_count_; ++i) {
   //    response.vw[j] += v_[i * s_ + j] * w_[i];
@@ -166,6 +153,14 @@ bool Alice<AliceData>::OnRequest(Request request, Response& response) {
   //}
 
   // use seed2_ as rom_seed
+  vrs::PublicInput public_input(plain.size(),
+                                [&plain](int64_t i) { return plain[i]; });
+
+  vw_com_r_ = FrRand();
+  vrs::SecretInput secret_input(seed0_, seed0_com_r_, vw_com_r_);
+  vrs::LargeProverLowRam prover(public_input, secret_input,
+                                std::move(cached_var_coms),
+                                std::move(cached_var_coms_r));
   auto get_w = [this](int64_t i) { return w_[i / s_]; };
   vrs::ProveOutput vrs_output;
   prover.Prove(seed2_, get_w, response.vrs_proofs, vrs_output);
@@ -177,8 +172,9 @@ bool Alice<AliceData>::OnRequest(Request request, Response& response) {
 
 #ifdef _DEBUG
   if (!evil_) {
-    assert(parallel::Accumulate(response.vw.begin(), response.vw.end(), FrZero()) ==
-           prover.vw());
+    assert(v_ == prover.v());
+    assert(parallel::Accumulate(response.vw.begin(), response.vw.end(),
+                                FrZero()) == prover.vw());
   }
 #endif
 
@@ -196,7 +192,7 @@ bool Alice<AliceData>::OnReceipt(Receipt const& receipt, Secret& secret) {
   secret.seed0_r = seed0_com_r_;
 
   got_peer_receipt_ = true;
- 
+
   return true;
 }
 

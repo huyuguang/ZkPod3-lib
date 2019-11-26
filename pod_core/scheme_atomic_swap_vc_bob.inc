@@ -97,7 +97,7 @@ bool Bob<BobData>::OnResponse(Response response, Receipt& receipt) {
 //  for (int64_t i = 0; i < (int64_t)plain_.size(); ++i) {
 //    plain_[i] = vrs::GeneratePlain(response.vrs_plain_seed, i);
 //  }
-  auto parallel_f = [this, &response](int64_t i) mutable {
+  auto parallel_f = [this, &response](int64_t i) {
     plain_[i] = vrs::GeneratePlain(response.vrs_plain_seed, i);
   };
   parallel::For((int64_t)plain_.size(), parallel_f);

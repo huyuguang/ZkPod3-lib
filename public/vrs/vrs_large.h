@@ -7,19 +7,6 @@
 
 namespace vrs {
 
-namespace details {
-template <typename Output>
-void MergeOutputs(Output& output, std::vector<Output> const& outputs) {
-  output.h = outputs[0].h;
-  output.g = parallel::Accumulate(
-      outputs.begin(), outputs.end(), G1Zero(),
-      [](G1 const& a, Output const& b) { return a + b.g; });
-  output.key_com = parallel::Accumulate(
-      outputs.begin(), outputs.end(), G1Zero(),
-      [](G1 const& a, Output const& b) { return a + b.key_com; });
-}
-}  // namespace details
-
 class LargeProver {
  public:
   LargeProver(PublicInput const& public_input, SecretInput const& secret_input,
@@ -88,7 +75,7 @@ class LargeProver {
     };
     parallel::For(size, parallel_f);
 
-    details::MergeOutputs(output, outputs);
+    MergeOutputs(output, outputs);
 
     vw_ = parallel::Accumulate(vws.begin(), vws.end(), FrZero());
 
@@ -143,6 +130,127 @@ class LargeProver {
   PublicInput public_input_;
   SecretInput secret_input_;
   std::vector<std::unique_ptr<Prover>> provers_;
+  std::vector<std::pair<int64_t, int64_t>> items_;
+  Fr vw_;
+  std::vector<Fr> v_;
+};
+
+class LargeProverLowRam {
+ public:
+  LargeProverLowRam(PublicInput const& public_input, SecretInput const& secret_input,
+             std::vector<std::vector<G1>> cached_var_coms,
+             std::vector<std::vector<Fr>> cached_var_coms_r)
+      : public_input_(public_input),
+        secret_input_(secret_input),
+        cached_var_coms_(std::move(cached_var_coms)),
+        cached_var_coms_r_(std::move(cached_var_coms_r)) {
+    Tick tick(__FUNCTION__);
+    items_ = SplitLargeTask(public_input_.count);
+    std::cout << "items: " << items_.size() - 1 << "*" << kMaxUnitPerZkp << "+"
+              << items_.back().second - items_.back().first << "\n";
+    assert(cached_var_coms_.size() == cached_var_coms_r_.size());
+
+    BuildSecretInputs();
+
+    if (cached_var_coms_.size() != items_.size()) {
+      assert(cached_var_coms_.empty());
+      cached_var_coms_.clear();
+      cached_var_coms_.resize(items_.size());
+      cached_var_coms_r_.resize(items_.size());
+    }
+
+    v_.resize(public_input_.count);
+  }
+
+  void Prove(h256_t const& rom_seed, std::function<Fr(int64_t)> get_w,
+             std::vector<Proof>& proofs, ProveOutput& output) {
+    Tick tick(__FUNCTION__);
+
+    auto size = (int64_t)items_.size();
+    proofs.resize(size);
+    std::vector<ProveOutput> outputs(size);
+    std::vector<Fr> vws(size);
+
+    auto parallel_f = [this, &vws, &get_w, &rom_seed, &proofs,
+                       &outputs](int64_t i) mutable {
+      auto const& item = items_[i];
+      PublicInput this_input(item.second - item.first,
+                             [&item, this](int64_t j) {
+                               return public_input_.get_p(item.first + j);
+                             });
+
+      auto& cached_var_com = cached_var_coms_[i];
+      auto& cached_var_com_r = cached_var_coms_r_[i];
+      Prover prover(this_input, secret_inputs_[i], std::move(cached_var_com),
+                    std::move(cached_var_com_r));
+
+      prover.Evaluate();
+      auto const& v = prover.v();
+      std::copy(v.begin(), v.end(), v_.begin() + i * kMaxUnitPerZkp);
+
+      auto this_get_w = [&item, &get_w](int64_t j) {
+        return get_w(j + item.first);
+      };
+      prover.Prove(rom_seed, std::move(this_get_w), proofs[i], outputs[i]);
+      vws[i] = prover.vw();
+    };
+    parallel::For(size, parallel_f);
+
+    MergeOutputs(output, outputs);
+
+    vw_ = parallel::Accumulate(vws.begin(), vws.end(), FrZero());
+
+#ifdef _DEBUG
+    auto com_vw1 =
+        groth09::details::ComputeCommitment(vw_, secret_input_.vw_com_r);
+    auto op = [](G1 const& a, Proof const& b) { return a + b.com_vw; };
+    auto com_vw2 = parallel::Accumulate(proofs.begin(), proofs.end(), G1Zero(),
+                                        std::move(op));
+    assert(com_vw1 == com_vw2);
+
+    auto com_key =
+        output.h * secret_input_.key_com_r + output.g * secret_input_.key;
+    assert(com_key == output.key_com);
+#endif
+  }
+
+  Fr const& vw() const { return vw_; }
+
+  std::vector<Fr> const& v() const { return v_; }
+
+  std::vector<Fr>&& TakeV() { return std::move(v_); }
+
+ private:
+  void BuildSecretInputs() {
+    auto size = (int64_t)items_.size();
+    secret_inputs_.resize(size);
+    auto vw_com_rs = SplitFr(secret_input_.vw_com_r, size);
+    for (int64_t i = 0; i < size; ++i) {
+      secret_inputs_[i].key = secret_input_.key;
+      secret_inputs_[i].vw_com_r = vw_com_rs[i];
+    }
+
+    if (cached_var_coms_r_.empty()) {
+      auto key_com_rs = SplitFr(secret_input_.key_com_r, size);
+      for (int64_t i = 0; i < size; ++i) {
+        secret_inputs_[i].key_com_r = key_com_rs[i];
+      }
+    } else {
+      assert((int64_t)cached_var_coms_r_.size() == size);
+      for (int64_t i = 0; i < size; ++i) {
+        secret_inputs_[i].key_com_r =
+            cached_var_coms_r_[i][primary_input_size_];
+      }
+    }
+  }
+
+ private:
+  int64_t const primary_input_size_ = 1;
+  PublicInput public_input_;
+  SecretInput secret_input_;
+  std::vector<std::vector<G1>> cached_var_coms_;
+  std::vector<std::vector<Fr>> cached_var_coms_r_;
+  std::vector<SecretInput> secret_inputs_;
   std::vector<std::pair<int64_t, int64_t>> items_;
   Fr vw_;
   std::vector<Fr> v_;
@@ -207,7 +315,7 @@ class LargeVerifier {
     if (std::any_of(rets.begin(), rets.end(), [](int64_t r) { return !r; }))
       return false;
 
-    details::MergeOutputs(output, outputs);
+    MergeOutputs(output, outputs);
 
     com_vw_ = parallel::Accumulate(
         proofs.begin(), proofs.end(), G1Zero(),

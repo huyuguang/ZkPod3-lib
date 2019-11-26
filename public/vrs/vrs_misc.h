@@ -82,4 +82,15 @@ inline std::vector<Fr> SplitFr(Fr const& fr, int64_t count) {
   return ret;
 }
 
+template <typename Output>
+void MergeOutputs(Output& output, std::vector<Output> const& outputs) {
+  output.h = outputs[0].h;
+  output.g = parallel::Accumulate(
+      outputs.begin(), outputs.end(), G1Zero(),
+      [](G1 const& a, Output const& b) { return a + b.g; });
+  output.key_com = parallel::Accumulate(
+      outputs.begin(), outputs.end(), G1Zero(),
+      [](G1 const& a, Output const& b) { return a + b.key_com; });
+}
+
 }  // namespace vrs
