@@ -39,6 +39,16 @@ inline void HashUpdate(CryptoPP::Keccak_256& hash, std::vector<Fr> const& d) {
   }
 }
 
+inline G1 const& GetPdsG() {
+  auto const& pds_pub = GetPdsPub();
+  return pds_pub.g()[0];
+}
+
+inline G1 const& GetPdsH() {
+  auto const& pds_pub = GetPdsPub();
+  return pds_pub.h();
+}
+
 inline G1 ComputeCommitment(std::vector<Fr> const& x, Fr const& r) {
   auto const& pds_pub = GetPdsPub();
   // Tick tick(__FUNCTION__, std::to_string(x.size()));

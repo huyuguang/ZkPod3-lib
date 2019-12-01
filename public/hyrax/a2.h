@@ -2,12 +2,14 @@
 
 #include "./details.h"
 
-// a is a public vector<Fr>
-// x is a secret vector<Fr>
-// y = <x,a>
-// xi = com(a), delta = com(y)
-// open xi, delta, prove y=<x,a>
-
+// a: public vector<Fr>, size = n
+// x: secret vector<Fr>, size = n
+// y: secret Fr, = <x,a>
+// open: com(a), com(y)
+// prove: y=<x,a>
+// proof size: 2 G1 and n+2 Fr
+// prove cost: mulexp(n)
+// verify cost: mulexp(n)
 namespace hyrax::a2 {
 
 struct ProverInput {
@@ -78,8 +80,8 @@ inline bool operator!=(Proof const& left, Proof const& right) {
 }
 
 struct RomProof {
-  CommitmentExtPub com_ext_pub;
-  Proof proof;
+  CommitmentExtPub com_ext_pub; // 2 G1
+  Proof proof;  // n+2 Fr
   int64_t n() const { return proof.n(); }
 };
 
@@ -131,7 +133,7 @@ inline bool VerifyInternal(VerifierInput const& input, Fr const& challenge,
 
   std::vector<parallel::Task> tasks(2);
   bool ret1 = false;
-  tasks[0] = [&ret1, &com_pub, &com_ext_pub, &challenge, &proof]() mutable {
+  tasks[0] = [&ret1, &com_pub, &com_ext_pub, &challenge, &proof]() {
     auto const& xi = com_pub.xi;
     auto const& delta = com_ext_pub.delta;
     G1 left = xi * challenge + delta;
@@ -141,7 +143,7 @@ inline bool VerifyInternal(VerifierInput const& input, Fr const& challenge,
 
   bool ret2 = false;
   tasks[1] = [&ret2, &com_pub, &com_ext_pub, &challenge, &proof,
-              &input]() mutable {
+              &input]() {
     auto const& tau = com_pub.tau;
     auto const& beta = com_ext_pub.beta;
     G1 left = tau * challenge + beta;

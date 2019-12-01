@@ -3,9 +3,14 @@
 #include <numeric>
 #include "groth09/details.h"
 
-// t is a public vector
-// commit {x},{y},z
-// prove z = <x, y o t>
+// t: public vector<Fr>, size = n
+// X, Y: secret vector<Fr>, size = n
+// z: secret Fr
+// open: com(X), com(Y), com(z)
+// prove: z = <X, Y o t>
+// proof size: (2n+3) Fr and 4 G1
+// prove cost: 2*mulexp(n)
+// verify cost: mulexp(n)
 namespace groth09::sec51 {
 
 class ProverInput {
@@ -219,8 +224,8 @@ inline bool operator!=(Proof const& left,
 }
 
 struct RomProof {
-  CommitmentExtPub com_ext_pub;
-  Proof proof;
+  CommitmentExtPub com_ext_pub; // 4 G1
+  Proof proof; // (2n+3) Fr
   bool CheckFormat() const {
     return true;  // TODO:
   }
@@ -249,13 +254,13 @@ inline void ComputeCom(CommitmentPub& com_pub, CommitmentSec& com_sec,
   //std::cout << Tick::GetIndentString() << "2*multiexp(" << input.n() << ")\n";
 
   std::vector<parallel::Task> tasks(3);
-  tasks[0] = [&com_pub,&input,&com_sec]() mutable {
+  tasks[0] = [&com_pub,&input,&com_sec]() {
     com_pub.a = ComputeCommitment(input.x(), com_sec.r);
   };
-  tasks[1] = [&com_pub, &input, &com_sec]() mutable {
+  tasks[1] = [&com_pub, &input, &com_sec]() {
     com_pub.b = ComputeCommitment(input.y(), com_sec.s);
   };
-  tasks[2] = [&com_pub, &input, &com_sec]() mutable {
+  tasks[2] = [&com_pub, &input, &com_sec]() {
     com_pub.c = ComputeCommitment(input.z(), com_sec.t);
   };
   parallel::Invoke(tasks);

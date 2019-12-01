@@ -488,6 +488,9 @@
     <ClInclude Include="..\public\recursive_taskpool.h">
       <Filter>public</Filter>
     </ClInclude>
+    <ClInclude Include="..\public\hyrax\a1.h">
+      <Filter>public\hyrax</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\pod_core\README.md" />

@@ -3,11 +3,14 @@
 #include "./details.h"
 #include "./sec53.h"
 
-// x, y, z are matrix(m*n)
-// commit a1=com(x1)...am=com(xm)
-// commit b1=com(y1)...bm=com(ym)
-// commit c1=com(z1)...cm=com(zm)
-// prove z=x o y
+// x, y, z: secret matrix<Fr>, size =m*n
+// open: a1=com(x1)...am=com(xm)
+// open b1=com(y1)...bm=com(ym)
+// open c1=com(z1)...cm=com(zm)
+// prove: z=x o y
+// proof size: 2*log(m)+6 G1, 3n+5 Fr
+// prove cost: 2*log(m)*mulexp(n)
+// verify cost: 2*mulexp(n)
 namespace groth09::sec43 {
 
 struct CommitmentPub {
@@ -52,8 +55,8 @@ struct CommitmentSec {
 
 struct RomProof {
   G1 c;
-  sec53::RomProof proof_53;
-  hyrax::a2::RomProof proof_a2;
+  sec53::RomProof proof_53; // 2*log(m)+4 G1, 2n+3 Fr
+  hyrax::a2::RomProof proof_a2; // 2 G1, n+2 Fr
   int64_t n() const { return proof_53.n(); }
   int64_t m() const { return proof_53.m(); }
 };

@@ -32,6 +32,8 @@ int main(int /*argc*/, char** /*argv*/) {
   //groth09::Test();
   //vrs::Test();
   //vrs::TestLarge();
-  vrs::TestCache();
+  //vrs::TestCache();
+
+  hyrax::a1::TestRom();
   return 0;
 }

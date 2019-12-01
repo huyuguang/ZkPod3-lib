@@ -5,10 +5,14 @@
 #include "groth09/details.h"
 #include "groth09/sec51.h"
 
-// t is a public vector which size = n
-// x, y are secret matric which size = m*n
-// commit {x1}, {y1}...., z
-// prove z = <x1,y1 o t> + <x2,y2 o t>...
+// t: public vector<Fr>, size = n
+// x, y: secret matric<Fr>, size = m*n
+// z: secret Fr
+// open: com(x1), com(y1), com(x2), com(y2) ... com(z)
+// prove: z = <x1,y1 o t> + <x2,y2 o t>...
+// proof size: 2*log(m)+4 G1, 2n+3 Fr
+// prove cost: 2*log(m)*mulexp(n)
+// verify cost: mulexp(n)
 namespace groth09::sec53 {
 
 struct CommitmentPub {
@@ -294,8 +298,8 @@ inline bool operator!=(CommitmentExtPub const& left,
 }
 
 struct RomProof {
-  CommitmentExtPub com_ext_pub;
-  sec51::RomProof rom_proof_51;
+  CommitmentExtPub com_ext_pub; // 2*log(m) G1
+  sec51::RomProof rom_proof_51; // 4 G1, 2n+3 Fr
 
   int64_t n() const { return rom_proof_51.n(); }
   int64_t m() const { return com_ext_pub.m(); }
