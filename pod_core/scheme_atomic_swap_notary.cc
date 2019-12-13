@@ -1,4 +1,5 @@
 #include "scheme_atomic_swap_notary.h"
+
 #include "chain.h"
 #include "mkl_tree.h"
 #include "scheme_misc.h"
@@ -14,7 +15,7 @@ bool VerifySecret(uint64_t s, Receipt const& receipt, Secret const& secret) {
 }
 
 bool VerifySecret(uint64_t s, uint64_t count, Fr const& sigma_vw,
-                 std::vector<Fr> const& v, std::vector<Fr> const& w) {
+                  std::vector<Fr> const& v, std::vector<Fr> const& w) {
   assert(v.size() == (count + 1) * s);
   assert(w.size() >= count);
   Fr check_sigma_vw = FrZero();

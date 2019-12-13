@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <string>
+
 #include "basic_types.h"
 #include "ecc.h"
 #include "scheme_ot_vrfq_protocol.h"

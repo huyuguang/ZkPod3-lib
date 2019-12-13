@@ -137,9 +137,10 @@ class LargeProver {
 
 class LargeProverLowRam {
  public:
-  LargeProverLowRam(PublicInput const& public_input, SecretInput const& secret_input,
-             std::vector<std::vector<G1>> cached_var_coms,
-             std::vector<std::vector<Fr>> cached_var_coms_r)
+  LargeProverLowRam(PublicInput const& public_input,
+                    SecretInput const& secret_input,
+                    std::vector<std::vector<G1>> cached_var_coms,
+                    std::vector<std::vector<Fr>> cached_var_coms_r)
       : public_input_(public_input),
         secret_input_(secret_input),
         cached_var_coms_(std::move(cached_var_coms)),

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdint.h>
+
 #include "c_api_types.h"
 
 #ifdef _WIN32

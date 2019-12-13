@@ -3,19 +3,18 @@
 #include <algorithm>
 #include <array>
 #include <bitset>
+#include <boost/endian/conversion.hpp>
+#include <boost/filesystem.hpp>
+#include <boost/noncopyable.hpp>
 #include <iostream>
 #include <memory>
 #include <mutex>
 #include <numeric>
 #include <vector>
 
-#include <boost/endian/conversion.hpp>
-#include <boost/filesystem.hpp>
-#include <boost/noncopyable.hpp>
-
 #include "ecc.h"
-#include "tick.h"
 #include "multiexp.h"
+#include "tick.h"
 
 // Order of the G1 can get through Fr::getModulo(), which return
 // 21888242871839275222246405745257275088548364400416034343698204186575808495617
@@ -28,6 +27,7 @@ class EccPub : boost::noncopyable {
   static inline size_t const kU2Size = 2;
   static inline size_t const kU1WmSize = 64;
   static inline size_t const kU2WmSize = kU2Size;
+
  public:
   G1WM const& g1_wm() const { return g1_wm_; }
   G2WM const& g2_wm() const { return g2_wm_; }
@@ -36,13 +36,9 @@ class EccPub : boost::noncopyable {
   std::array<G2, kU2Size> const& u2() const { return u2_; }
   std::array<G2WM, kU2WmSize> const& u2_wm() const { return u2_wm_; }
 
-  EccPub(std::string const& file) {
-    LoadInternal(file);
-  }
+  EccPub(std::string const& file) { LoadInternal(file); }
 
-  EccPub() {
-    Create();
-  }
+  EccPub() { Create(); }
 
   bool Save(std::string const& file) {
     try {
@@ -410,7 +406,7 @@ inline bool OpenOrCreateEccPub(std::string const& file) {
   }
 }
 
-template<typename GET_F>
+template <typename GET_F>
 G1 MultiExpU1(uint64_t count, GET_F const& get_f) {
   auto const& ecc_pub = GetEccPub();
   if (count > ecc_pub.kU1Size) {

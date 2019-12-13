@@ -1,4 +1,5 @@
 #include "scheme_ot_complaint_test.h"
+
 #include "scheme_ot_complaint_alice.h"
 #include "scheme_ot_complaint_bob.h"
 #include "scheme_ot_complaint_notary.h"

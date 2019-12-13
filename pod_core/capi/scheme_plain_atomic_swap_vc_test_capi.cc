@@ -67,7 +67,7 @@ class WrapperBob {
              uint8_t const* c_peer_id, range_t const* c_demand,
              uint64_t c_demand_count) {
     h_ = E_PlainAtomicSwapVcBobNew(c_bob_data, c_self_id, c_peer_id, c_demand,
-                                 c_demand_count);
+                                   c_demand_count);
     if (!h_) throw std::runtime_error("");
   }
   ~WrapperBob() {
@@ -109,19 +109,19 @@ bool Test(std::string const& output_path, WrapperAliceData const& a,
   }
 
   if (!E_PlainAtomicSwapVcAliceOnRequest(alice.h(), request_file.c_str(),
-                                       response_file.c_str())) {
+                                         response_file.c_str())) {
     assert(false);
     return false;
   }
 
   if (!E_PlainAtomicSwapVcBobOnResponse(bob.h(), response_file.c_str(),
-                                      receipt_file.c_str())) {
+                                        receipt_file.c_str())) {
     assert(false);
     return false;
   }
 
   if (!E_PlainAtomicSwapVcAliceOnReceipt(alice.h(), receipt_file.c_str(),
-                                       secret_file.c_str())) {
+                                         secret_file.c_str())) {
     assert(false);
     return false;
   }

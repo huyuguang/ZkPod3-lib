@@ -9,6 +9,8 @@
 #include "capi/scheme_table_ot_vrfq_test_capi.h"
 #include "capi/scheme_table_vrfq_test_capi.h"
 #include "ecc_pub.h"
+#include "msvc_hack.h"
+#include "parallel.h"
 #include "pds_pub.h"
 #include "public.h"
 #include "scheme_atomic_swap_test.h"
@@ -18,8 +20,6 @@
 #include "scheme_ot_complaint_test.h"
 #include "scheme_ot_vrfq_test.h"
 #include "scheme_vrfq_test.h"
-#include "msvc_hack.h"
-#include "parallel.h"
 
 namespace {
 void DumpEccPub() {
@@ -83,7 +83,7 @@ int main(int argc, char** argv) {
     options.add_options()("help,h", "Use -h or --help to list all arguments")(
         "data_dir,d", po::value<std::string>(&data_dir)->default_value("."),
         "Provide the data dir")("mode,m", po::value<Mode>(&mode),
-                                          "Provide pod mode (plain, table)")(
+                                "Provide pod mode (plain, table)")(
         "action,a", po::value<Action>(&action),
         "Provide action (range_pod, ot_range_pod, vrf_query, ot_vrf_query...)")(
         "publish_dir,p", po::value<std::string>(&publish_dir),
@@ -105,10 +105,10 @@ int main(int argc, char** argv) {
         "phantom_key,n",
         po::value<std::vector<std::string>>(&phantom_values)->multitoken(),
         "Provide the query key phantoms(table mode, for example -n "
-        "phantoms_a phantoms_b phantoms_c)")
-        ("thread_num", po::value<uint32_t>(&thread_num),
-         "Provide the number of the parallel threads, 1: disable, 0: default.")
-            ("use_c_api,c", "")("test_evil", "")("dump_ecc_pub", "");
+        "phantoms_a phantoms_b phantoms_c)")(
+        "thread_num", po::value<uint32_t>(&thread_num),
+        "Provide the number of the parallel threads, 1: disable, 0: default.")(
+        "use_c_api,c", "")("test_evil", "")("dump_ecc_pub", "");
 
     boost::program_options::variables_map vmap;
 
@@ -137,7 +137,7 @@ int main(int argc, char** argv) {
               << e.what() << "\n"
               << "-h or --help to list all arguments.\n";
     return -1;
-  }  
+  }
 
   setenv("options:data_dir", data_dir.c_str(), true);
 

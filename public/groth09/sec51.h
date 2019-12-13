@@ -1,6 +1,8 @@
 #pragma once
 
 #include <numeric>
+
+#include "../fst.h"
 #include "groth09/details.h"
 
 // t: public vector<Fr>, size = n
@@ -15,11 +17,11 @@ namespace groth09::sec51 {
 
 class ProverInput {
  private:
-  std::vector<Fr> yt_data_;  // size = n or empty
+  std::vector<Fr> yt_data_;    // size = n or empty
   std::vector<Fr> const* x_;   // size = n
   std::vector<Fr> const* y_;   // size = n
   std::vector<Fr> const* t_;   // size = n or empty
-  std::vector<Fr> const* yt_;  // if (!yt_data_.empty()), yt_=&yt_data_  
+  std::vector<Fr> const* yt_;  // if (!yt_data_.empty()), yt_=&yt_data_
   Fr z_;
 
  public:
@@ -34,8 +36,7 @@ class ProverInput {
   int64_t n() const { return x().size(); }
 
  public:
-  ProverInput(std::vector<Fr> const* x,
-              std::vector<Fr> const* y,
+  ProverInput(std::vector<Fr> const* x, std::vector<Fr> const* y,
               std::vector<Fr> const* t)
       : x_(x), y_(y), t_(t) {
     if (!CheckFormat(false, false)) throw std::invalid_argument("");
@@ -49,15 +50,9 @@ class ProverInput {
     z_ = InnerProduct(*x_, *yt_);
   }
 
-  ProverInput(std::vector<Fr> const* x,
-              std::vector<Fr> const* y,
-              std::vector<Fr> const* t,
-              std::vector<Fr> const* yt, Fr const& iz)
-      : x_(x),
-        y_(y),
-        t_(t),
-        yt_(yt),
-        z_(iz) {
+  ProverInput(std::vector<Fr> const* x, std::vector<Fr> const* y,
+              std::vector<Fr> const* t, std::vector<Fr> const* yt, Fr const& iz)
+      : x_(x), y_(y), t_(t), yt_(yt), z_(iz) {
     if (!CheckFormat(true, true)) throw std::invalid_argument("");
   }
 
@@ -66,7 +61,7 @@ class ProverInput {
         x_(o.x_),
         y_(o.y_),
         t_(o.t_),
-        yt_(o.yt_),        
+        yt_(o.yt_),
         z_(o.z_) {
     if (!yt_data_.empty()) {
       yt_ = &yt_data_;
@@ -212,49 +207,46 @@ struct Proof {
   int64_t n() const { return (int64_t)fx.size(); }
 };
 
-inline bool operator==(Proof const& left,
-                       Proof const& right) {
+inline bool operator==(Proof const& left, Proof const& right) {
   return left.fx == right.fx && left.fy == right.fy && left.rx == right.rx &&
          left.sy == right.sy && left.tz == right.tz;
 }
 
-inline bool operator!=(Proof const& left,
-                       Proof const& right) {
+inline bool operator!=(Proof const& left, Proof const& right) {
   return !(left == right);
 }
 
 struct RomProof {
-  CommitmentExtPub com_ext_pub; // 4 G1
-  Proof proof; // (2n+3) Fr
+  CommitmentExtPub com_ext_pub;  // 4 G1
+  Proof proof;                   // (2n+3) Fr
   bool CheckFormat() const {
     return true;  // TODO:
   }
   int64_t n() const { return proof.n(); }
 };
 
-inline bool operator==(RomProof const& left,
-                       RomProof const& right) {
+inline bool operator==(RomProof const& left, RomProof const& right) {
   return left.com_ext_pub == right.com_ext_pub && left.proof == right.proof;
 }
 
-inline bool operator!=(RomProof const& left,
-                       RomProof const& right) {
+inline bool operator!=(RomProof const& left, RomProof const& right) {
   return !(left == right);
 }
 
 inline void ComputeCom(CommitmentPub& com_pub, CommitmentSec& com_sec,
-                ProverInput const& input) {
-  //Tick tick(__FUNCTION__);
+                       ProverInput const& input) {
+  // Tick tick(__FUNCTION__);
   com_sec.r = FrRand();
   com_sec.s = FrRand();
   com_sec.t = FrRand();
 
   using details::ComputeCommitment;
 
-  //std::cout << Tick::GetIndentString() << "2*multiexp(" << input.n() << ")\n";
+  // std::cout << Tick::GetIndentString() << "2*multiexp(" << input.n() <<
+  // ")\n";
 
   std::vector<parallel::Task> tasks(3);
-  tasks[0] = [&com_pub,&input,&com_sec]() {
+  tasks[0] = [&com_pub, &input, &com_sec]() {
     com_pub.a = ComputeCommitment(input.x(), com_sec.r);
   };
   tasks[1] = [&com_pub, &input, &com_sec]() {
@@ -265,31 +257,32 @@ inline void ComputeCom(CommitmentPub& com_pub, CommitmentSec& com_sec,
   };
   parallel::Invoke(tasks);
 
-//
-////#ifdef MULTICORE
-////#pragma omp parallel sections
-////#endif
-//  {
-////#ifdef MULTICORE
-////#pragma omp section
-////#endif
-//    com_pub.a = ComputeCommitment(input.x(), com_sec.r);
-//
-////#ifdef MULTICORE
-////#pragma omp section
-////#endif
-//    com_pub.b = ComputeCommitment(input.y(), com_sec.s);
-//
-////#ifdef MULTICORE
-////#pragma omp section
-////#endif
-//    com_pub.c = ComputeCommitment(input.z(), com_sec.t);
-//  }
+  //
+  ////#ifdef MULTICORE
+  ////#pragma omp parallel sections
+  ////#endif
+  //  {
+  ////#ifdef MULTICORE
+  ////#pragma omp section
+  ////#endif
+  //    com_pub.a = ComputeCommitment(input.x(), com_sec.r);
+  //
+  ////#ifdef MULTICORE
+  ////#pragma omp section
+  ////#endif
+  //    com_pub.b = ComputeCommitment(input.y(), com_sec.s);
+  //
+  ////#ifdef MULTICORE
+  ////#pragma omp section
+  ////#endif
+  //    com_pub.c = ComputeCommitment(input.z(), com_sec.t);
+  //  }
 }
 
-inline void ComputeComExt(CommitmentExtPub& com_ext_pub, CommitmentExtSec& com_ext_sec,
-                   ProverInput const& input) {
-  //Tick tick(__FUNCTION__);
+inline void ComputeComExt(CommitmentExtPub& com_ext_pub,
+                          CommitmentExtSec& com_ext_sec,
+                          ProverInput const& input) {
+  // Tick tick(__FUNCTION__);
   auto const n = input.n();
   com_ext_sec.dx.resize(n);
   FrRand(com_ext_sec.dx.data(), n);
@@ -311,65 +304,64 @@ inline void ComputeComExt(CommitmentExtPub& com_ext_pub, CommitmentExtSec& com_e
   Fr xdy_dxy = InnerProduct(input.x(), com_ext_sec.dyt) +
                InnerProduct(com_ext_sec.dx, input.yt());
 
-  //std::cout << Tick::GetIndentString() << "2*multiexp(" << input.n() << ")\n";
+  // std::cout << Tick::GetIndentString() << "2*multiexp(" << input.n() <<
+  // ")\n";
 
   std::vector<parallel::Task> tasks(3);
-  tasks[0] = [&com_ext_pub,&com_ext_sec]() mutable {
-    com_ext_pub.ad =
-        ComputeCommitment(com_ext_sec.dx, com_ext_sec.rd);
+  tasks[0] = [&com_ext_pub, &com_ext_sec]() mutable {
+    com_ext_pub.ad = ComputeCommitment(com_ext_sec.dx, com_ext_sec.rd);
   };
-  tasks[1] = [&com_ext_pub,&com_ext_sec]() mutable {
-    com_ext_pub.bd =
-        ComputeCommitment(com_ext_sec.dy, com_ext_sec.sd);
+  tasks[1] = [&com_ext_pub, &com_ext_sec]() mutable {
+    com_ext_pub.bd = ComputeCommitment(com_ext_sec.dy, com_ext_sec.sd);
   };
-  tasks[2] = [&com_ext_pub,&com_ext_sec,&xdy_dxy]() mutable {
+  tasks[2] = [&com_ext_pub, &com_ext_sec, &xdy_dxy]() mutable {
     com_ext_pub.c1 = ComputeCommitment(xdy_dxy, com_ext_sec.t1);
-    com_ext_pub.c0 =
-        ComputeCommitment(com_ext_sec.dz, com_ext_sec.t0);
+    com_ext_pub.c0 = ComputeCommitment(com_ext_sec.dz, com_ext_sec.t0);
   };
   parallel::Invoke(tasks);
 
-////#ifdef MULTICORE
-////#pragma omp parallel sections
-////#endif
-//  {
-////#ifdef MULTICORE
-////#pragma omp section
-////#endif
-//    com_ext_pub.ad =
-//        ComputeCommitment(com_ext_sec.dx, com_ext_sec.rd);
-//
-////#ifdef MULTICORE
-////#pragma omp section
-////#endif
-//    com_ext_pub.bd =
-//        ComputeCommitment(com_ext_sec.dy, com_ext_sec.sd);
-//
-////#ifdef MULTICORE
-////#pragma omp section
-////#endif
-//    com_ext_pub.c1 = ComputeCommitment(xdy_dxy, com_ext_sec.t1);
-//
-////#ifdef MULTICORE
-////#pragma omp section
-////#endif
-//    com_ext_pub.c0 =
-//        ComputeCommitment(com_ext_sec.dz, com_ext_sec.t0);
-//  }
+  ////#ifdef MULTICORE
+  ////#pragma omp parallel sections
+  ////#endif
+  //  {
+  ////#ifdef MULTICORE
+  ////#pragma omp section
+  ////#endif
+  //    com_ext_pub.ad =
+  //        ComputeCommitment(com_ext_sec.dx, com_ext_sec.rd);
+  //
+  ////#ifdef MULTICORE
+  ////#pragma omp section
+  ////#endif
+  //    com_ext_pub.bd =
+  //        ComputeCommitment(com_ext_sec.dy, com_ext_sec.sd);
+  //
+  ////#ifdef MULTICORE
+  ////#pragma omp section
+  ////#endif
+  //    com_ext_pub.c1 = ComputeCommitment(xdy_dxy, com_ext_sec.t1);
+  //
+  ////#ifdef MULTICORE
+  ////#pragma omp section
+  ////#endif
+  //    com_ext_pub.c0 =
+  //        ComputeCommitment(com_ext_sec.dz, com_ext_sec.t0);
+  //  }
 }
 
 inline void ComputeProof(Proof& proof, ProverInput const& input,
-                  CommitmentSec const& com_sec,
-                  CommitmentExtSec const& com_ext_sec, Fr const& challenge) {
-  //Tick tick(__FUNCTION__);
+                         CommitmentSec const& com_sec,
+                         CommitmentExtSec const& com_ext_sec,
+                         Fr const& challenge) {
+  // Tick tick(__FUNCTION__);
   auto n = input.n();
   proof.fx.resize(n);
   proof.fy.resize(n);
-  //for (int64_t i = 0; i < n; ++i) {
+  // for (int64_t i = 0; i < n; ++i) {
   //  // fx = e * x + dx
   //  proof.fx[i] = challenge * input.x(i) + com_ext_sec.dx[i];
-  //} 
-  //for (int64_t i = 0; i < n; ++i) {
+  //}
+  // for (int64_t i = 0; i < n; ++i) {
   //  // fy = e * y + dy
   //  proof.fy[i] = challenge * input.y(i) + com_ext_sec.dy[i];
   //}
@@ -389,7 +381,6 @@ inline void ComputeProof(Proof& proof, ProverInput const& input,
 
 inline void UpdateSeed(h256_t& seed, CommitmentPub const com_pub,
                        CommitmentExtPub const& com_ext_pub) {
-  using details::HashUpdate;
   CryptoPP::Keccak_256 hash;
   HashUpdate(hash, seed);
   HashUpdate(hash, com_pub.a);
@@ -409,15 +400,15 @@ struct VerifierInput {
   CommitmentPub const& com_pub;
 };
 
-inline bool VerifyInternal(VerifierInput const& input,
-                    Fr const& challenge, CommitmentExtPub const& com_ext_pub,
-                    Proof const& proof) {
+inline bool VerifyInternal(VerifierInput const& input, Fr const& challenge,
+                           CommitmentExtPub const& com_ext_pub,
+                           Proof const& proof) {
   using details::ComputeCommitment;
 
   auto const n = proof.fx.size();
   assert(n == proof.fy.size());
 
-  //std::cout << Tick::GetIndentString() << "multiexp(" << n << ")\n";
+  // std::cout << Tick::GetIndentString() << "multiexp(" << n << ")\n";
 
   bool ret1 = false;
   bool ret2 = false;
@@ -430,17 +421,14 @@ inline bool VerifyInternal(VerifierInput const& input,
     G1 left = (com_pub.a * challenge + com_ext_pub.ad) * alpha +
               (com_pub.b * challenge + com_ext_pub.bd);
     // com(alpha * fx + fy,alpha * rx + sy)
-    std::vector<Fr> alpha_fx_fy;
-    details::VectorMul(alpha_fx_fy, proof.fx, alpha);
-    details::VectorAdd(alpha_fx_fy, alpha_fx_fy, proof.fy);
+    std::vector<Fr> alpha_fx_fy = proof.fx * alpha + proof.fy;
     Fr alpha_rx_sy = alpha * proof.rx + proof.sy;
     G1 right = ComputeCommitment(alpha_fx_fy, alpha_rx_sy);
     ret1 = left == right;
     assert(ret1);
   };
 
-  tasks[1] = [&ret2, &com_pub, &challenge, &com_ext_pub, &proof, &input,
-              n]() {
+  tasks[1] = [&ret2, &com_pub, &challenge, &com_ext_pub, &proof, &input, n]() {
     // c^(e^2) * c_1^e * c_0 == com(f_x * f_y , t_z)
     Fr e2_square = challenge * challenge;
     G1 left =
@@ -462,60 +450,14 @@ inline bool VerifyInternal(VerifierInput const& input,
 
   parallel::Invoke(tasks);
 
-////#ifdef MULTICORE
-////#pragma omp parallel sections
-////#endif
-//  {
-////#ifdef MULTICORE
-////#pragma omp section
-////#endif
-//    {
-//      Fr alpha = FrRand();
-//      // (a^e * a_d)^alpha * b^e * b_d
-//      G1 left = (com_pub.a * challenge + com_ext_pub.ad) * alpha +
-//                (com_pub.b * challenge + com_ext_pub.bd);
-//      // com(alpha * fx + fy,alpha * rx + sy)
-//      std::vector<Fr> alpha_fx_fy;
-//      details::VectorMul(alpha_fx_fy, proof.fx, alpha);
-//      details::VectorAdd(alpha_fx_fy, alpha_fx_fy, proof.fy);
-//      Fr alpha_rx_sy = alpha * proof.rx + proof.sy;
-//      G1 right = ComputeCommitment(alpha_fx_fy, alpha_rx_sy);
-//      ret1 = left == right;
-//      assert(ret1);
-//    }
-//
-////#ifdef MULTICORE
-////#pragma omp section
-////#endif
-//    {
-//      // c^(e^2) * c_1^e * c_0 == com(f_x * f_y , t_z)
-//      Fr e2_square = challenge * challenge;
-//      G1 left =
-//          com_pub.c * e2_square + com_ext_pub.c1 * challenge + com_ext_pub.c0;
-//      Fr fz = [&input, &proof, n]() {
-//        if (input.t) {
-//          std::vector<Fr> proof_fyt(n);
-//          details::HadamardProduct(proof_fyt, proof.fy, *input.t);
-//          return InnerProduct(proof.fx, proof_fyt);
-//        } else {
-//          return InnerProduct(proof.fx, proof.fy);
-//        }
-//      }();
-//
-//      G1 right = ComputeCommitment(fz, proof.tz);
-//      ret2 = left == right;
-//      assert(ret2);
-//    }
-//  }
   assert(ret1 && ret2);
   return ret1 && ret2;
 }
 
-inline void RomProve(RomProof& rom_proof,
-                     h256_t const& common_seed, ProverInput const& input,
-                     CommitmentPub const& com_pub,
+inline void RomProve(RomProof& rom_proof, h256_t const& common_seed,
+                     ProverInput const& input, CommitmentPub const& com_pub,
                      CommitmentSec const& com_sec) {
-  //Tick tick(__FUNCTION__);
+  // Tick tick(__FUNCTION__);
 
   assert(PdsPub::kGSize >= input.n());
 
@@ -525,13 +467,13 @@ inline void RomProve(RomProof& rom_proof,
   auto seed = common_seed;
   UpdateSeed(seed, com_pub, rom_proof.com_ext_pub);
   Fr challenge = H256ToFr(seed);
-  
+
   ComputeProof(rom_proof.proof, input, com_sec, com_ext_sec, challenge);
 }
 
-inline bool RomVerify(RomProof const& rom_proof, 
-               h256_t const& common_seed, VerifierInput const& input) {
-  //Tick tick(__FUNCTION__);
+inline bool RomVerify(RomProof const& rom_proof, h256_t const& common_seed,
+                      VerifierInput const& input) {
+  // Tick tick(__FUNCTION__);
   assert(PdsPub::kGSize >= rom_proof.n());
 
   auto seed = common_seed;

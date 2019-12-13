@@ -1,4 +1,5 @@
 #include "scheme_atomic_swap_vc_notary.h"
+
 #include "vrs/vrs.h"
 
 namespace scheme::atomic_swap_vc {

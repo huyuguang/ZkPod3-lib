@@ -1,5 +1,3 @@
-#include "c_api.h"
-
 #include <algorithm>
 #include <array>
 #include <map>
@@ -29,11 +27,10 @@
 #include "../scheme_vrfq_alice.h"
 #include "../scheme_vrfq_bob.h"
 #include "../scheme_vrfq_serialize.h"
-
+#include "c_api.h"
+#include "c_api_object.h"
 #include "ecc.h"
 #include "ecc_pub.h"
-
-#include "c_api_object.h"
 
 extern "C" {
 

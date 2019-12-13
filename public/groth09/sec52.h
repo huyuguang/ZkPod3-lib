@@ -2,6 +2,8 @@
 
 #include <map>
 #include <memory>
+
+#include "../fst.h"
 #include "./details.h"
 #include "./sec51.h"
 
@@ -283,7 +285,6 @@ inline void ComputeComExt(CommitmentExtPub& com_ext_pub,
 // compute challenge1 by commitment1 and commitment2
 inline void UpdateSeed(h256_t& seed, CommitmentPub const& com_pub,
                        CommitmentExtPub const& com_ext_pub) {
-  using details::HashUpdate;
   CryptoPP::Keccak_256 hash;
   HashUpdate(hash, seed);
   HashUpdate(hash, com_pub.a);

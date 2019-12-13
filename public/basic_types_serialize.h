@@ -53,7 +53,7 @@ void serialize(Ar &ar, Range &t) {
     assert(ar.type() == yas::json);
     std::string str;
     ar &str;
-    t = Range::from_string(str); // throw
+    t = Range::from_string(str);  // throw
   }
 }
 

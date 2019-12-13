@@ -1,4 +1,5 @@
 #include "scheme_ot_vrfq_bob.h"
+
 #include "misc.h"
 #include "public.h"
 #include "scheme_ot_vrfq_notary.h"

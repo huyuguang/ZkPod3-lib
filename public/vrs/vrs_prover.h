@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../fst.h"
 #include "vrs_mimc.h"
 #include "vrs_mimc5_gadget.h"
 #include "vrs_misc.h"
@@ -64,10 +65,16 @@ class Prover {
   void Prove(h256_t const& rom_seed, std::function<Fr(int64_t)> get_w,
              Proof& proof, ProveOutput& output) {
     // Tick tick(__FUNCTION__);
-
+    auto seed = rom_seed;
     BuildVarComs();
-    HpProve(rom_seed, proof.proof_hp);
-    IpProve(rom_seed, std::move(get_w), proof.proof_ip);
+
+    CryptoPP::Keccak_256 hash;
+    HashUpdate(hash, seed);
+    HashUpdate(hash, var_coms_);
+    hash.Final(seed.data());
+
+    HpProve(seed, proof.proof_hp);
+    IpProve(seed, std::move(get_w), proof.proof_ip);
     proof.var_coms = var_coms_;
     proof.com_vw = com_vw_;
 
@@ -101,25 +108,6 @@ class Prover {
     auto count = public_input_.count;
     var_coms_.resize(num_variables());
     var_coms_r_.resize(var_coms_.size());
-    // std::cout << "commitment: " << var_coms_.size() << " * " << count <<
-    // "\n";
-
-    // for (int64_t i = 0; i < (int64_t)var_coms_.size(); ++i) {
-    //  std::vector<Fr> data(count);
-    //  auto& var_com = var_coms_[i];
-    //  auto& var_com_r = var_coms_r_[i];
-    //  for (int64_t j = 0; j < count; ++j) {
-    //    data[j] = values_[j][i];
-    //  }
-    //  if (i < primary_input_size_) {
-    //    var_com_r = FrZero();
-    //  } else if (i == primary_input_size_) {
-    //    var_com_r = secret_input_.key_com_r;
-    //  } else {
-    //    var_com_r = FrRand();
-    //  }
-    //  var_com = ComputeCommitment(data, var_com_r);
-    //}
 
     auto parallel_f = [this, count](int64_t i) mutable {
       std::vector<Fr> data(count);
@@ -140,6 +128,7 @@ class Prover {
     parallel::For((int64_t)var_coms_.size(), parallel_f);
   }
 
+  // <A,X>=constraint.a, <B,X>=constraint.b, <C,X>=constraint.c
   groth09::sec43::ProverInput BuildHpInput() {
     // Tick tick(__FUNCTION__);
     auto m = num_constraints();
@@ -155,19 +144,6 @@ class Prover {
     auto constraint_system = pb_->get_constraint_system();
     auto const& constraints = constraint_system.constraints;
 
-    ////#ifdef MULTICORE
-    ////#pragma omp parallel for
-    ////#endif
-    // for (int64_t j = 0; j < n; ++j) {
-    //  auto const& values = values_[j];
-    //  for (int64_t i = 0; i < m; ++i) {
-    //    auto const& constraint = constraints[i];
-    //    x[i][j] = constraint.a.evaluate(values);
-    //    y[i][j] = constraint.b.evaluate(values);
-    //    z[i][j] = constraint.c.evaluate(values);
-    //    assert(z[i][j] == x[i][j] * y[i][j]);
-    //  }
-    //}
     auto parallel_f = [this, &constraints, &x, &y, &z, &m](int64_t j) mutable {
       auto const& values = values_[j];
       for (int64_t i = 0; i < m; ++i) {
@@ -208,21 +184,6 @@ class Prover {
     auto constraint_system = pb_->get_constraint_system();
     auto const& constraints = constraint_system.constraints;
 
-    ////#ifdef MULTICORE
-    ////#pragma omp parallel for
-    ////#endif
-    // for (int64_t i = 0; i < m; ++i) {
-    //  auto& com_pub_a = com_pub.a[i];
-    //  auto& com_pub_b = com_pub.b[i];
-    //  auto& com_pub_c = com_pub.c[i];
-    //  auto& com_sec_r = com_sec.r[i];
-    //  auto& com_sec_s = com_sec.s[i];
-    //  auto& com_sec_t = com_sec.t[i];
-    //  auto const& constraint = constraints[i];
-    //  BuildHpCom(constraint.a, com_pub_a, com_sec_r, pds_sigma_g_);
-    //  BuildHpCom(constraint.b, com_pub_b, com_sec_s, pds_sigma_g_);
-    //  BuildHpCom(constraint.c, com_pub_c, com_sec_t, pds_sigma_g_);
-    //}
     auto parallel_f = [this, &com_pub, &com_sec,
                        &constraints](int64_t i) mutable {
       auto& com_pub_a = com_pub.a[i];
@@ -239,6 +200,7 @@ class Prover {
     parallel::For(m, parallel_f);
   }
 
+  // com(<A,X>) or com(<B,X>) or com(<C,X>)
   void BuildHpCom(libsnark::linear_combination<Fr> const& lc, G1& com_pub,
                   Fr& com_sec, G1 const& sigma_g) {
     // Tick tick(__FUNCTION__);
@@ -286,7 +248,7 @@ class Prover {
 #endif
   }
 
-  void HpProve(h256_t const& rom_seed, groth09::sec43::RomProof& rom_proof) {
+  void HpProve(h256_t const& seed, groth09::sec43::RomProof& rom_proof) {
     // Tick tick(__FUNCTION__);
     auto input = BuildHpInput();
     groth09::sec43::CommitmentPub com_pub;
@@ -298,11 +260,11 @@ class Prover {
     pb_.reset();
 
     groth09::sec43::AlignData(input, com_pub, com_sec);
-    groth09::sec43::RomProve(rom_proof, rom_seed, std::move(input),
+    groth09::sec43::RomProve(rom_proof, seed, std::move(input),
                              std::move(com_pub), std::move(com_sec));
   }
 
-  void IpProve(h256_t const& rom_seed, std::function<Fr(int64_t)> get_w,
+  void IpProve(h256_t const& seed, std::function<Fr(int64_t)> get_w,
                hyrax::a2::RomProof& rom_proof) {
     // Tick tick(__FUNCTION__);
     using groth09::details::ComputeCommitment;
@@ -319,8 +281,8 @@ class Prover {
     com_pub.xi = var_coms_.back();
     com_pub.tau = ComputeCommitment(input.y, com_sec.r_tau);
     com_vw_ = com_pub.tau;
-    hyrax::a2::RomProve(rom_proof, rom_seed, std::move(input),
-                        std::move(com_pub), std::move(com_sec));
+    hyrax::a2::RomProve(rom_proof, seed, std::move(input), std::move(com_pub),
+                        std::move(com_sec));
   }
 
  private:

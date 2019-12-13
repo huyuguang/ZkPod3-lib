@@ -1,4 +1,5 @@
 #include "scheme_atomic_swap_test.h"
+
 #include "scheme_atomic_swap_alice.h"
 #include "scheme_atomic_swap_bob.h"
 #include "scheme_atomic_swap_notary.h"

@@ -1,4 +1,5 @@
 #include "scheme_vrfq_notary.h"
+
 #include "chain.h"
 #include "mkl_tree.h"
 #include "scheme_misc.h"

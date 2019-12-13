@@ -55,8 +55,8 @@ struct CommitmentSec {
 
 struct RomProof {
   G1 c;
-  sec53::RomProof proof_53; // 2*log(m)+4 G1, 2n+3 Fr
-  hyrax::a2::RomProof proof_a2; // 2 G1, n+2 Fr
+  sec53::RomProof proof_53;      // 2*log(m)+4 G1, 2n+3 Fr
+  hyrax::a2::RomProof proof_a2;  // 2 G1, n+2 Fr
   int64_t n() const { return proof_53.n(); }
   int64_t m() const { return proof_53.m(); }
 };
@@ -184,7 +184,6 @@ inline void ComputeCom(CommitmentPub& com_pub, CommitmentSec& com_sec,
 
 inline void UpdateSeed(h256_t& seed, CommitmentPub const& com_pub) {
   // Tick tick(__FUNCTION__);
-  using details::HashUpdate;
   CryptoPP::Keccak_256 hash;
   HashUpdate(hash, seed);
   HashUpdate(hash, com_pub.a);
@@ -195,50 +194,8 @@ inline void UpdateSeed(h256_t& seed, CommitmentPub const& com_pub) {
 
 inline void ComputeChallengeKT(h256_t const& seed, std::vector<Fr>& k,
                                std::vector<Fr>& t) {
-  using details::HashUpdate;
-  assert(!k.empty() && !t.empty());
-
-  const int64_t kConstK = 0x123456789abcdef0LL;
-  // for (size_t i = 0; i < k.size(); ++i) {
-  //  CryptoPP::Keccak_256 hash;
-  //  h256_t digest;
-  //  HashUpdate(hash, seed);
-  //  HashUpdate(hash, "challenge k ");
-  //  HashUpdate(hash, kConstK + i);
-  //  hash.Final(digest.data());
-  //  k[i] = H256ToFr(digest);
-  //}
-  auto parallel_f = [&seed, &k, &kConstK](int64_t i) {
-    CryptoPP::Keccak_256 hash;
-    h256_t digest;
-    HashUpdate(hash, seed);
-    HashUpdate(hash, "challenge k ");
-    HashUpdate(hash, kConstK + i);
-    hash.Final(digest.data());
-    k[i] = H256ToFr(digest);
-  };
-  parallel::For(k.size(), parallel_f, k.size() < 16 * 1024);
-
-  const int64_t kConstT = 0xabcdef1011121314LL;
-  // for (size_t i = 0; i < t.size(); ++i) {
-  //  CryptoPP::Keccak_256 hash;
-  //  h256_t digest;
-  //  HashUpdate(hash, seed);
-  //  HashUpdate(hash, "challenge t ");
-  //  HashUpdate(hash, kConstT + i);
-  //  hash.Final(digest.data());
-  //  t[i] = H256ToFr(digest);
-  //}
-  auto parallel_f2 = [&seed, &t, &kConstT](int64_t i) {
-    CryptoPP::Keccak_256 hash;
-    h256_t digest;
-    HashUpdate(hash, seed);
-    HashUpdate(hash, "challenge t ");
-    HashUpdate(hash, kConstT + i);
-    hash.Final(digest.data());
-    t[i] = H256ToFr(digest);
-  };
-  parallel::For(t.size(), parallel_f2, t.size() < 16 * 1024);
+  ComputeFst(seed, "gro09::sec43::k", k);
+  ComputeFst(seed, "gro09::sec43::t", t);
 }
 
 // pad some trivial value
@@ -280,12 +237,7 @@ inline void RomProve(RomProof& rom_proof, h256_t const& rom_seed,
     sec53::CommitmentPub com_pub_53;
     std::vector<std::vector<Fr>> x_53(m);
 
-    // for (int64_t i = 0; i < m; ++i) {
-    //  details::VectorMul(input_x[i], input_x[i], k[i]);
-    //}
-    auto parallel_f = [&input_x, &k](int64_t i) mutable {
-      details::VectorMul(input_x[i], input_x[i], k[i]);
-    };
+    auto parallel_f = [&input_x, &k](int64_t i) { input_x[i] *= k[i]; };
     parallel::For(m, parallel_f, m < 1024);
 
     sec53::ProverInput input_53(std::move(input_x), std::move(input_y), &t);
@@ -293,10 +245,6 @@ inline void RomProve(RomProof& rom_proof, h256_t const& rom_seed,
 
     com_sec_53.r.resize(m);
     com_pub_53.a.resize(m);
-    // for (int64_t i = 0; i < m; ++i) {
-    //  com_sec_53.r[i] = com_sec.r[i] * k[i];
-    //  com_pub_53.a[i] = com_pub.a[i] * k[i];
-    //}
     auto parallel_f2 = [&com_sec, &com_pub, &com_sec_53, &com_pub_53,
                         &k](int64_t i) mutable {
       com_sec_53.r[i] = com_sec.r[i] * k[i];
@@ -326,11 +274,6 @@ inline void RomProve(RomProof& rom_proof, h256_t const& rom_seed,
 
     std::fill(x_hy.begin(), x_hy.end(), FrZero());
 
-    // for (int64_t j = 0; j < n; ++j) {
-    //  for (int64_t i = 0; i < m; ++i) {
-    //    x_hy[j] += input_z[i][j] * k[i];
-    //  }
-    //}
     auto parallel_f = [&input_z, &x_hy, &k, m](int64_t j) mutable {
       for (int64_t i = 0; i < m; ++i) {
         x_hy[j] += input_z[i][j] * k[i];
@@ -385,7 +328,7 @@ inline bool RomVerify(RomProof const& rom_proof, h256_t const& rom_seed,
     com_pub_53.c = rom_proof.c;
     com_pub_53.b = input.com_pub.b;
     com_pub_53.a.resize(m);
-    //for (int64_t i = 0; i < m; ++i) {
+    // for (int64_t i = 0; i < m; ++i) {
     //  com_pub_53.a[i] = com_pub.a[i] * k[i];
     //}
     auto parallel_f = [&com_pub_53, &com_pub, &k](int64_t i) {

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../fst.h"
 #include "./details.h"
 
 // x, y, z: secret Fr
@@ -189,7 +190,6 @@ inline void ComputeCommitmentExt(CommitmentExtPub& com_ext_pub,
 
 inline void UpdateSeed(h256_t& seed, CommitmentPub const& com_pub,
                        CommitmentExtPub const& com_ext_pub) {
-  using details::HashUpdate;
   CryptoPP::Keccak_256 hash;
   HashUpdate(hash, seed);
   HashUpdate(hash, com_pub.x);
@@ -203,8 +203,7 @@ inline void UpdateSeed(h256_t& seed, CommitmentPub const& com_pub,
 
 inline void ComputeProof(Proof& proof, ProverInput const& input,
                          CommitmentSec const& com_sec,
-                         CommitmentExtSec const& com_ext_sec,
-                         Fr const& c) {
+                         CommitmentExtSec const& com_ext_sec, Fr const& c) {
   proof.z1 = com_ext_sec.b1 + c * input.x;
   proof.z2 = com_ext_sec.b2 + c * com_sec.r_x;
   proof.z3 = com_ext_sec.b3 + c * input.y;
@@ -215,7 +214,7 @@ inline void ComputeProof(Proof& proof, ProverInput const& input,
 inline void RomProve(RomProof& rom_proof, h256_t const& common_seed,
                      ProverInput input, CommitmentPub com_pub,
                      CommitmentSec com_sec) {
-  //Tick tick(__FUNCTION__);
+  // Tick tick(__FUNCTION__);
 
   CommitmentExtSec com_ext_sec;
   ComputeCommitmentExt(rom_proof.com_ext_pub, com_ext_sec, com_pub);

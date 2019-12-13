@@ -1,4 +1,5 @@
 #include "scheme_ot_vrfq_test.h"
+
 #include "scheme_ot_vrfq_alice.h"
 #include "scheme_ot_vrfq_bob.h"
 #include "scheme_ot_vrfq_protocol.h"

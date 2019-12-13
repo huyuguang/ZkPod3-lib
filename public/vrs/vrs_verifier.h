@@ -22,20 +22,14 @@ class Verifier {
     using groth09::details::ComputeCommitment;
     auto count = public_input_.count;
 
+    auto seed = rom_seed;
+    CryptoPP::Keccak_256 hash;
+    HashUpdate(hash, seed);
+    HashUpdate(hash, proof.var_coms);
+    hash.Final(seed.data());
+
     std::vector<parallel::Task> tasks(3);
     // check com_plain
-    // G1 const& com_plain = proof.var_coms[0];
-    // Fr com_plain_r = FrZero();
-    // std::vector<Fr> data(count);
-    // for (int64_t i = 0; i < count; ++i) {
-    //  data[i] = public_input_.get_p(i);
-    //}
-    // auto check_value = ComputeCommitment(data, com_plain_r);
-    // if (check_value != com_plain) {
-    //  std::cout << "check_value != com_plain\n";
-    //  assert(false);
-    //  return false;
-    //}
     bool ret_com_plain = false;
     tasks[0] = [this, &proof, &ret_com_plain, count]() mutable {
       G1 const& com_plain = proof.var_coms[0];
@@ -49,41 +43,18 @@ class Verifier {
     };
 
     // check hadamard product
-    // groth09::sec43::CommitmentPub com_pub_hp;
-    // BuildHpCom(proof, com_pub_hp);
-    // com_pub_hp.Align();
-    // groth09::sec43::VerifierInput input_hp(com_pub_hp);
-    // if (!groth09::sec43::RomVerify(proof.proof_hp, rom_seed,
-    //                               input_hp)) {
-    //  std::cout << "groth09::sec43::RomVerify failed\n";
-    //  assert(false);
-    //  return false;
-    //}
     bool ret_hp = false;
-    tasks[1] = [this, &proof, &ret_hp, &rom_seed]() mutable {
+    tasks[1] = [this, &proof, &ret_hp, &seed]() mutable {
       groth09::sec43::CommitmentPub com_pub_hp;
       BuildHpCom(proof, com_pub_hp);
       com_pub_hp.Align();
       groth09::sec43::VerifierInput input_hp(com_pub_hp);
-      ret_hp = groth09::sec43::RomVerify(proof.proof_hp, rom_seed, input_hp);
+      ret_hp = groth09::sec43::RomVerify(proof.proof_hp, seed, input_hp);
     };
 
     // check inner product
-    // std::vector<Fr> input_w(count);
-    // for (int64_t i = 0; i < (int64_t)input_w.size(); ++i) {
-    //  input_w[i] = get_w(i);
-    //}
-    // hyrax::a2::CommitmentPub com_pub_ip;
-    // BuildIpCom(proof, com_pub_ip);
-    // hyrax::a2::VerifierInput input_ip(input_w, com_pub_ip);
-    // if (!hyrax::a2::RomVerify(proof.proof_ip, rom_seed, input_ip)) {
-    //  std::cout << "hyrax::a2::RomVerify failed\n";
-    //  assert(false);
-    //  return false;
-    //}
-
     bool ret_ip = false;
-    tasks[2] = [this, &proof, &ret_ip, count, &get_w, &rom_seed]() mutable {
+    tasks[2] = [this, &proof, &ret_ip, count, &get_w, &seed]() mutable {
       std::vector<Fr> input_w(count);
       for (int64_t i = 0; i < (int64_t)input_w.size(); ++i) {
         input_w[i] = get_w(i);
@@ -91,7 +62,7 @@ class Verifier {
       hyrax::a2::CommitmentPub com_pub_ip;
       BuildIpCom(proof, com_pub_ip);
       hyrax::a2::VerifierInput input_ip(input_w, com_pub_ip);
-      ret_ip = hyrax::a2::RomVerify(proof.proof_ip, rom_seed, input_ip);
+      ret_ip = hyrax::a2::RomVerify(proof.proof_ip, seed, input_ip);
     };
 
     parallel::Invoke(tasks);
@@ -138,19 +109,6 @@ class Verifier {
     auto constraint_system = pb_.get_constraint_system();
     auto const& constraints = constraint_system.constraints;
 
-    ////#ifdef MULTICORE
-    ////#pragma omp parallel for
-    ////#endif
-    //    for (int64_t i = 0; i < m; ++i) {
-    //      auto& com_pub_a = com_pub.a[i];
-    //      auto& com_pub_b = com_pub.b[i];
-    //      auto& com_pub_c = com_pub.c[i];
-    //      auto const& constraint = constraints[i];
-    //      BuildHpCom(constraint.a, com_pub_a, pds_sigma_g_, proof);
-    //      BuildHpCom(constraint.b, com_pub_b, pds_sigma_g_, proof);
-    //      BuildHpCom(constraint.c, com_pub_c, pds_sigma_g_, proof);
-    //    }
-
     auto parallel_f = [this, &com_pub, &constraints,
                        &proof](int64_t i) mutable {
       auto& com_pub_a = com_pub.a[i];
@@ -164,6 +122,7 @@ class Verifier {
     parallel::For(m, parallel_f);
   }
 
+  // com(<A,X>) or com(<B,X>) or com(<C,X>)
   void BuildHpCom(libsnark::linear_combination<Fr> const& lc, G1& com_pub,
                   G1 const& sigma_g, Proof const& proof) {
     // Tick tick(__FUNCTION__);

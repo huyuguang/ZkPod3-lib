@@ -2,6 +2,8 @@
 
 #include <map>
 #include <memory>
+
+#include "../fst.h"
 #include "groth09/details.h"
 #include "groth09/sec51.h"
 
@@ -221,18 +223,12 @@ class ProverInput {
     // Tick tick(__FUNCTION__);
     auto m2 = m() / 2;
     for (int64_t i = 0; i < m2; ++i) {
-      std::vector<Fr> xi;
-      details::VectorMul(xi, x(2 * i + 1), e);
-      details::VectorAdd(xi, x(2 * i), xi);
-      x_data_[i] = std::move(xi);
+      x_data_[i] = x(2 * i + 1) * e + x(2 * i);
     }
     x_data_.resize(m2);
 
     for (int64_t i = 0; i < m2; ++i) {
-      std::vector<Fr> yi;
-      details::VectorMul(yi, y(2 * i), e);
-      details::VectorAdd(yi, yi, y(2 * i + 1));
-      y_data_[i] = std::move(yi);
+      y_data_[i] = y(2 * i) * e + y(2 * i + 1);
     }
     y_data_.resize(m2);
 
@@ -298,8 +294,8 @@ inline bool operator!=(CommitmentExtPub const& left,
 }
 
 struct RomProof {
-  CommitmentExtPub com_ext_pub; // 2*log(m) G1
-  sec51::RomProof rom_proof_51; // 4 G1, 2n+3 Fr
+  CommitmentExtPub com_ext_pub;  // 2*log(m) G1
+  sec51::RomProof rom_proof_51;  // 4 G1, 2n+3 Fr
 
   int64_t n() const { return rom_proof_51.n(); }
   int64_t m() const { return com_ext_pub.m(); }
@@ -447,8 +443,7 @@ inline void UpdateCom(CommitmentPub& com_pub, CommitmentSec& com_sec,
   //  s2[i] = s[2 * i] * e + s[2 * i + 1];
   //}
 
-  auto parallel_f = [&com_pub, &com_sec, &com_pub2, &com_sec2,
-                     &e](int64_t i) {
+  auto parallel_f = [&com_pub, &com_sec, &com_pub2, &com_sec2, &e](int64_t i) {
     auto& a2 = com_pub2.a;
     auto const& a = com_pub.a;
     a2[i] = a[2 * i] + a[2 * i + 1] * e;
@@ -476,7 +471,6 @@ inline void UpdateCom(CommitmentPub& com_pub, CommitmentSec& com_sec,
 inline Fr ComputeChallenge(h256_t const& seed, CommitmentPub const& com_pub,
                            G1 const& cl, G1 const& cu) {
   // Tick tick(__FUNCTION__);
-  using details::HashUpdate;
   CryptoPP::Keccak_256 hash;
   h256_t digest;
   HashUpdate(hash, seed);
@@ -547,7 +541,6 @@ inline void RomProve(RomProof& rom_proof, h256_t seed, ProverInput input,
 inline bool RomVerify(RomProof const& rom_proof, h256_t seed,
                       VerifierInput const& input) {
   // Tick tick(__FUNCTION__);
-  using details::HashUpdate;
   if (!rom_proof.CheckFormat(input.m())) {
     assert(false);
     return false;
@@ -567,7 +560,7 @@ inline bool RomVerify(RomProof const& rom_proof, h256_t seed,
     std::vector<G1> b2(com_pub.m() / 2);
     G1 c2;
 
-    //for (int64_t i = 0; i < com_pub.m() / 2; ++i) {
+    // for (int64_t i = 0; i < com_pub.m() / 2; ++i) {
     //  auto const& a = com_pub.a;
     //  a2[i] = a[2 * i] + a[2 * i + 1] * e;
 

@@ -1,15 +1,15 @@
 #pragma once
 
 #ifdef _MSC_VER
-	#pragma warning(push)
-	#pragma warning(disable : 4127)
+#pragma warning(push)
+#pragma warning(disable : 4127)
 #endif
 
 #include <gmp.h>
 #include <gmpxx.h>
 
 #ifdef _MSC_VER
-	#pragma warning(pop)
+#pragma warning(pop)
 #endif
 
 inline bool MpzIsUint256(mpz_class const& v) {
@@ -52,11 +52,9 @@ inline bool MpzFromStr(std::string const& s, mpz_class* mpz) {
   return true;
 }
 
-inline std::string MpzToStr(mpz_class const& mpz) {
-  return mpz.get_str();
-}
+inline std::string MpzToStr(mpz_class const& mpz) { return mpz.get_str(); }
 
-//inline void TestMpz() {
+// inline void TestMpz() {
 //  mpz_class v = 0x11223344;
 //  std::cout << v << "\n";
 //  uint8_t buf[32];

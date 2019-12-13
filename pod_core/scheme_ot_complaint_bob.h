@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <string>
+
 #include "basic_types.h"
 #include "ecc.h"
 #include "misc.h"
@@ -54,6 +55,7 @@ class Bob {
   h256_t alice_nonce_;
   h256_t bob_nonce_;
   Receipt receipt_;
+
  private:
   struct Mapping {
     uint64_t phantom_offset;

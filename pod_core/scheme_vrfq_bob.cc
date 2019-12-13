@@ -1,4 +1,5 @@
 #include "scheme_vrfq_bob.h"
+
 #include "public.h"
 #include "scheme_table.h"
 #include "scheme_table_bob_data.h"

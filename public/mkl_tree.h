@@ -2,6 +2,7 @@
 
 #include <cryptopp/sha.h>
 #include <stdint.h>
+
 #include <algorithm>
 #include <functional>
 #include <memory>

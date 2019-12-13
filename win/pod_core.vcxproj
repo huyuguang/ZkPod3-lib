@@ -263,11 +263,14 @@
     <ClInclude Include="..\public\basic_types_serialize.h" />
     <ClInclude Include="..\public\groth09\serialize.h" />
     <ClInclude Include="..\public\groth09\test.h" />
+    <ClInclude Include="..\public\fst.h" />
     <ClInclude Include="..\public\hyrax\a1.h" />
+    <ClInclude Include="..\public\hyrax\a3.h" />
     <ClInclude Include="..\public\hyrax\serialize.h" />
     <ClInclude Include="..\public\pds_pub.h" />
     <ClInclude Include="..\public\recursive_taskpool.h" />
     <ClInclude Include="..\public\rng.h" />
+    <ClInclude Include="..\public\vectorop.h" />
     <ClInclude Include="..\public\vrs\serialize.h" />
     <ClInclude Include="..\public\vrs\test.h" />
     <ClInclude Include="..\public\vrs\vrs.h" />

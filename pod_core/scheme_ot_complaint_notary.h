@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <string>
+
 #include "basic_types.h"
 #include "chain.h"
 #include "mkl_tree.h"
@@ -11,8 +12,8 @@ namespace scheme::ot_complaint {
 template <typename Receipt, typename Secret, typename Claim>
 bool VerifyClaim(uint64_t s, Receipt const& receipt, Secret const& secret,
                  Claim const& claim) {
-  if (!VerifyPathOfK(claim.ki, claim.i, receipt.count + 1,
-                     receipt.k_mkl_root, claim.mkl_path)) {
+  if (!VerifyPathOfK(claim.ki, claim.i, receipt.count + 1, receipt.k_mkl_root,
+                     claim.mkl_path)) {
     assert(false);
     return false;
   }

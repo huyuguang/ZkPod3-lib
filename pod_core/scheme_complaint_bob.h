@@ -41,6 +41,7 @@ class Bob {
   h256_t alice_nonce_;
   h256_t bob_nonce_;
   Receipt receipt_;
+
  private:
   std::vector<G1> k_;
 

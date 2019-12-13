@@ -2,6 +2,7 @@
 
 #include <string>
 #include <vector>
+
 #include "ecc.h"
 #include "vrs/vrs.h"
 
@@ -18,7 +19,7 @@ struct Response {
   std::vector<Fr> vw;  // s
   h256_t vrs_plain_seed;
   Fr vw_com_r;
-  std::vector<vrs::Proof> vrs_proofs;  
+  std::vector<vrs::Proof> vrs_proofs;
 };
 
 inline bool operator==(Response const& left, Response const& right) {
@@ -27,8 +28,7 @@ inline bool operator==(Response const& left, Response const& right) {
          left.vw_com_r == right.vw_com_r && left.vrs_proofs == right.vrs_proofs;
 }
 
-inline bool operator!=(Response const& left,
-                       Response const& right) {
+inline bool operator!=(Response const& left, Response const& right) {
   return !(left == right);
 }
 
@@ -44,7 +44,7 @@ inline bool operator==(Receipt const& left, Receipt const& right) {
 }
 
 inline bool operator!=(Receipt const& left, Receipt const& right) {
-  return !(left == right); 
+  return !(left == right);
 }
 
 struct Secret {
@@ -57,7 +57,7 @@ inline bool operator==(Secret const& left, Secret const& right) {
 }
 
 inline bool operator!=(Secret const& left, Secret const& right) {
-  return !(left == right); 
+  return !(left == right);
 }
 
 }  // namespace scheme::atomic_swap_vc

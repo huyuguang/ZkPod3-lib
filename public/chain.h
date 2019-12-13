@@ -1,17 +1,17 @@
 #pragma once
 
+#include <cryptopp/keccak.h>
 #include <stdint.h>
+
+#include <boost/endian/conversion.hpp>
 #include <memory>
 #include <string>
 #include <vector>
 
-#include <cryptopp/keccak.h>
-#include <boost/endian/conversion.hpp>
-
 #include "ecc.h"
 #include "mpz.h"
-#include "tick.h"
 #include "parallel.h"
+#include "tick.h"
 
 inline Fr ChainKeccak256(uint8_t const* seed_buf, uint64_t seed_len,
                          uint64_t index) {
@@ -48,12 +48,12 @@ inline void ChainKeccak256(h256_t const& seed, uint64_t begin, uint64_t end,
   Tick _tick_(__FUNCTION__);
   v.resize(end - begin);
 
-//#ifdef MULTICORE
-//#pragma omp parallel for
-//#endif
-//  for (int64_t i = begin; i < (int64_t)end; ++i) {
-//    v[i - begin] = ChainKeccak256(seed, i);
-//  }
+  //#ifdef MULTICORE
+  //#pragma omp parallel for
+  //#endif
+  //  for (int64_t i = begin; i < (int64_t)end; ++i) {
+  //    v[i - begin] = ChainKeccak256(seed, i);
+  //  }
 
   auto parallel_f = [&v, &seed, begin](uint64_t i) mutable {
     v[i - begin] = ChainKeccak256(seed, i);

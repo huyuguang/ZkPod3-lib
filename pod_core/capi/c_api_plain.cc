@@ -1,5 +1,3 @@
-#include "c_api.h"
-
 #include <algorithm>
 #include <array>
 #include <map>
@@ -22,11 +20,10 @@
 #include "../scheme_ot_complaint_serialize.h"
 #include "../scheme_plain_alice_data.h"
 #include "../scheme_plain_bob_data.h"
-
+#include "c_api.h"
+#include "c_api_object.h"
 #include "ecc.h"
 #include "ecc_pub.h"
-
-#include "c_api_object.h"
 
 extern "C" {
 EXPORT handle_t E_PlainAliceDataNew(char const* publish_path) {

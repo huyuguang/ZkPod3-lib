@@ -1,22 +1,21 @@
 #pragma once
 
 #include <stdlib.h>
-#include <iostream>
 
+#include <iostream>
 #include <libsnark/gadgetlib1/gadget.hpp>
 #include <libsnark/gadgetlib1/gadgets/basic_gadgets.hpp>
 #include <libsnark/gadgetlib1/pb_variable.hpp>
 
-#include "vrs_misc.h"
 #include "vrs_mimc.h"
+#include "vrs_misc.h"
 
 namespace vrs {
 class Mimc5Gadget : public libsnark::gadget<Fr> {
  public:
   Mimc5Gadget(libsnark::protoboard<Fr>& pb,
               const std::string& annotation_prefix = "")
-      : libsnark::gadget<Fr>(pb, "VrsMimc5"),
-        constants_(Mimc5Const()) {
+      : libsnark::gadget<Fr>(pb, "VrsMimc5"), constants_(Mimc5Const()) {
     plain_.allocate(pb, "plain");
     key_.allocate(pb, "key");
     rounds_x2_.allocate(pb, constants_.size(),
@@ -64,7 +63,7 @@ class Mimc5Gadget : public libsnark::gadget<Fr> {
     }
   }
 
-  void generate_r1cs_witness() {    
+  void generate_r1cs_witness() {
     auto const& plain = this->pb.val(plain_);
     auto const& key = this->pb.val(key_);
     auto data = plain;

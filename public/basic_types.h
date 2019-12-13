@@ -1,9 +1,8 @@
 #pragma once
 
 #include <array>
-#include <vector>
-
 #include <boost/lexical_cast.hpp>
+#include <vector>
 
 // typedef std::array<uint8_t, 32> h256_t;
 
@@ -28,7 +27,7 @@ struct Range {
   static std::string to_string(Range const& v) {
     return std::to_string(v.start) + "-" + std::to_string(v.count);
   }
-  
+
   // throw
   static Range from_string(std::string const& s) {
     Range t;

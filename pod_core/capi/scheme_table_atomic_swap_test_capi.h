@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+
 #include "basic_types.h"
 
 namespace scheme::table::atomic_swap::capi {

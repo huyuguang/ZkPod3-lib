@@ -55,6 +55,7 @@ class Alice {
   Receipt receipt_;
   std::string vrs_cache_file_;
   bool got_peer_receipt_ = false;
+
  private:
   bool evil_ = false;
 };

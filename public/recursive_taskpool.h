@@ -1,22 +1,22 @@
 #pragma once
 
+#include <assert.h>
+
+#include <algorithm>
+#include <atomic>
 #include <condition_variable>
+#include <deque>
 #include <functional>
 #include <iostream>
 #include <memory>
 #include <mutex>
+#include <numeric>
 #include <queue>
 #include <set>
 #include <sstream>
 #include <string>
 #include <thread>
 #include <vector>
-#include <queue>
-#include <deque>
-#include <atomic>
-#include <algorithm>
-#include <numeric>
-#include <assert.h>
 
 namespace parallel {
 
@@ -29,10 +29,10 @@ typedef std::function<void()> Task;
 class SimpleTaskPool {
  public:
   SimpleTaskPool() {
-    char const* thread_num_env = std::getenv("options:thread_num");  
+    char const* thread_num_env = std::getenv("options:thread_num");
     size_t thread_num =
         thread_num_env ? std::strtoul(thread_num_env, nullptr, 10) : 0;
-    if (!thread_num) thread_num = std::thread::hardware_concurrency();   
+    if (!thread_num) thread_num = std::thread::hardware_concurrency();
 
     if (thread_num > 1) {
       threads_.resize(thread_num);
@@ -69,7 +69,7 @@ class SimpleTaskPool {
     SetThreadDescription(GetCurrentThread(), L"task_pool");
 #endif
     Task task;
-    for (;;) {      
+    for (;;) {
       if (PopTask(task)) {
         task();
       } else {
@@ -119,7 +119,8 @@ class SimpleTaskPool {
         task();
         std::unique_lock<std::mutex> lock(context->mutex);
         if (0 == --context->left_count) {
-          context->cv.notify_one(); // NOTE: here is context, not cv_ and mutex_
+          context->cv
+              .notify_one();  // NOTE: here is context, not cv_ and mutex_
         }
       };
     }

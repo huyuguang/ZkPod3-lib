@@ -30,8 +30,8 @@ inline void Test() {
   auto get_w = [&w](int64_t i) { return w[i]; };
   prover.Prove(rom_seed, get_w, proof, prove_output);
 
-  auto com_vw = groth09::details::ComputeCommitment(prover.vw(),
-                                                    secret_input.vw_com_r);
+  auto com_vw =
+      groth09::details::ComputeCommitment(prover.vw(), secret_input.vw_com_r);
   assert(com_vw == proof.com_vw);
 
   vrs::VerifyOutput verify_output;
@@ -76,8 +76,8 @@ inline void TestLarge() {
   auto get_w = [&w](int64_t i) { return w[i]; };
   prover.Prove(rom_seed, get_w, proofs, prove_output);
 
-  auto check_com_vw = groth09::details::ComputeCommitment(prover.vw(),
-                                                    secret_input.vw_com_r);
+  auto check_com_vw =
+      groth09::details::ComputeCommitment(prover.vw(), secret_input.vw_com_r);
   auto com_vw =
       std::accumulate(proofs.begin(), proofs.end(), G1Zero(),
                       [](G1 const& a, Proof const& b) { return a + b.com_vw; });
@@ -102,26 +102,26 @@ inline void TestLarge() {
 
 inline void TestCache() {
   std::vector<bool> rets;
-  //std::string output_file;
-  //auto cache = vrs::CreateCache(2);
-  //bool ret = vrs::SaveCache("vrs_cache", cache, output_file);
-  //assert(ret);
-  //rets.push_back(ret);
+  // std::string output_file;
+  // auto cache = vrs::CreateCache(2);
+  // bool ret = vrs::SaveCache("vrs_cache", cache, output_file);
+  // assert(ret);
+  // rets.push_back(ret);
 
-  //cache = vrs::CreateCache(4);
-  //ret = vrs::SaveCache("vrs_cache", cache, output_file);
-  //assert(ret);
-  //rets.push_back(ret);
+  // cache = vrs::CreateCache(4);
+  // ret = vrs::SaveCache("vrs_cache", cache, output_file);
+  // assert(ret);
+  // rets.push_back(ret);
 
-  //cache = vrs::CreateCache(8);
-  //ret = vrs::SaveCache("vrs_cache", cache, output_file);
-  //assert(ret);
-  //rets.push_back(ret);
+  // cache = vrs::CreateCache(8);
+  // ret = vrs::SaveCache("vrs_cache", cache, output_file);
+  // assert(ret);
+  // rets.push_back(ret);
 
-  //cache = vrs::CreateCache(100);
-  //ret = vrs::SaveCache("vrs_cache", cache, output_file);
-  //assert(ret);  
-  //rets.push_back(ret);
+  // cache = vrs::CreateCache(100);
+  // ret = vrs::SaveCache("vrs_cache", cache, output_file);
+  // assert(ret);
+  // rets.push_back(ret);
 
   auto pathname = vrs::SelectCacheFile("vrs_cache", 121);
   assert(!pathname.empty());
@@ -141,7 +141,6 @@ inline void TestCache() {
   for (auto i : rets) {
     std::cout << (i ? "success" : "failed") << "\n";
   }
-
 }
 
 }  // namespace vrs

@@ -2,12 +2,11 @@
 
 #include <algorithm>
 #include <array>
-#include <numeric>
-#include <vector>
-
 #include <boost/endian/conversion.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/noncopyable.hpp>
+#include <numeric>
+#include <vector>
 
 #include "ecc.h"
 #include "tick.h"
@@ -70,16 +69,14 @@ class PdsPub : boost::noncopyable {
 
     GenerateG1(0xffffffff, &h_);
 
-//#ifdef MULTICORE
-//#pragma omp parallel for
-//#endif
-//    for (int64_t i = 0; i < (int64_t)kGSize; ++i) {
-//      GenerateG1(i, &g_[i]);
-//    }
+    //#ifdef MULTICORE
+    //#pragma omp parallel for
+    //#endif
+    //    for (int64_t i = 0; i < (int64_t)kGSize; ++i) {
+    //      GenerateG1(i, &g_[i]);
+    //    }
 
-    auto parallel_f = [this](int64_t i) mutable {
-      GenerateG1(i, &g_[i]);
-    };
+    auto parallel_f = [this](int64_t i) mutable { GenerateG1(i, &g_[i]); };
     parallel::For((int64_t)kGSize, parallel_f);
   }
 
@@ -128,7 +125,8 @@ class PdsPub : boost::noncopyable {
   }
 
   void BuildSigmaG() {
-    static_assert(kGSize % kSigmaGInterval == 0 && kGSize >= kSigmaGInterval, "");
+    static_assert(kGSize % kSigmaGInterval == 0 && kGSize >= kSigmaGInterval,
+                  "");
     sigma_g_.resize(kGSize / kSigmaGInterval);
     auto begin = g_.data();
     auto end = begin + kSigmaGInterval;
@@ -199,7 +197,6 @@ class PdsPub : boost::noncopyable {
   std::vector<G1> sigma_g_;
 };
 
-
 inline PdsPub& GetPdsPub(std::string const& file = "") {
   static std::unique_ptr<PdsPub> _instance_(new PdsPub(file));
   return *_instance_;
@@ -250,7 +247,7 @@ inline G1 ComputePdsSigmaG(uint64_t count) {
   return pds_pub.ComputeSigmaG(count);
 }
 //
-//struct PdsBase {
+// struct PdsBase {
 //  PdsBase(G1 const& h, G1 const* gstart, int64_t count)
 //      : h(h), gstart(gstart), gend(gstart + count) {
 //  }
@@ -260,7 +257,7 @@ inline G1 ComputePdsSigmaG(uint64_t count) {
 //  int64_t size() const { return gend - gstart; }
 //};
 
-  //std::unique_ptr<PdsBase> GetPdsBase(uint64_t count) const {
-  //  if (count > kPdsSize) throw std::runtime_error("bad count");
-  //  return std::unique_ptr<PdsBase>(new PdsBase(pds_h_, pds_g_.data(), count));
-  //}
+// std::unique_ptr<PdsBase> GetPdsBase(uint64_t count) const {
+//  if (count > kPdsSize) throw std::runtime_error("bad count");
+//  return std::unique_ptr<PdsBase>(new PdsBase(pds_h_, pds_g_.data(), count));
+//}

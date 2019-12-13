@@ -9,6 +9,7 @@
 #include <thread>
 #include <utility>
 #include <vector>
+
 #include "tick.h"
 
 #ifdef USE_TBB
@@ -25,6 +26,10 @@ typedef std::function<void()> Task;
 template <typename T, typename F>
 void For(T count, F& f, bool direct = false) {
   if (!count) return;
+  if (count == 1) {
+    f(0);
+    return;
+  }
   if (direct) {
     for (T i = 0; i < count; ++i) f(i);
     return;
@@ -132,6 +137,10 @@ typedef std::function<void()> Task;
 template <typename T, typename F>
 void For(T count, F& f, bool direct = false) {
   if (!count) return;
+  if (count == 1) {
+    f(0);
+    return;
+  }
   if (direct) {
     for (T i = 0; i < count; ++i) f(i);
     return;

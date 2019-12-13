@@ -15,7 +15,21 @@
 #include "groth09/test.h"
 #include "vrs/test.h"
 
-int main(int /*argc*/, char** /*argv*/) {
+int gkr_main(int argc, char** argv);
+int main(int argc, char** argv) {
+  (void)argc;
+  (void)argv;
+
+  int thread_num = 1; // disable parallel
+#ifdef USE_TBB
+  int tbb_thread_num =
+      thread_num ? (int)thread_num : tbb::task_scheduler_init::automatic;
+  tbb::task_scheduler_init init(tbb_thread_num);
+  std::cout << "use tbb\n";
+#else
+  setenv("options:thread_num", std::to_string(thread_num).c_str(), true);
+#endif
+
   InitEcc();
 
   std::string ecc_pub_file = "ecc_pub.bin";
@@ -29,11 +43,11 @@ int main(int /*argc*/, char** /*argv*/) {
     return -1;
   }
 
-  //groth09::Test();
+  groth09::Test();
   //vrs::Test();
   //vrs::TestLarge();
   //vrs::TestCache();
-
-  hyrax::a1::TestRom();
+  //hyrax::a1::TestRom();
+  //gkr_main(argc, argv);
   return 0;
 }

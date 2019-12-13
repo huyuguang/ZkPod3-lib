@@ -2,6 +2,7 @@
 
 #include <string>
 #include <vector>
+
 #include "ecc.h"
 
 namespace scheme::atomic_swap {

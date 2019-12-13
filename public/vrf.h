@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdint.h>
+
 #include <algorithm>
 #include <functional>
 #include <memory>
@@ -76,7 +77,7 @@ void Prove(Sk<N> const& sk, uint8_t const* x, Psk<N>& psk) {
   }
 
   FrInv(a.data(), N);
-  //for (auto& i : a) {
+  // for (auto& i : a) {
   //  i = FrInv(i);
   //}
   for (size_t i = 0; i < N; ++i) {
@@ -125,7 +126,7 @@ void ProveWithR(Sk<N> const& sk, uint8_t const* x, Fr const& r,
     a[i] = a[i - 1] * (sk[i] + x[i]);
   }
   FrInv(a.data(), a.size());
-  //for (auto& i : a) {
+  // for (auto& i : a) {
   //  i = FrInv(i);
   //}
   for (size_t i = 0; i < N; ++i) {

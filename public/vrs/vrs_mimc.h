@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cryptopp/keccak.h>
+
 #include <vector>
 
 #include "ecc.h"

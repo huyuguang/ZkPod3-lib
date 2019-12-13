@@ -1,21 +1,21 @@
 #pragma once
 
 #include <stdint.h>
+
 #include <string>
 #include <vector>
 
-#include "bp.h"
-#include "ecc.h"
-#include "mpz.h"
-#include "vrf.h"
-
 #include "basic_types.h"
+#include "bp.h"
 #include "chain.h"
+#include "ecc.h"
 #include "ecc_pub.h"
 #include "misc.h"
 #include "mkl_tree.h"
+#include "mpz.h"
 #include "multiexp.h"
 #include "public.h"
+#include "vrf.h"
 
 namespace scheme {
 
@@ -91,7 +91,7 @@ inline bool CopyData(std::string const& src, std::string const& dst) {
 inline bool SaveMkl(std::string const& output,
                     std::vector<h256_t> const& mkl_tree) {
   Tick _tick_(__FUNCTION__);
-  constexpr size_t kItemSize = 32; // h256_t
+  constexpr size_t kItemSize = 32;  // h256_t
   try {
     io::mapped_file_params params;
     params.path = output;
@@ -112,7 +112,7 @@ inline bool SaveMkl(std::string const& output,
 
 inline bool LoadMkl(std::string const& input, uint64_t n,
                     std::vector<h256_t>& mkl_tree) {
-  constexpr size_t kItemSize = 32; // h256_t
+  constexpr size_t kItemSize = 32;  // h256_t
   try {
     io::mapped_file_params params;
     params.path = input;
@@ -182,12 +182,12 @@ inline bool LoadSigma(std::string const& input, uint64_t n, h256_t const* root,
 
     sigmas.resize(n);
 
-//#ifdef MULTICORE
-//#pragma omp parallel for
-//#endif
-//    for (int64_t i = 0; i < (int64_t)n; ++i) {
-//      sigmas[i] = BinToG1(start + i * kG1CompBinSize);
-//    }
+    //#ifdef MULTICORE
+    //#pragma omp parallel for
+    //#endif
+    //    for (int64_t i = 0; i < (int64_t)n; ++i) {
+    //      sigmas[i] = BinToG1(start + i * kG1CompBinSize);
+    //    }
     auto parallel_f = [start, &sigmas](int64_t i) mutable {
       sigmas[i] = BinToG1(start + i * kG1CompBinSize);
     };
@@ -249,15 +249,15 @@ inline std::vector<G1> CalcSigma(std::vector<Fr> const& m, uint64_t n,
 
   auto const& u1 = ecc_pub.u1();
   std::vector<G1> sigmas(n);
-//#ifdef MULTICORE
-//#pragma omp parallel for
-//#endif
-//  for (int64_t i = 0; i < (int64_t)n; ++i) {
-//    G1& sigma = sigmas[i];
-//    auto is = i * s;
-//    Fr const* mi0 = &m[is];
-//    sigma = MultiExpBdlo12(u1.data(), mi0, s);
-//  }
+  //#ifdef MULTICORE
+  //#pragma omp parallel for
+  //#endif
+  //  for (int64_t i = 0; i < (int64_t)n; ++i) {
+  //    G1& sigma = sigmas[i];
+  //    auto is = i * s;
+  //    Fr const* mi0 = &m[is];
+  //    sigma = MultiExpBdlo12(u1.data(), mi0, s);
+  //  }
   auto parallel_f = [s, &m, &u1, &sigmas](int64_t i) mutable {
     G1& sigma = sigmas[i];
     auto is = i * s;
@@ -380,16 +380,16 @@ inline void BuildK(std::vector<Fr> const& v, std::vector<G1>& k, uint64_t s) {
   int64_t n = (int64_t)(v.size() / s);
   k.resize(n);
 
-//#ifdef MULTICORE
-//#pragma omp parallel for
-//#endif
-//  for (int64_t i = 0; i < n; ++i) {
-//    Fr const* vi0 = &v[i * s];
-//    k[i] = MultiExpU1(s, [vi0](uint64_t j) -> Fr const& { return vi0[j]; });
-//    k[i].normalize();
-//  }
+  //#ifdef MULTICORE
+  //#pragma omp parallel for
+  //#endif
+  //  for (int64_t i = 0; i < n; ++i) {
+  //    Fr const* vi0 = &v[i * s];
+  //    k[i] = MultiExpU1(s, [vi0](uint64_t j) -> Fr const& { return vi0[j]; });
+  //    k[i].normalize();
+  //  }
 
-  auto parallel_f = [&v,&k,s](int64_t i) mutable {
+  auto parallel_f = [&v, &k, s](int64_t i) mutable {
     Fr const* vi0 = &v[i * s];
     k[i] = MultiExpU1(s, [vi0](uint64_t j) -> Fr const& { return vi0[j]; });
     k[i].normalize();

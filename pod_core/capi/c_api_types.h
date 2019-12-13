@@ -13,7 +13,7 @@ struct range_t {
 };
 
 #ifndef __cplusplus
-  typedef struct range_t range_t;
+typedef struct range_t range_t;
 #endif
 
 struct buffer_t {
@@ -22,7 +22,7 @@ struct buffer_t {
 };
 
 #ifndef __cplusplus
-  typedef struct buffer_t buffer_t;
+typedef struct buffer_t buffer_t;
 #endif
 
 struct plain_bulletin_t {
@@ -33,7 +33,7 @@ struct plain_bulletin_t {
 };
 
 #ifndef __cplusplus
-  typedef struct plain_bulletin_t plain_bulletin_t;
+typedef struct plain_bulletin_t plain_bulletin_t;
 #endif
 
 struct table_bulletin_t {
@@ -43,7 +43,7 @@ struct table_bulletin_t {
   uint8_t vrf_meta_digest[32];
 };
 #ifndef __cplusplus
-  typedef struct table_bulletin_t table_bulletin_t;
+typedef struct table_bulletin_t table_bulletin_t;
 #endif
 
 #ifdef __cplusplus
