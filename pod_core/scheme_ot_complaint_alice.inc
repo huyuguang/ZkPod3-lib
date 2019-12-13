@@ -93,12 +93,6 @@ bool Alice<AliceData>::OnRequest(Request request, Response& response) {
   ot_rand_c_ = FrRand();
   response.ot_ui.resize(ot_vi_.size());
 
-//#ifdef MULTICORE
-//#pragma omp parallel for
-//#endif
-//  for (int64_t j = 0; j < (int64_t)response.ot_ui.size(); ++j) {
-//    response.ot_ui[j] = ot_vi_[j] * ot_rand_c_;
-//  }
   auto parallel_f = [this, &response](int64_t j) mutable {
     response.ot_ui[j] = ot_vi_[j] * ot_rand_c_;
   };
@@ -117,32 +111,6 @@ bool Alice<AliceData>::OnRequest(Request request, Response& response) {
   auto const& m = a_->m();
   response.m.resize(phantoms_count_ * s_);
 
-//#ifdef MULTICORE
-//#pragma omp parallel for
-//#endif
-//  for (int64_t i = 0; i < (int64_t)mappings_.size(); ++i) {
-//    auto const& map = mappings_[i];
-//    auto fr_i = MapToFr(map.global_index);
-//    Fp12 e;
-//    G1 v_exp_fr_c = ot_v_ * (fr_i * ot_rand_c_);
-//    mcl::bn256::pairing(e, v_exp_fr_c, ot_sk_);
-//    uint8_t buf[32 * 12];
-//    auto ret_len = e.serialize(buf, sizeof(buf));
-//    if (ret_len != sizeof(buf)) {
-//      assert(false);
-//      throw std::runtime_error("oops");
-//    }
-//    Fr fr_e = MapToFr(buf, sizeof(buf));
-//
-//    auto is = i * s_;
-//    auto m_is = map.global_index * s_;
-//    for (uint64_t j = 0; j < s_; ++j) {
-//      auto ij = is + j;
-//      auto m_ij = m_is + j;
-//      response.m[ij] = v_[ij] + w_[i] * m[m_ij];
-//      response.m[ij] += fr_e;
-//    }
-//  }
   auto parallel_f2 = [this, &response, &m](int64_t i) mutable {
     auto const& map = mappings_[i];
     auto fr_i = MapToFr(map.global_index);

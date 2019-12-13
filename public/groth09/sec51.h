@@ -242,10 +242,7 @@ inline void ComputeCom(CommitmentPub& com_pub, CommitmentSec& com_sec,
 
   using details::ComputeCommitment;
 
-  // std::cout << Tick::GetIndentString() << "2*multiexp(" << input.n() <<
-  // ")\n";
-
-  std::vector<parallel::Task> tasks(3);
+  std::array<parallel::Task, 3> tasks;
   tasks[0] = [&com_pub, &input, &com_sec]() {
     com_pub.a = ComputeCommitment(input.x(), com_sec.r);
   };
@@ -256,27 +253,6 @@ inline void ComputeCom(CommitmentPub& com_pub, CommitmentSec& com_sec,
     com_pub.c = ComputeCommitment(input.z(), com_sec.t);
   };
   parallel::Invoke(tasks);
-
-  //
-  ////#ifdef MULTICORE
-  ////#pragma omp parallel sections
-  ////#endif
-  //  {
-  ////#ifdef MULTICORE
-  ////#pragma omp section
-  ////#endif
-  //    com_pub.a = ComputeCommitment(input.x(), com_sec.r);
-  //
-  ////#ifdef MULTICORE
-  ////#pragma omp section
-  ////#endif
-  //    com_pub.b = ComputeCommitment(input.y(), com_sec.s);
-  //
-  ////#ifdef MULTICORE
-  ////#pragma omp section
-  ////#endif
-  //    com_pub.c = ComputeCommitment(input.z(), com_sec.t);
-  //  }
 }
 
 inline void ComputeComExt(CommitmentExtPub& com_ext_pub,
@@ -304,10 +280,7 @@ inline void ComputeComExt(CommitmentExtPub& com_ext_pub,
   Fr xdy_dxy = InnerProduct(input.x(), com_ext_sec.dyt) +
                InnerProduct(com_ext_sec.dx, input.yt());
 
-  // std::cout << Tick::GetIndentString() << "2*multiexp(" << input.n() <<
-  // ")\n";
-
-  std::vector<parallel::Task> tasks(3);
+  std::array<parallel::Task, 3> tasks;
   tasks[0] = [&com_ext_pub, &com_ext_sec]() mutable {
     com_ext_pub.ad = ComputeCommitment(com_ext_sec.dx, com_ext_sec.rd);
   };
@@ -319,34 +292,6 @@ inline void ComputeComExt(CommitmentExtPub& com_ext_pub,
     com_ext_pub.c0 = ComputeCommitment(com_ext_sec.dz, com_ext_sec.t0);
   };
   parallel::Invoke(tasks);
-
-  ////#ifdef MULTICORE
-  ////#pragma omp parallel sections
-  ////#endif
-  //  {
-  ////#ifdef MULTICORE
-  ////#pragma omp section
-  ////#endif
-  //    com_ext_pub.ad =
-  //        ComputeCommitment(com_ext_sec.dx, com_ext_sec.rd);
-  //
-  ////#ifdef MULTICORE
-  ////#pragma omp section
-  ////#endif
-  //    com_ext_pub.bd =
-  //        ComputeCommitment(com_ext_sec.dy, com_ext_sec.sd);
-  //
-  ////#ifdef MULTICORE
-  ////#pragma omp section
-  ////#endif
-  //    com_ext_pub.c1 = ComputeCommitment(xdy_dxy, com_ext_sec.t1);
-  //
-  ////#ifdef MULTICORE
-  ////#pragma omp section
-  ////#endif
-  //    com_ext_pub.c0 =
-  //        ComputeCommitment(com_ext_sec.dz, com_ext_sec.t0);
-  //  }
 }
 
 inline void ComputeProof(Proof& proof, ProverInput const& input,
@@ -357,14 +302,6 @@ inline void ComputeProof(Proof& proof, ProverInput const& input,
   auto n = input.n();
   proof.fx.resize(n);
   proof.fy.resize(n);
-  // for (int64_t i = 0; i < n; ++i) {
-  //  // fx = e * x + dx
-  //  proof.fx[i] = challenge * input.x(i) + com_ext_sec.dx[i];
-  //}
-  // for (int64_t i = 0; i < n; ++i) {
-  //  // fy = e * y + dy
-  //  proof.fy[i] = challenge * input.y(i) + com_ext_sec.dy[i];
-  //}
   auto parallel_f = [&proof, &challenge, &input, &com_ext_sec](int64_t i) {
     // fx = e * x + dx
     proof.fx[i] = challenge * input.x(i) + com_ext_sec.dx[i];
@@ -414,7 +351,7 @@ inline bool VerifyInternal(VerifierInput const& input, Fr const& challenge,
   bool ret2 = false;
   auto const& com_pub = input.com_pub;
 
-  std::vector<parallel::Task> tasks(2);
+  std::array<parallel::Task, 2> tasks;
   tasks[0] = [&ret1, &com_pub, &challenge, &com_ext_pub, &proof]() {
     Fr alpha = FrRand();
     // (a^e * a_d)^alpha * b^e * b_d

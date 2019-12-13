@@ -3,7 +3,6 @@
   <ItemGroup>
     <ClCompile Include="..\pod_dummy\main.cc" />
     <ClCompile Include="..\public\ecc.cc" />
-    <ClCompile Include="..\pod_dummy\sequentialGKR.cc" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\public\ecc_pub.h" />

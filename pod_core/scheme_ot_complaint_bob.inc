@@ -114,26 +114,6 @@ bool Bob<BobData>::OnResponse(Response response, Receipt& receipt) {
 
   encrypted_m_.resize(demands_count_ * s_);
 
-//#ifdef MULTICORE
-//#pragma omp parallel for
-//#endif
-//  for (int64_t i = 0; i < (int64_t)ot_ui_.size(); ++i) {
-//    Fp12 e;
-//    G1 ui_exp_a = ot_ui_[i] * ot_rand_a_;
-//    mcl::bn256::pairing(e, ui_exp_a, ot_peer_pk_);
-//    uint8_t buf[32 * 12];
-//    auto ret_len = e.serialize(buf, sizeof(buf));
-//    if (ret_len != sizeof(buf)) {
-//      assert(false);
-//      throw std::runtime_error("oops");
-//    }
-//    Fr fr_e = MapToFr(buf, sizeof(buf));
-//
-//    auto phantom_offset = mappings_[i].phantom_offset;
-//    for (size_t j = 0; j < s_; ++j) {
-//      encrypted_m_[i * s_ + j] = response.m[phantom_offset * s_ + j] - fr_e;
-//    }
-//  }
   auto parallel_f = [this, &response](int64_t i) mutable {
     Fp12 e;
     G1 ui_exp_a = ot_ui_[i] * ot_rand_a_;
@@ -174,19 +154,6 @@ bool Bob<BobData>::CheckEncryptedM() {
 
   // uint64_t phantom_offset = phantom_.start - demand_.start;
   std::vector<int64_t> rets(mappings_.size());
-//#ifdef MULTICORE
-//#pragma omp parallel for
-//#endif
-//  for (int64_t i = 0; i < (int64_t)mappings_.size(); ++i) {
-//    auto const& mapping = mappings_[i];
-//    G1 const& sigma = sigmas[mapping.global_index];
-//    G1 left = sigma * w_[mapping.phantom_offset] + k_[mapping.phantom_offset];
-//    G1 right = MultiExpU1(s_, [i, this](uint64_t j) -> Fr const& {
-//      return encrypted_m_[i * s_ + j];
-//    });
-//
-//    rets[i] = left == right;
-//  }
   auto parallel_f = [this, &rets, &sigmas](int64_t i) mutable {
     auto const& mapping = mappings_[i];
     G1 const& sigma = sigmas[mapping.global_index];
@@ -275,18 +242,6 @@ void Bob<BobData>::BuildClaim(uint64_t i, Claim& claim) {
 template <typename BobData>
 void Bob<BobData>::DecryptM(std::vector<Fr> const& v) {
   Tick _tick_(__FUNCTION__);
-//#ifdef MULTICORE
-//#pragma omp parallel for
-//#endif
-//  for (int64_t i = 0; i < (int64_t)mappings_.size(); ++i) {
-//    auto const& mapping = mappings_[i];
-//    Fr inv_w = FrInv(w_[mapping.phantom_offset]);
-//    for (uint64_t j = 0; j < s_; ++j) {
-//      encrypted_m_[i * s_ + j] =
-//          (encrypted_m_[i * s_ + j] - v[mapping.phantom_offset * s_ + j]) *
-//          inv_w;
-//    }
-//  }
   auto parallel_f = [this, &v](int64_t i) mutable {
     auto const& mapping = mappings_[i];
     Fr inv_w = FrInv(w_[mapping.phantom_offset]);

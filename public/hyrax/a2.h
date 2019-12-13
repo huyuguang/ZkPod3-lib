@@ -112,27 +112,7 @@ inline bool VerifyInternal(VerifierInput const& input, Fr const& challenge,
 
   auto const& com_pub = input.com_pub;
 
-  // G1 left, right;
-  // auto const& xi = com_pub.xi;
-  // auto const& delta = com_ext_pub.delta;
-  // left = xi * challenge + delta;
-  // right = ComputeCommitment(proof.z, proof.z_delta);
-  // if (left != right) {
-  //  assert(false);
-  //  return false;
-  //}
-
-  // auto const& tau = com_pub.tau;
-  // auto const& beta = com_ext_pub.beta;
-  // left = tau * challenge + beta;
-  // auto ip_za = InnerProduct(proof.z, input.a);
-  // right = ComputeCommitment(ip_za, proof.z_beta);
-  // if (left != right) {
-  //  assert(false);
-  //  return false;
-  //}
-
-  std::vector<parallel::Task> tasks(2);
+  std::array<parallel::Task, 2> tasks;
   bool ret1 = false;
   tasks[0] = [&ret1, &com_pub, &com_ext_pub, &challenge, &proof]() {
     auto const& xi = com_pub.xi;
@@ -164,9 +144,7 @@ inline void ComputeCom(CommitmentPub& com_pub, CommitmentSec& com_sec,
   using details::ComputeCommitment;
   com_sec.r_xi = FrRand();
   com_sec.r_tau = FrRand();
-  // com_pub.xi = ComputeCommitment(input.x, com_sec.r_xi);
-  // com_pub.tau = ComputeCommitment(input.y, com_sec.r_tau);
-  std::vector<parallel::Task> tasks(2);
+  std::array<parallel::Task, 2> tasks;
   tasks[0] = [&com_pub, &input, &com_sec]() {
     com_pub.xi = ComputeCommitment(input.x, com_sec.r_xi);
   };
@@ -188,10 +166,8 @@ inline void ComputeCommitmentExt(CommitmentExtPub& com_ext_pub,
   FrRand(com_ext_sec.d.data(), n);
   com_ext_sec.r_beta = FrRand();
   com_ext_sec.r_delta = FrRand();
-  // com_ext_pub.delta = ComputeCommitment(com_ext_sec.d, com_ext_sec.r_delta);
-  // com_ext_pub.beta = ComputeCommitment(InnerProduct(input.a, com_ext_sec.d),
-  //                                     com_ext_sec.r_beta);
-  std::vector<parallel::Task> tasks(2);
+
+  std::array<parallel::Task, 2> tasks;
   tasks[0] = [&com_ext_pub, &com_ext_sec]() {
     com_ext_pub.delta = ComputeCommitment(com_ext_sec.d, com_ext_sec.r_delta);
   };

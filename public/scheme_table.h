@@ -142,29 +142,6 @@ inline void DataToM(Table const& table, std::vector<uint64_t> columens_index,
   auto record_fr_num = s - 1 - columens_index.size();
   auto n = table.size();
 
-  //#ifdef MULTICORE
-  //#pragma omp parallel for
-  //#endif
-  //  for (int64_t i = 0; i < (int64_t)n; ++i) {
-  //    std::vector<uint8_t> bin(31 * record_fr_num);
-  //    auto const& record = table[i];
-  //    auto record_size = GetRecordSize(record);
-  //    auto offset = i * s;
-  //    for (auto j : columens_index) {
-  //      auto h = HashVrfKey(record[j], vrf_sk);
-  //      m[offset++] = BinToFr31(h.data(), h.data() + 31);  // drop the last
-  //      byte
-  //    }
-  //
-  //    m[offset++] = GetPadFr((uint32_t)record_size);
-  //
-  //    RecordToBin(record, bin);
-  //    for (uint64_t j = 0; j < record_fr_num; ++j) {
-  //      uint8_t const* p = bin.data() + j * 31;
-  //      m[offset++] = BinToFr31(p, p + 31);
-  //    }
-  //  }
-
   auto parallel_f = [record_fr_num, s, &m, &columens_index, &table,
                      &vrf_sk](int64_t i) mutable {
     std::vector<uint8_t> bin(31 * record_fr_num);

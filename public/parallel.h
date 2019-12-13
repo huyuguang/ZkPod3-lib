@@ -50,7 +50,8 @@ void For(T begin, T end, F& f, bool direct = false) {
   For(count, f2, direct);
 }
 
-inline void Invoke(std::vector<Task>& tasks, bool direct = false) {
+template <typename TaskContainer>
+void Invoke(TaskContainer& tasks, bool direct = false) {
   if (tasks.empty()) return;
 
   if (tasks.size() == 1) return tasks[0]();
@@ -187,7 +188,8 @@ void For(T begin, T end, F& f, bool direct = false) {
   For(count, f2, direct);
 }
 
-inline void Invoke(std::vector<Task>& tasks, bool direct = false) {
+template <typename TaskContainer>
+void Invoke(TaskContainer& tasks, bool direct = false) {
   if (tasks.empty()) return;
 
   if (tasks.size() == 1) return tasks[0]();
@@ -199,7 +201,11 @@ inline void Invoke(std::vector<Task>& tasks, bool direct = false) {
     return;
   }
 
-  details::GetTaskPool().Execute(tasks);
+  std::vector<Task> vec_tasks;
+  vec_tasks.reserve(tasks.size());
+  for (auto& i : tasks) vec_tasks.emplace_back(std::move(i));
+  
+  details::GetTaskPool().Execute(vec_tasks);
 }
 
 template <class InputIt, class T>

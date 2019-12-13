@@ -107,7 +107,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\pod_dummy\main.cc" />
-    <ClCompile Include="..\pod_dummy\sequentialGKR.cc" />
     <ClCompile Include="..\public\ecc.cc">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>

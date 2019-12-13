@@ -73,19 +73,6 @@ bool Alice<AliceData>::OnRequest(Request request, Response& response) {
   auto const& m = a_->m();
   response.m.resize(demands_count_ * s_);
 
-//#ifdef MULTICORE
-//#pragma omp parallel for
-//#endif
-//  for (int64_t i = 0; i < (int64_t)mappings_.size(); ++i) {
-//    auto const& map = mappings_[i];
-//    auto is = i * s_;
-//    auto m_is = map.global_index * s_;
-//    for (uint64_t j = 0; j < s_; ++j) {
-//      auto ij = is + j;
-//      auto m_ij = m_is + j;
-//      response.m[ij] = v_[ij] + w_[i] * m[m_ij];
-//    }
-//  }
   auto parallel_f = [this, &m, &response](int64_t i) mutable {
     auto const& map = mappings_[i];
     auto is = i * s_;

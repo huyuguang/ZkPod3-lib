@@ -233,9 +233,6 @@ class ProverInput {
     y_data_.resize(m2);
 
     if (t_) {
-      // for (int64_t i = 0; i < m2; ++i) {
-      //  details::HadamardProduct(yt_data_[i], y_data_[i], *t_);
-      //}
       auto parallel_f = [this](int64_t i) {
         details::HadamardProduct(yt_data_[i], y_data_[i], *t_);
       };
@@ -250,9 +247,6 @@ class ProverInput {
   void ComputeZ() {
     if (t_) {
       yt_data_.resize(m());
-      // for (int64_t i = 0; i < m(); ++i) {
-      //  details::HadamardProduct(yt_data_[i], y_data_[i], *t_);
-      //}
       auto parallel_f = [this](int64_t i) {
         details::HadamardProduct(yt_data_[i], y_data_[i], *t_);
       };
@@ -260,9 +254,6 @@ class ProverInput {
     }
 
     std::vector<Fr> temp_z(m());
-    // for (int64_t i = 0; i < m(); ++i) {
-    //  temp_z[i] = InnerProduct(x(i), yt(i));
-    //}
     auto parallel_f2 = [this, &temp_z](int64_t i) {
       temp_z[i] = InnerProduct(x(i), yt(i));
     };
@@ -324,17 +315,6 @@ inline void ComputeCom(ProverInput const& input, CommitmentPub* com_pub,
   com_pub->a.resize(m);
   com_pub->b.resize(m);
 
-  // std::cout << Tick::GetIndentString() << 2 * m << " times multiexp("
-  //          << input.n() << ")\n";
-
-  ////#ifdef MULTICORE
-  ////#pragma omp parallel for
-  ////#endif
-  // for (int64_t i = 0; i < m; ++i) {
-  //  com_pub->a[i] = ComputeCommitment(input.x(i), com_sec.r[i]);
-  //  com_pub->b[i] = ComputeCommitment(input.y(i), com_sec.s[i]);
-  //}
-
   auto parallel_f = [&input, &com_pub, &com_sec](int64_t i) mutable {
     com_pub->a[i] = ComputeCommitment(input.x(i), com_sec.r[i]);
     com_pub->b[i] = ComputeCommitment(input.y(i), com_sec.s[i]);
@@ -347,7 +327,6 @@ inline void ComputeCom(ProverInput const& input, CommitmentPub* com_pub,
 inline void ComputeCom(ProverInput const& input, CommitmentPub* com_pub,
                        CommitmentSec* com_sec) {
   // Tick tick(__FUNCTION__);
-  using details::ComputeCommitment;
   auto const m = input.m();
   com_sec->r.resize(m);
   FrRand(com_sec->r.data(), m);
@@ -383,18 +362,6 @@ inline void ComputeSigmaXY(ProverInput const& input, Fr* sigma_xy1,
   auto m2 = m / 2;
   std::vector<Fr> xy1(m2, FrZero());
   std::vector<Fr> xy2(m2, FrZero());
-  ////#ifdef MULTICORE
-  ////#pragma omp parallel for
-  ////#endif
-  // for (int64_t i = 0; i < m2; ++i) {
-  //  auto const& x1 = input.x(2 * i + 1);
-  //  auto const& yt1 = input.yt(2 * i);
-  //  xy1[i] = InnerProduct(x1, yt1);
-
-  //  auto const& x2 = input.x(2 * i);
-  //  auto const& yt2 = input.yt(2 * i + 1);
-  //  xy2[i] = InnerProduct(x2, yt2);
-  //}
   auto parallel_f = [&input, &xy1, &xy2](int64_t i) {
     auto const& x1 = input.x(2 * i + 1);
     auto const& yt1 = input.yt(2 * i);
@@ -421,27 +388,6 @@ inline void UpdateCom(CommitmentPub& com_pub, CommitmentSec& com_sec,
   com_pub2.b.resize(m2);
   com_sec2.r.resize(m2);
   com_sec2.s.resize(m2);
-
-  ////#ifdef MULTICORE
-  ////#pragma omp parallel for
-  ////#endif
-  // for (int64_t i = 0; i < (int64_t)com_pub2.a.size(); ++i) {
-  //  auto& a2 = com_pub2.a;
-  //  auto const& a = com_pub.a;
-  //  a2[i] = a[2 * i] + a[2 * i + 1] * e;
-
-  //  auto& b2 = com_pub2.b;
-  //  auto const& b = com_pub.b;
-  //  b2[i] = b[2 * i] * e + b[2 * i + 1];
-
-  //  auto& r2 = com_sec2.r;
-  //  auto const& r = com_sec.r;
-  //  r2[i] = r[2 * i] + r[2 * i + 1] * e;
-
-  //  auto& s2 = com_sec2.s;
-  //  auto const& s = com_sec.s;
-  //  s2[i] = s[2 * i] * e + s[2 * i + 1];
-  //}
 
   auto parallel_f = [&com_pub, &com_sec, &com_pub2, &com_sec2, &e](int64_t i) {
     auto& a2 = com_pub2.a;
@@ -559,14 +505,6 @@ inline bool RomVerify(RomProof const& rom_proof, h256_t seed,
     std::vector<G1> a2(com_pub.m() / 2);
     std::vector<G1> b2(com_pub.m() / 2);
     G1 c2;
-
-    // for (int64_t i = 0; i < com_pub.m() / 2; ++i) {
-    //  auto const& a = com_pub.a;
-    //  a2[i] = a[2 * i] + a[2 * i + 1] * e;
-
-    //  auto const& b = com_pub.b;
-    //  b2[i] = b[2 * i] * e + b[2 * i + 1];
-    //}
 
     auto m2 = com_pub.m() / 2;
     auto parallel_f = [&com_pub, &a2, &b2, &e](int64_t i) {

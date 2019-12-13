@@ -55,9 +55,6 @@ inline void HadamardProduct(std::vector<Fr>& c, std::vector<Fr> const& a,
                             std::vector<Fr> const& b) {
   assert(a.size() == b.size());
   c.resize(a.size());
-  // for (size_t i = 0; i < a.size(); ++i) {
-  //  c[i] = a[i] * b[i];
-  //}
   auto parallel_f = [&c, &a, &b](size_t i) mutable { c[i] = a[i] * b[i]; };
   parallel::For(a.size(), parallel_f, a.size() < 16 * 1024);
 }

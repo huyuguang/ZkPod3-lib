@@ -28,7 +28,7 @@ class Verifier {
     HashUpdate(hash, proof.var_coms);
     hash.Final(seed.data());
 
-    std::vector<parallel::Task> tasks(3);
+    std::array<parallel::Task, 3> tasks;
     // check com_plain
     bool ret_com_plain = false;
     tasks[0] = [this, &proof, &ret_com_plain, count]() mutable {

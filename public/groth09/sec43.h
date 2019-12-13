@@ -31,7 +31,6 @@ struct CommitmentPub {
     }
   }
 };
-// typedef std::shared_ptr<CommitmentPub> CommitmentPubPtr;
 
 struct CommitmentSec {
   std::vector<Fr> r;  // r.size = m
@@ -51,7 +50,6 @@ struct CommitmentSec {
     }
   }
 };
-// typedef std::shared_ptr<CommitmentSec> CommitmentSecPtr;
 
 struct RomProof {
   G1 c;
@@ -135,7 +133,6 @@ inline void ComputeCom(CommitmentPub& com_pub, CommitmentSec& com_sec,
                        ProverInput const& input) {
   // Tick tick(__FUNCTION__);
   auto const m = input.m();
-  // auto const n = input.n();
   com_sec.r.resize(m);
   FrRand(com_sec.r.data(), m);
 
@@ -149,24 +146,6 @@ inline void ComputeCom(CommitmentPub& com_pub, CommitmentSec& com_sec,
   com_pub.a.resize(m);
   com_pub.b.resize(m);
   com_pub.c.resize(m);
-
-  // std::cout << Tick::GetIndentString() << 3 * m << " multiexp(" << n <<
-  // ")\n";
-
-  ////#ifdef MULTICORE
-  ////#pragma omp parallel for
-  ////#endif
-  //  for (int64_t i = 0; i < m; ++i) {
-  //    auto const& r = com_sec.r[i];
-  //    auto const& s = com_sec.s[i];
-  //    auto const& t = com_sec.t[i];
-  //    auto const& x = input.x(i);
-  //    auto const& y = input.y(i);
-  //    auto const& z = input.z(i);
-  //    com_pub.a[i] = ComputeCommitment(x, r);
-  //    com_pub.b[i] = ComputeCommitment(y, s);
-  //    com_pub.c[i] = ComputeCommitment(z, t);
-  //  }
 
   auto parallel_f = [&com_sec, &com_pub, &input](int64_t i) mutable {
     auto const& r = com_sec.r[i];
@@ -320,7 +299,7 @@ inline bool RomVerify(RomProof const& rom_proof, h256_t const& rom_seed,
   std::vector<Fr> t(n);
   ComputeChallengeKT(seed, k, t);
 
-  std::vector<parallel::Task> tasks(2);
+  std::array<parallel::Task, 2> tasks;
   bool ret_53 = false;
   tasks[0] = [&ret_53, &rom_proof, &input, m, &com_pub, &k, &t,
               &seed]() mutable {
@@ -328,9 +307,6 @@ inline bool RomVerify(RomProof const& rom_proof, h256_t const& rom_seed,
     com_pub_53.c = rom_proof.c;
     com_pub_53.b = input.com_pub.b;
     com_pub_53.a.resize(m);
-    // for (int64_t i = 0; i < m; ++i) {
-    //  com_pub_53.a[i] = com_pub.a[i] * k[i];
-    //}
     auto parallel_f = [&com_pub_53, &com_pub, &k](int64_t i) {
       com_pub_53.a[i] = com_pub.a[i] * k[i];
     };
@@ -349,39 +325,6 @@ inline bool RomVerify(RomProof const& rom_proof, h256_t const& rom_seed,
   };
 
   parallel::Invoke(tasks);
-
-  //  //#ifdef MULTICORE
-  //                        //#pragma omp parallel sections
-  ////#endif
-  //  {
-  ////#ifdef MULTICORE
-  ////#pragma omp section
-  ////#endif
-  //    {
-  //      // check sec53
-  //      sec53::CommitmentPub com_pub_53;
-  //      com_pub_53.c = rom_proof.c;
-  //      com_pub_53.b = input.com_pub.b;
-  //      com_pub_53.a.resize(m);
-  //      for (int64_t i = 0; i < m; ++i) {
-  //        com_pub_53.a[i] = com_pub.a[i] * k[i];
-  //      }
-  //
-  //      sec53::VerifierInput input_53(&t, com_pub_53);
-  //      ret_53 = sec53::RomVerify(rom_proof.proof_53, seed, input_53);
-  //    }
-  ////#ifdef MULTICORE
-  ////#pragma omp section
-  ////#endif
-  //    {
-  //      // check hyrax
-  //      hyrax::a2::CommitmentPub com_pub_hy(MultiExpBdlo12(com_pub.c, k),
-  //                                          rom_proof.c);
-  //      hyrax::a2::VerifierInput input_hy(t, com_pub_hy);
-  //      ret_a2 =
-  //          hyrax::a2::RomVerify(rom_proof.proof_a2, seed, input_hy);
-  //    }
-  //  }
 
   if (!ret_53 || !ret_a2) {
     std::cout << "ret_53: " << ret_53 << ", ret_a2: " << ret_a2 << "\n";

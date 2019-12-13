@@ -182,12 +182,6 @@ inline bool LoadSigma(std::string const& input, uint64_t n, h256_t const* root,
 
     sigmas.resize(n);
 
-    //#ifdef MULTICORE
-    //#pragma omp parallel for
-    //#endif
-    //    for (int64_t i = 0; i < (int64_t)n; ++i) {
-    //      sigmas[i] = BinToG1(start + i * kG1CompBinSize);
-    //    }
     auto parallel_f = [start, &sigmas](int64_t i) mutable {
       sigmas[i] = BinToG1(start + i * kG1CompBinSize);
     };
@@ -249,19 +243,9 @@ inline std::vector<G1> CalcSigma(std::vector<Fr> const& m, uint64_t n,
 
   auto const& u1 = ecc_pub.u1();
   std::vector<G1> sigmas(n);
-  //#ifdef MULTICORE
-  //#pragma omp parallel for
-  //#endif
-  //  for (int64_t i = 0; i < (int64_t)n; ++i) {
-  //    G1& sigma = sigmas[i];
-  //    auto is = i * s;
-  //    Fr const* mi0 = &m[is];
-  //    sigma = MultiExpBdlo12(u1.data(), mi0, s);
-  //  }
-  auto parallel_f = [s, &m, &u1, &sigmas](int64_t i) mutable {
+  auto parallel_f = [s, &m, &u1, &sigmas](int64_t i) {
     G1& sigma = sigmas[i];
-    auto is = i * s;
-    Fr const* mi0 = &m[is];
+    Fr const* mi0 = &m[i * s];
     sigma = MultiExpBdlo12(u1.data(), mi0, s);
   };
   parallel::For((int64_t)n, parallel_f);
@@ -380,16 +364,7 @@ inline void BuildK(std::vector<Fr> const& v, std::vector<G1>& k, uint64_t s) {
   int64_t n = (int64_t)(v.size() / s);
   k.resize(n);
 
-  //#ifdef MULTICORE
-  //#pragma omp parallel for
-  //#endif
-  //  for (int64_t i = 0; i < n; ++i) {
-  //    Fr const* vi0 = &v[i * s];
-  //    k[i] = MultiExpU1(s, [vi0](uint64_t j) -> Fr const& { return vi0[j]; });
-  //    k[i].normalize();
-  //  }
-
-  auto parallel_f = [&v, &k, s](int64_t i) mutable {
+  auto parallel_f = [&v, &k, s](int64_t i) {
     Fr const* vi0 = &v[i * s];
     k[i] = MultiExpU1(s, [vi0](uint64_t j) -> Fr const& { return vi0[j]; });
     k[i].normalize();

@@ -87,16 +87,12 @@ class ProverInput {
     }
 
     std::vector<Fr> temp_z(x->size());
-#ifdef MULTICORE
-#pragma omp parallel for
-#endif
-    for (int64_t i = 0; i < m(); ++i) {
-      auto const& xi = (*x_)[i];
-      auto const& yti = (*yt_)[i];
-      temp_z[i] = InnerProduct(xi, yti);
-    }
+    auto parallel_f = [this, &temp_z](int64_t i) {
+      temp_z[i] = InnerProduct((*x_)[i], (*yt_)[i]);
+    };
+    parallel::For(m(), parallel_f);
 
-    z_ = std::accumulate(temp_z.begin(), temp_z.end(), FrZero());
+    z_ = parallel::Accumulate(temp_z.begin(), temp_z.end(), FrZero());
 
     BuildSumXY();
   }
@@ -152,15 +148,13 @@ class ProverInput {
 
     if (check_z) {
       std::vector<Fr> temp_z(m());
-#ifdef MULTICORE
-#pragma omp parallel for
-#endif
-      for (int64_t i = 0; i < m(); ++i) {
+      auto parallel_f = [this, &temp_z](int64_t i) {
         temp_z[i] = InnerProduct(x(i), yt(i));
-      }
+      };
+      parallel::For(m(), parallel_f);
 
       auto check_value =
-          std::accumulate(temp_z.begin(), temp_z.end(), FrZero());
+          parallel::Accumulate(temp_z.begin(), temp_z.end(), FrZero());
       if (check_value != z_) {
         assert(false);
         return false;
@@ -189,12 +183,10 @@ class ProverInput {
     Tick tick(__FUNCTION__);
     sum_xy_.resize(m() * 2 - 1);
 
-#ifdef MULTICORE
-#pragma omp parallel for
-#endif
-    for (int64_t l = 0; l < m() * 2 - 1; ++l) {
+    auto parallel_f = [this](int64_t l) {
       sum_xy_[l] = ComputeSumOfXY(l);
-    }
+    };
+    parallel::For(m() * 2 - 1, parallel_f);
   }
 };
 
@@ -238,15 +230,11 @@ inline void ComputeCom(CommitmentPub& com_pub, CommitmentSec& com_sec,
   com_pub.a.resize(m);
   com_pub.b.resize(m);
 
-  std::cout << Tick::GetIndentString() << 2 * m << " multiexp(" << n << ")\n";
-
-#ifdef MULTICORE
-#pragma omp parallel for
-#endif
-  for (int64_t i = 0; i < m; ++i) {
+  auto parallel_f = [&input, &com_pub, &com_sec](int64_t i) {
     com_pub.a[i] = ComputeCommitment(input.x(i), com_sec.r[i]);
     com_pub.b[i] = ComputeCommitment(input.y(i), com_sec.s[i]);
-  }
+  };
+  parallel::For(m, parallel_f);
 
   com_pub.c = ComputeCommitment(input.z(), com_sec.t);
 }
@@ -267,15 +255,12 @@ inline void ComputeComExt(CommitmentExtPub& com_ext_pub,
 
   com_ext_pub.cl.resize(m * 2 - 1);
 
-  std::cout << Tick::GetIndentString() << 2 * m - 1 << " multiexp(1)\n";
-
-#ifdef MULTICORE
-#pragma omp parallel for
-#endif
-  for (int64_t l = 0; l < m * 2 - 1; ++l) {
+  auto parallel_f = [&input, &com_ext_pub, &com_ext_sec](int64_t l) {
     auto const& sum_xy = input.sum_xy(l);
     com_ext_pub.cl[l] = ComputeCommitment(sum_xy, com_ext_sec.tl[l]);
-  }
+  };
+  parallel::For(m * 2 - 1, parallel_f);
+
   if (com_ext_pub.cl[m - 1] != com_pub.c) {
     assert(false);
     throw std::runtime_error(__FUNCTION__);
@@ -316,26 +301,22 @@ inline void RomProve(RomProof& rom_proof, h256_t const& common_seed,
   std::vector<Fr> x(n);
   std::fill(x.begin(), x.end(), FrZero());
 
-#ifdef MULTICORE
-#pragma omp parallel for
-#endif
-  for (int64_t j = 0; j < n; ++j) {
+  auto parallel_fx = [m, &x, &e_pow, &input](int64_t j) {
     for (int64_t i = 0; i < m; ++i) {
       x[j] += e_pow[i] * input.x(i)[j];
     }
-  }
+  };
+  parallel::For(n, parallel_fx);
 
   std::vector<Fr> y(n);
   std::fill(y.begin(), y.end(), FrZero());
 
-#ifdef MULTICORE
-#pragma omp parallel for
-#endif
-  for (int64_t j = 0; j < n; ++j) {
+  auto parallel_fy = [m, &y, &e_pow_reverse, &input](int64_t j) {
     for (int64_t i = 0; i < m; ++i) {
       y[j] += e_pow_reverse[i] * input.y(i)[j];
     }
-  }
+  };
+  parallel::For(n, parallel_fy);
 
   sec51::ProverInput input_51(&x, &y, input.t());
 
@@ -394,25 +375,17 @@ inline bool RomVerify(RomProof const& rom_proof, h256_t const& common_seed,
   std::cout << Tick::GetIndentString() << "multiexp(" << 2 * m - 1 << ")\n";
 
   sec51::CommitmentPub com_pub_51;
-#ifdef MULTICORE
-#pragma omp parallel sections
-#endif
-  {
-#ifdef MULTICORE
-#pragma omp section
-#endif
+  std::array<parallel::Task, 3> tasks;
+  tasks[0] = [&com_pub_51, &com_pub, e_pow]() {
     com_pub_51.a = MultiExpBdlo12(com_pub.a, e_pow);
-
-#ifdef MULTICORE
-#pragma omp section
-#endif
+  };
+  tasks[1] = [&com_pub_51, &com_pub, e_pow_reverse]() {
     com_pub_51.b = MultiExpBdlo12(com_pub.b, e_pow_reverse);
-
-#ifdef MULTICORE
-#pragma omp section
-#endif
+  };
+  tasks[2] = [&com_pub_51, &com_ext_pub, e_pow]() {
     com_pub_51.c = MultiExpBdlo12(com_ext_pub.cl, e_pow);
-  }
+  };
+  parallel::Invoke(tasks);
 
   sec51::VerifierInput input_51(input.t, com_pub_51);
   return sec51::RomVerify(rom_proof.rom_proof_51, seed, input_51);

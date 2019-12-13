@@ -48,13 +48,6 @@ inline void ChainKeccak256(h256_t const& seed, uint64_t begin, uint64_t end,
   Tick _tick_(__FUNCTION__);
   v.resize(end - begin);
 
-  //#ifdef MULTICORE
-  //#pragma omp parallel for
-  //#endif
-  //  for (int64_t i = begin; i < (int64_t)end; ++i) {
-  //    v[i - begin] = ChainKeccak256(seed, i);
-  //  }
-
   auto parallel_f = [&v, &seed, begin](uint64_t i) mutable {
     v[i - begin] = ChainKeccak256(seed, i);
   };

@@ -91,12 +91,6 @@ bool Bob<BobData>::OnResponse(Response response, Receipt& receipt) {
   }
 
   plain_.resize((demands_count_ + 1) * s_);
-//#ifdef MULTICORE
-//#pragma omp parallel for
-//#endif
-//  for (int64_t i = 0; i < (int64_t)plain_.size(); ++i) {
-//    plain_[i] = vrs::GeneratePlain(response.vrs_plain_seed, i);
-//  }
   auto parallel_f = [this, &response](int64_t i) {
     plain_[i] = vrs::GeneratePlain(response.vrs_plain_seed, i);
   };
@@ -137,20 +131,6 @@ bool Bob<BobData>::CheckEncryptedM() const {
 
   // uint64_t phantom_offset = phantom_.start - demand_.start;
   std::vector<int64_t> rets(mappings_.size());
-//#ifdef MULTICORE
-//#pragma omp parallel for
-//#endif
-//  for (int64_t i = 0; i < (int64_t)mappings_.size(); ++i) {
-//    auto const& mapping = mappings_[i];
-//    G1 const& sigma = sigmas[mapping.global_index];
-//    G1 left = sigma * w_[i] + k_[i];
-//    G1 right = MultiExpU1(s_, [i, this](uint64_t j) -> Fr const& {
-//      return encrypted_m_[i * s_ + j];
-//    });
-//
-//    rets[i] = left == right;
-//  }
-
   auto parallel_f = [this, &rets,&sigmas](int64_t i) mutable {
     auto const& mapping = mappings_[i];
     G1 const& sigma = sigmas[mapping.global_index];
@@ -176,14 +156,13 @@ bool Bob<BobData>::CheckKVW() const {
   Tick _tick_(__FUNCTION__);
 
   G1 left, right;
-  std::vector<parallel::Task> tasks(2);
-  tasks[0] = [this,&right]() mutable {
+  std::array<parallel::Task, 2> tasks;
+  tasks[0] = [this,&right]() {
     right = MultiExpU1(s_, [this](uint64_t j) -> Fr const& { return vw_[j]; });
   };
-  tasks[1] = [this, &left]() mutable {
+  tasks[1] = [this, &left]() {
     left = MultiExpBdlo12(k_, w_);
-  };
-  
+  };  
   parallel::Invoke(tasks);
   
   if (right != left) {
@@ -206,12 +185,6 @@ bool Bob<BobData>::OnSecret(Secret const& secret) {
 
   // compute v
   std::vector<Fr> v(plain_.size());
-//#ifdef MULTICORE
-//#pragma omp parallel for
-//#endif
-//  for (int64_t i = 0; i < (int64_t)plain_.size(); ++i) {
-//    v[i] = vrs::Mimc5Enc(plain_[i], secret.seed0);
-//  }
   auto parallel_f = [this, &secret, &v](int64_t i) mutable {
     v[i] = vrs::Mimc5Enc(plain_[i], secret.seed0);
   };
@@ -237,17 +210,7 @@ void Bob<BobData>::DecryptM(std::vector<Fr> const& v) {
   std::vector<Fr> inv_w = w_;
   FrInv(inv_w.data(), inv_w.size());
 
-//#ifdef MULTICORE
-//#pragma omp parallel for
-//#endif
-//  for (int64_t i = 0; i < (int64_t)mappings_.size(); ++i) {
-//    auto is = i * s_;
-//    for (uint64_t j = 0; j < s_; ++j) {
-//      auto ij = is + j;
-//      encrypted_m_[ij] = (encrypted_m_[ij] - v[ij]) * inv_w[i];
-//    }
-//  }
-  auto parallel_f = [this, &v, &inv_w](int64_t i) mutable {
+  auto parallel_f = [this, &v, &inv_w](int64_t i) {
     auto is = i * s_;
     for (uint64_t j = 0; j < s_; ++j) {
       auto ij = is + j;

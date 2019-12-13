@@ -145,13 +145,6 @@ bool Alice<AliceData>::OnRequest(Request request, Response& response) {
   };
   parallel::For(s_, parallel_f3);
 
-  // for (size_t j = 0; j < s_; ++j) {
-  //  response.vw[j] = FrZero();
-  //  for (size_t i = 0; i <= demands_count_; ++i) {
-  //    response.vw[j] += v_[i * s_ + j] * w_[i];
-  //  }
-  //}
-
   // use seed2_ as rom_seed
   vrs::PublicInput public_input(plain.size(),
                                 [&plain](int64_t i) { return plain[i]; });

@@ -97,16 +97,6 @@ inline bool CheckCache(Cache const& cache) {
   };
   parallel::For(items.size(), f);
 
-  //#ifdef MULTICORE
-  //#pragma omp parallel for
-  //#endif
-  //  for (int64_t i = 0; i < (int64_t)items.size(); ++i) {
-  //    auto const& item = items[i];
-  //    auto const& key_com_r = var_coms_r[i][kPrimaryInputSize];
-  //    rets[i] = CheckVarComs(cache.seed, cache.key, key_com_r, item.first,
-  //                           item.second, var_coms[i], var_coms_r[i]);
-  //  }
-
   if (std::any_of(rets.begin(), rets.end(), [](int64_t r) { return !r; })) {
     assert(false);
     return false;
@@ -423,15 +413,6 @@ inline void UpgradeCache(Cache& cache, int64_t count) {
     parallel::For(old_items.size(), new_items.size(), parallel_f);
     cache.key_com_r = parallel::Accumulate(key_com_rs.begin(), key_com_rs.end(),
                                            cache.key_com_r);
-    // for (size_t i = old_items.size(); i < new_items.size(); ++i) {
-    //  auto const& add_new_item = new_items[i];
-    //  auto& add_var_com = cache.var_coms[i];
-    //  auto& add_var_com_r = cache.var_coms_r[i];
-    //  Fr key_com_r = FrRand();
-    //  ComputeVarComs(cache.seed, cache.key, key_com_r, add_new_item.first,
-    //                 add_new_item.second, add_var_com, add_var_com_r);
-    //  cache.key_com_r += key_com_r;
-    //}
   } else {
     auto const& new_item = new_items.back();
     auto const& old_item = old_items[new_items.size() - 1];
