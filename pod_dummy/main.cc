@@ -2,30 +2,37 @@
 #include <cryptopp/blake2.h>
 #include <cryptopp/osrng.h>
 #include <cryptopp/randpool.h>
-#include <iostream>
-//#include "../pod_core/zkp_key.h"
-#include "ecc.h"
-#include "ecc_pub.h"
-#include "pds_pub.h"
-#include "groth09/groth09.h"
-#include "hyrax/hyrax.h"
-#include "misc.h"
-#include "public.h"
-#include "tick.h"
-#include "groth09/test.h"
-#include "vrs/test.h"
 
-int gkr_main(int argc, char** argv);
+#include <iostream>
+
+#include "ecc/ecc.h"
+#include "groth09/groth09.h"
+#include "groth09/test.h"
+#include "hyrax/hyrax.h"
+#include "log/tick.h"
+#include "misc/misc.h"
+#include "pc_utils/test.h"
+#include "pod/test.h"
+#include "public.h"
+#include "vrs/test.h"
+#include "cmd/cmd.h"
+
+
 int main(int argc, char** argv) {
   (void)argc;
   (void)argv;
 
-  int thread_num = 1; // disable parallel
+#ifdef _DEBUG
+  int thread_num = 1;  // disable parallel
+#else
+  int thread_num = 0;
+#endif
+
 #ifdef USE_TBB
   int tbb_thread_num =
       thread_num ? (int)thread_num : tbb::task_scheduler_init::automatic;
   tbb::task_scheduler_init init(tbb_thread_num);
-  std::cout << "use tbb\n";
+  std::cout << "use tbb, thread_num " << tbb_thread_num << "\n";
 #else
   setenv("options:thread_num", std::to_string(thread_num).c_str(), true);
 #endif
@@ -43,11 +50,16 @@ int main(int argc, char** argv) {
     return -1;
   }
 
-  groth09::Test();
-  //vrs::Test();
-  //vrs::TestLarge();
-  //vrs::TestCache();
-  //hyrax::a1::TestRom();
-  //gkr_main(argc, argv);
+  // TestMultiexp();
+
+  // groth09::Test();
+  // vrs::Test();
+  // vrs::TestLarge();
+  // vrs::TestCache();
+  // hyrax::a1::TestRom();
+  // pod::Test();
+  //pc_utils::Test();
+  //cmd::substr_query::Test();
+  cmd::match_query::Test();
   return 0;
 }

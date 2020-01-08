@@ -8,7 +8,7 @@
 #include "../scheme_complaint_protocol.h"
 #include "../scheme_complaint_serialize.h"
 #include "c_api.h"
-#include "tick.h"
+#include "log/tick.h"
 
 namespace {
 // The alice id must be hash(AliceAddr), and the bob id must be hash(BobAddr).

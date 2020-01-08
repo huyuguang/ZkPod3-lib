@@ -22,8 +22,7 @@
 #include "../scheme_plain_bob_data.h"
 #include "c_api.h"
 #include "c_api_object.h"
-#include "ecc.h"
-#include "ecc_pub.h"
+#include "ecc/ecc.h"
 
 extern "C" {
 EXPORT handle_t E_PlainAliceDataNew(char const* publish_path) {

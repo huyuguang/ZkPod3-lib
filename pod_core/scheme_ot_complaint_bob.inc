@@ -1,7 +1,7 @@
-#include "misc.h"
-#include "scheme_misc.h"
+#include "misc/misc.h"
+#include "scheme/public_misc.h"
 #include "scheme_ot_complaint_notary.h"
-#include "tick.h"
+#include "log/tick.h"
 
 namespace scheme::ot_complaint {
 
@@ -153,8 +153,8 @@ bool Bob<BobData>::CheckEncryptedM() {
   auto const& sigmas = b_->sigmas();
 
   // uint64_t phantom_offset = phantom_.start - demand_.start;
-  std::vector<int64_t> rets(mappings_.size());
-  auto parallel_f = [this, &rets, &sigmas](int64_t i) mutable {
+  bool all_success = false;
+  auto parallel_f = [this, &sigmas](int64_t i) mutable {
     auto const& mapping = mappings_[i];
     G1 const& sigma = sigmas[mapping.global_index];
     G1 left = sigma * w_[mapping.phantom_offset] + k_[mapping.phantom_offset];
@@ -162,12 +162,11 @@ bool Bob<BobData>::CheckEncryptedM() {
       return encrypted_m_[i * s_ + j];
     });
 
-    rets[i] = left == right;
+    return left == right;
   };
-  parallel::For((int64_t)mappings_.size(), parallel_f);
+  parallel::For(&all_success, (int64_t)mappings_.size(), parallel_f);
 
-  if (std::any_of(rets.begin(), rets.end(), [](int64_t r) { return !r; })) {
-    assert(false);
+  if (!all_success) {
     std::cerr << "ASSERT: " << __FUNCTION__ << ": " << __LINE__ << "\n";
     return false;
   }

@@ -3,8 +3,8 @@
 #include <string>
 #include <vector>
 
-#include "basic_types.h"
-#include "ecc.h"
+#include "misc/misc.h"
+#include "ecc/ecc.h"
 
 namespace scheme::ot_complaint {
 struct NegoARequest {

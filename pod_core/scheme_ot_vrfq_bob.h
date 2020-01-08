@@ -3,11 +3,11 @@
 #include <memory>
 #include <string>
 
-#include "basic_types.h"
-#include "ecc.h"
+#include "misc/misc.h"
+#include "ecc/ecc.h"
 #include "scheme_ot_vrfq_protocol.h"
 #include "scheme_table_bob_data.h"
-#include "vrf.h"
+#include "vrf/vrf.h"
 
 namespace scheme::table {
 

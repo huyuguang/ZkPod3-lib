@@ -6,7 +6,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "../../public/scheme_table.h"
+#include "scheme/table_misc.h"
 #include "../scheme_atomic_swap_alice.h"
 #include "../scheme_atomic_swap_bob.h"
 #include "../scheme_atomic_swap_serialize.h"
@@ -29,8 +29,7 @@
 #include "../scheme_vrfq_serialize.h"
 #include "c_api.h"
 #include "c_api_object.h"
-#include "ecc.h"
-#include "ecc_pub.h"
+#include "ecc/ecc.h"
 
 extern "C" {
 

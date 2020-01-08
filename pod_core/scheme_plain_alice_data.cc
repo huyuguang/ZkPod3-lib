@@ -1,7 +1,7 @@
 #include "scheme_plain_alice_data.h"
 
-#include "scheme_misc.h"
-#include "scheme_plain.h"
+#include "scheme/public_misc.h"
+#include "scheme/plain_misc.h"
 
 namespace {}
 

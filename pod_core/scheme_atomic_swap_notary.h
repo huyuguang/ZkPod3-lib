@@ -3,7 +3,7 @@
 #include <memory>
 #include <string>
 
-#include "basic_types.h"
+#include "misc/misc.h"
 #include "scheme_atomic_swap_protocol.h"
 
 namespace scheme::atomic_swap {

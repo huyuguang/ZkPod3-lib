@@ -106,37 +106,30 @@
   <ItemGroup>
     <ClCompile Include="..\pod_publish\main.cc" />
     <ClCompile Include="..\pod_publish\publish.cc" />
-    <ClCompile Include="..\public\ecc.cc" />
+    <ClCompile Include="..\public\ecc\ecc.cc" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\pod_publish\publish.h" />
-    <ClInclude Include="..\public\pds_pub.h" />
-    <ClInclude Include="..\thirdparty\csv\csv.hpp" />
-    <ClInclude Include="..\public\basic_types.h" />
-    <ClInclude Include="..\public\bp.h" />
-    <ClInclude Include="..\public\bulletin_plain.h" />
-    <ClInclude Include="..\public\bulletin_table.h" />
-    <ClInclude Include="..\public\chain.h" />
-    <ClInclude Include="..\public\ecc.h" />
-    <ClInclude Include="..\public\ecc_pub.h" />
-    <ClInclude Include="..\public\misc.h" />
-    <ClInclude Include="..\public\mkl_tree.h" />
-    <ClInclude Include="..\public\mpz.h" />
-    <ClInclude Include="..\public\msvc_hack.h" />
-    <ClInclude Include="..\public\multiexp.h" />
+    <ClInclude Include="..\public\ecc\ecc.h" />
+    <ClInclude Include="..\public\ecc\ecc_pub.h" />
+    <ClInclude Include="..\public\ecc\funcs.h" />
+    <ClInclude Include="..\public\ecc\multiexp.h" />
+    <ClInclude Include="..\public\ecc\pds_pub.h" />
+    <ClInclude Include="..\public\ecc\serialize.h" />
+    <ClInclude Include="..\public\ecc\types.h" />
     <ClInclude Include="..\public\public.h" />
-    <ClInclude Include="..\public\scheme_misc.h" />
-    <ClInclude Include="..\public\scheme_plain.h" />
-    <ClInclude Include="..\public\scheme_table.h" />
-    <ClInclude Include="..\public\schnorr.h" />
-    <ClInclude Include="..\public\tick.h" />
-    <ClInclude Include="..\public\vrf.h" />
-    <ClInclude Include="..\public\vrf_meta.h" />
+    <ClInclude Include="..\public\scheme\bulletin_plain.h" />
+    <ClInclude Include="..\public\scheme\bulletin_table.h" />
+    <ClInclude Include="..\public\scheme\plain_misc.h" />
+    <ClInclude Include="..\public\scheme\public_misc.h" />
+    <ClInclude Include="..\public\scheme\table_misc.h" />
+    <ClInclude Include="..\public\scheme\vrf_meta.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\pod_publish\Makefile" />
     <None Include="..\pod_publish\README.md" />
     <None Include="..\pod_publish\test.csv" />
+    <None Include="..\public\ecc\readme.md" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="..\pod_publish\todo.txt" />

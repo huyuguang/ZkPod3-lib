@@ -3,11 +3,10 @@
 #include <bitset>
 #include <vector>
 
-#include "ecc_pub.h"
-#include "pds_pub.h"
+#include "ecc/ecc.h"
 #include "public.h"
 #include "publish.h"
-#include "scheme_misc.h"
+#include "scheme/public_misc.h"
 
 int main(int argc, char** argv) {
   setlocale(LC_ALL, "");

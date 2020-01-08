@@ -7,6 +7,12 @@
     <Filter Include="public">
       <UniqueIdentifier>{e61cd62f-be5c-4e37-983b-b3ff4ee689d3}</UniqueIdentifier>
     </Filter>
+    <Filter Include="public\ecc">
+      <UniqueIdentifier>{6644b6a6-96f1-428c-9ea9-5184c09262df}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="public\scheme">
+      <UniqueIdentifier>{ae2b2070-c8b7-475e-b7c8-8381206b35a3}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\pod_publish\main.cc">
@@ -15,85 +21,64 @@
     <ClCompile Include="..\pod_publish\publish.cc">
       <Filter>local</Filter>
     </ClCompile>
-    <ClCompile Include="..\public\ecc.cc">
-      <Filter>public</Filter>
+    <ClCompile Include="..\public\ecc\ecc.cc">
+      <Filter>public\ecc</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\pod_publish\publish.h">
       <Filter>local</Filter>
     </ClInclude>
-    <ClInclude Include="..\public\bulletin_plain.h">
-      <Filter>public</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\bulletin_table.h">
-      <Filter>public</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\basic_types.h">
-      <Filter>public</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\bp.h">
-      <Filter>public</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\chain.h">
-      <Filter>public</Filter>
-    </ClInclude>
-    <ClInclude Include="..\thirdparty\csv\csv.hpp">
-      <Filter>public</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\ecc.h">
-      <Filter>public</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\ecc_pub.h">
-      <Filter>public</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\misc.h">
-      <Filter>public</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\mkl_tree.h">
-      <Filter>public</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\mpz.h">
-      <Filter>public</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\msvc_hack.h">
-      <Filter>public</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\multiexp.h">
-      <Filter>public</Filter>
-    </ClInclude>
     <ClInclude Include="..\public\public.h">
       <Filter>public</Filter>
     </ClInclude>
-    <ClInclude Include="..\public\scheme_misc.h">
-      <Filter>public</Filter>
+    <ClInclude Include="..\public\ecc\ecc_pub.h">
+      <Filter>public\ecc</Filter>
     </ClInclude>
-    <ClInclude Include="..\public\scheme_plain.h">
-      <Filter>public</Filter>
+    <ClInclude Include="..\public\ecc\funcs.h">
+      <Filter>public\ecc</Filter>
     </ClInclude>
-    <ClInclude Include="..\public\scheme_table.h">
-      <Filter>public</Filter>
+    <ClInclude Include="..\public\ecc\multiexp.h">
+      <Filter>public\ecc</Filter>
     </ClInclude>
-    <ClInclude Include="..\public\schnorr.h">
-      <Filter>public</Filter>
+    <ClInclude Include="..\public\ecc\pds_pub.h">
+      <Filter>public\ecc</Filter>
     </ClInclude>
-    <ClInclude Include="..\public\tick.h">
-      <Filter>public</Filter>
+    <ClInclude Include="..\public\ecc\serialize.h">
+      <Filter>public\ecc</Filter>
     </ClInclude>
-    <ClInclude Include="..\public\vrf.h">
-      <Filter>public</Filter>
+    <ClInclude Include="..\public\ecc\types.h">
+      <Filter>public\ecc</Filter>
     </ClInclude>
-    <ClInclude Include="..\public\vrf_meta.h">
-      <Filter>public</Filter>
+    <ClInclude Include="..\public\ecc\ecc.h">
+      <Filter>public\ecc</Filter>
     </ClInclude>
-    <ClInclude Include="..\public\pds_pub.h">
-      <Filter>public</Filter>
+    <ClInclude Include="..\public\scheme\public_misc.h">
+      <Filter>public\scheme</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\scheme\plain_misc.h">
+      <Filter>public\scheme</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\scheme\table_misc.h">
+      <Filter>public\scheme</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\scheme\vrf_meta.h">
+      <Filter>public\scheme</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\scheme\bulletin_plain.h">
+      <Filter>public\scheme</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\scheme\bulletin_table.h">
+      <Filter>public\scheme</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\pod_publish\Makefile" />
     <None Include="..\pod_publish\README.md" />
     <None Include="..\pod_publish\test.csv" />
+    <None Include="..\public\ecc\readme.md">
+      <Filter>public\ecc</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Text Include="..\pod_publish\todo.txt" />

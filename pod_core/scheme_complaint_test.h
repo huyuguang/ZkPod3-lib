@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include "basic_types.h"
+#include "misc/misc.h"
 
 namespace scheme::plain::complaint {
 bool Test(std::string const& publish_path, std::string const& output_path,

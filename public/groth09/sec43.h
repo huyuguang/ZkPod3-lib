@@ -67,6 +67,20 @@ inline bool operator!=(RomProof const& left, RomProof const& right) {
   return !(left == right);
 }
 
+// save to bin
+template <typename Ar>
+void serialize(Ar &ar, RomProof const &t) {
+  ar &YAS_OBJECT_NVP("43.rp", ("c", t.c), ("53p", t.proof_53),
+                     ("a2p", t.proof_a2));
+}
+
+// load from bin
+template <typename Ar>
+void serialize(Ar &ar, RomProof &t) {
+  ar &YAS_OBJECT_NVP("43.rp", ("c", t.c), ("53p", t.proof_53),
+                     ("a2p", t.proof_a2));
+}
+
 class ProverInput {
  private:
   std::vector<std::vector<Fr>> x_;  // m*n
@@ -142,7 +156,6 @@ inline void ComputeCom(CommitmentPub& com_pub, CommitmentSec& com_sec,
   com_sec.t.resize(m);
   FrRand(com_sec.t.data(), m);
 
-  using details::ComputeCommitment;
   com_pub.a.resize(m);
   com_pub.b.resize(m);
   com_pub.c.resize(m);
@@ -154,9 +167,9 @@ inline void ComputeCom(CommitmentPub& com_pub, CommitmentSec& com_sec,
     auto const& x = input.x(i);
     auto const& y = input.y(i);
     auto const& z = input.z(i);
-    com_pub.a[i] = ComputeCommitment(x, r);
-    com_pub.b[i] = ComputeCommitment(y, s);
-    com_pub.c[i] = ComputeCommitment(z, t);
+    com_pub.a[i] = PcComputeCommitment(x, r);
+    com_pub.b[i] = PcComputeCommitment(y, s);
+    com_pub.c[i] = PcComputeCommitment(z, t);
   };
   parallel::For(m, parallel_f);
 }
@@ -190,7 +203,6 @@ inline void RomProve(RomProof& rom_proof, h256_t const& rom_seed,
                      ProverInput input, CommitmentPub com_pub,
                      CommitmentSec com_sec) {
   // Tick tick(__FUNCTION__);
-  using details::ComputeCommitment;
   auto m = input.m();
   auto n = input.n();
 
@@ -225,7 +237,7 @@ inline void RomProve(RomProof& rom_proof, h256_t const& rom_seed,
     com_sec_53.r.resize(m);
     com_pub_53.a.resize(m);
     auto parallel_f2 = [&com_sec, &com_pub, &com_sec_53, &com_pub_53,
-                        &k](int64_t i) mutable {
+                        &k](int64_t i) {
       com_sec_53.r[i] = com_sec.r[i] * k[i];
       com_pub_53.a[i] = com_pub.a[i] * k[i];
     };
@@ -236,7 +248,7 @@ inline void RomProve(RomProof& rom_proof, h256_t const& rom_seed,
     com_sec_53_t = com_sec_53.t;
 
     com_pub_53.b = com_pub.b;
-    com_pub_53.c = details::ComputeCommitment(input_53_z, com_sec_53.t);
+    com_pub_53.c = PcComputeCommitment(input_53_z, com_sec_53.t);
     rom_proof.c = com_pub_53.c;  // verifier can not compute c by com_pub.c
     com_pub_53_c = com_pub_53.c;
 
@@ -272,7 +284,7 @@ inline void RomProve(RomProof& rom_proof, h256_t const& rom_seed,
 
     com_pub_hy.xi = MultiExpBdlo12(com_pub.c, k);
 #ifdef _DEBUG
-    auto check_xi = ComputeCommitment(input_hy.x, com_sec_hy.r_xi);
+    auto check_xi = PcComputeCommitment(input_hy.x, com_sec_hy.r_xi);
     assert(check_xi == com_pub_hy.xi);
 #endif
 

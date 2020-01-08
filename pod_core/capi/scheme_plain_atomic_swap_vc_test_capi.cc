@@ -7,7 +7,7 @@
 #include "../scheme_atomic_swap_vc_notary.h"
 #include "../scheme_atomic_swap_vc_serialize.h"
 #include "c_api.h"
-#include "tick.h"
+#include "log/tick.h"
 
 namespace {
 // The alice id must be hash(AliceAddr), and the bob id must be hash(BobAddr).

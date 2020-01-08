@@ -2,7 +2,7 @@
 
 #include "public.h"
 #include "scheme_table_alice_data.h"
-#include "vrf.h"
+#include "vrf/vrf.h"
 
 namespace scheme::table::vrfq {
 

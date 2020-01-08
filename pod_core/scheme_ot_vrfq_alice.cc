@@ -1,9 +1,9 @@
 #include "scheme_ot_vrfq_alice.h"
 
-#include "chain.h"
+#include "utils/chain.h"
 #include "public.h"
 #include "scheme_table_alice_data.h"
-#include "vrf.h"
+#include "vrf/vrf.h"
 
 namespace scheme::table::ot_vrfq {
 

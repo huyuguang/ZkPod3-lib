@@ -2,56 +2,282 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="..\pod_dummy\main.cc" />
-    <ClCompile Include="..\public\ecc.cc" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\public\ecc_pub.h" />
-    <ClInclude Include="msvc_hack.h" />
-    <ClInclude Include="..\public\tick.h" />
-    <ClInclude Include="..\public\vrs\vrs_mimc.h">
-      <Filter>vrs</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\vrs\vrs_mimc5_gadget.h">
-      <Filter>vrs</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\vrs\vrs_misc.h">
-      <Filter>vrs</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\vrs\vrs_notary.h">
-      <Filter>vrs</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\vrs\vrs_prover.h">
-      <Filter>vrs</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\vrs\vrs_verifier.h">
-      <Filter>vrs</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\vrs\serialize.h">
-      <Filter>vrs</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\vrs\vrs.h">
-      <Filter>vrs</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\vrs\vrs_types.h">
-      <Filter>vrs</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\vrs\test.h">
-      <Filter>vrs</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\vrs\vrs_large.h">
-      <Filter>vrs</Filter>
-    </ClInclude>
+    <ClCompile Include="..\public\ecc\ecc.cc">
+      <Filter>public\ecc</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\pod_dummy\Makefile" />
     <None Include="..\pod_dummy\README.md" />
+    <None Include="..\public\hyrax\readme.md">
+      <Filter>public\hyrax</Filter>
+    </None>
+    <None Include="..\public\groth09\readme.md">
+      <Filter>public\groth09</Filter>
+    </None>
     <None Include="..\public\vrs\readme.md">
-      <Filter>vrs</Filter>
+      <Filter>public\vrs</Filter>
+    </None>
+    <None Include="..\public\pod\readme.md">
+      <Filter>public\pod</Filter>
+    </None>
+    <None Include="..\public\ecc\readme.md">
+      <Filter>public\ecc</Filter>
+    </None>
+    <None Include="..\public\bp\readme.md">
+      <Filter>public\bp</Filter>
+    </None>
+    <None Include="..\public\utils\readme.md">
+      <Filter>public\utils</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
-    <Filter Include="vrs">
-      <UniqueIdentifier>{f3ab82f8-a548-4a87-bc37-470fa9753c20}</UniqueIdentifier>
+    <Filter Include="public">
+      <UniqueIdentifier>{ba18dbe3-75bc-4b10-9f1e-761000072c7e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="public\hyrax">
+      <UniqueIdentifier>{a607b860-d2b2-4fcd-8990-b6cf5a50a633}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="public\groth09">
+      <UniqueIdentifier>{08e16878-f652-4232-a09b-b9dca8ecf588}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="public\vrs">
+      <UniqueIdentifier>{a4f59d37-64da-4879-bc25-6b230340acef}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="public\pod">
+      <UniqueIdentifier>{74fe56ff-7ff1-4f3f-abc4-d1c2aa8f5d18}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="public\ecc">
+      <UniqueIdentifier>{d068ad51-7c03-46b9-beb0-491b6b6b2011}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="public\bp">
+      <UniqueIdentifier>{6dbf9acd-0bd0-418a-abbe-06a4ee2decc1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="public\misc">
+      <UniqueIdentifier>{365f472e-8dc7-4932-8c82-cafa3873c0fc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="public\vrf">
+      <UniqueIdentifier>{350ebf85-3a32-45c7-86d5-aaf55e949137}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="public\parallel">
+      <UniqueIdentifier>{2ca67127-05c3-4e8e-b55a-1d8b902009e6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="public\log">
+      <UniqueIdentifier>{ad5985c2-b4a1-41b6-b8ae-6bac3cc89aa0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="public\utils">
+      <UniqueIdentifier>{aee3c612-9901-4062-baf3-bf2f11a1c79c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="public\scheme">
+      <UniqueIdentifier>{e56836b7-0f34-4eb5-b152-cd82a5d075ff}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\public\public.h">
+      <Filter>public</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\hyrax\a1.h">
+      <Filter>public\hyrax</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\hyrax\a3.h">
+      <Filter>public\hyrax</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\hyrax\serialize.h">
+      <Filter>public\hyrax</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\hyrax\a2.h">
+      <Filter>public\hyrax</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\hyrax\details.h">
+      <Filter>public\hyrax</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\hyrax\hyrax.h">
+      <Filter>public\hyrax</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\groth09\serialize.h">
+      <Filter>public\groth09</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\groth09\test.h">
+      <Filter>public\groth09</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\groth09\details.h">
+      <Filter>public\groth09</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\groth09\groth09.h">
+      <Filter>public\groth09</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\groth09\sec43.h">
+      <Filter>public\groth09</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\groth09\sec51.h">
+      <Filter>public\groth09</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\groth09\sec52.h">
+      <Filter>public\groth09</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\groth09\sec53.h">
+      <Filter>public\groth09</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\vrs\serialize.h">
+      <Filter>public\vrs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\vrs\test.h">
+      <Filter>public\vrs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\vrs\vrs.h">
+      <Filter>public\vrs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\vrs\cache.h">
+      <Filter>public\vrs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\vrs\large.h">
+      <Filter>public\vrs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\vrs\mimc.h">
+      <Filter>public\vrs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\vrs\mimc5_gadget.h">
+      <Filter>public\vrs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\vrs\misc.h">
+      <Filter>public\vrs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\vrs\notary.h">
+      <Filter>public\vrs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\vrs\prover.h">
+      <Filter>public\vrs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\vrs\types.h">
+      <Filter>public\vrs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\vrs\verifier.h">
+      <Filter>public\vrs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\ecc\ecc.h">
+      <Filter>public\ecc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\ecc\ecc_pub.h">
+      <Filter>public\ecc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\ecc\multiexp.h">
+      <Filter>public\ecc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\ecc\pds_pub.h">
+      <Filter>public\ecc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\ecc\serialize.h">
+      <Filter>public\ecc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\ecc\funcs.h">
+      <Filter>public\ecc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\ecc\types.h">
+      <Filter>public\ecc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\bp\bp.h">
+      <Filter>public\bp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\bp\details.h">
+      <Filter>public\bp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\bp\test.h">
+      <Filter>public\bp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\bp\p1.h">
+      <Filter>public\bp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\bp\p2.h">
+      <Filter>public\bp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\bp\types.h">
+      <Filter>public\bp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\misc\rng.h">
+      <Filter>public\misc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\misc\funcs.h">
+      <Filter>public\misc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\misc\misc.h">
+      <Filter>public\misc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\misc\mpz.h">
+      <Filter>public\misc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\misc\serialize.h">
+      <Filter>public\misc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\misc\types.h">
+      <Filter>public\misc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\misc\vectorop.h">
+      <Filter>public\misc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\misc\func_alias.h">
+      <Filter>public\misc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\misc\msvc_hack.h">
+      <Filter>public\misc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\vrf\vrf.h">
+      <Filter>public\vrf</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\vrf\details.h">
+      <Filter>public\vrf</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\vrf\test.h">
+      <Filter>public\vrf</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\parallel\recursive_taskpool.h">
+      <Filter>public\parallel</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\parallel\parallel.h">
+      <Filter>public\parallel</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\parallel\funcs.h">
+      <Filter>public\parallel</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\misc\tick.h">
+      <Filter>public\log</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\log\log.h">
+      <Filter>public\log</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\utils\fst.h">
+      <Filter>public\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\utils\chain.h">
+      <Filter>public\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\utils\schnorr.h">
+      <Filter>public\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\utils\mkl_tree.h">
+      <Filter>public\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\scheme\public_misc.h">
+      <Filter>public\scheme</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\scheme\plain_misc.h">
+      <Filter>public\scheme</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\scheme\table_misc.h">
+      <Filter>public\scheme</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\scheme\vrf_meta.h">
+      <Filter>public\scheme</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\scheme\bulletin_plain.h">
+      <Filter>public\scheme</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\scheme\bulletin_table.h">
+      <Filter>public\scheme</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="..\public\vrf\readme.md">
+      <Filter>public\vrf</Filter>
+    </Text>
   </ItemGroup>
 </Project>

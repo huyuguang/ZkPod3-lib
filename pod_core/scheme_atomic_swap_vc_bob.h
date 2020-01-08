@@ -1,12 +1,12 @@
 #pragma once
 
-#include "basic_types.h"
-#include "ecc.h"
-#include "parallel.h"
+#include "misc/misc.h"
+#include "ecc/ecc.h"
+#include "parallel/parallel.h"
 #include "public.h"
 #include "scheme_atomic_swap_vc_notary.h"
 #include "scheme_atomic_swap_vc_protocol.h"
-#include "scheme_misc.h"
+#include "scheme/public_misc.h"
 
 namespace scheme::atomic_swap_vc {
 
@@ -40,7 +40,7 @@ class Bob {
   h256_t bob_nonce_;
 
  private:
-  std::vector<G1> k_;   // sizeof() = (count + 1) * s
+  std::vector<G1> k_;   // sizeof() = (count + 1)
   std::vector<Fr> vw_;  // sizeof() = s
 
  private:

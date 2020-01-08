@@ -1,26 +1,23 @@
 #include "publish.h"
 
-#include "bp.h"
-#include "bulletin_plain.h"
-#include "bulletin_table.h"
-#include "chain.h"
+#include "bp/bp.h"
 #include "csv.hpp"
-#include "ecc.h"
-#include "ecc_pub.h"
-#include "misc.h"
-#include "mkl_tree.h"
-#include "multiexp.h"
+#include "ecc/ecc.h"
+#include "misc/misc.h"
 #include "public.h"
-#include "scheme_misc.h"
-#include "scheme_plain.h"
-#include "scheme_table.h"
-#include "vrf_meta.h"
+#include "scheme/bulletin_plain.h"
+#include "scheme/bulletin_table.h"
+#include "scheme/public_misc.h"
+#include "scheme/plain_misc.h"
+#include "scheme/table_misc.h"
+#include "scheme/vrf_meta.h"
+#include "utils/chain.h"
+#include "utils/mkl_tree.h"
 
 namespace {
 
-using namespace scheme;
 bool LoadCsvTable(std::string const& file, std::vector<std::string>& col_names,
-                  table::Table& table) {
+                  scheme::table::Table& table) {
   Tick _tick_(__FUNCTION__);
   using namespace csv;
   try {
@@ -28,7 +25,7 @@ bool LoadCsvTable(std::string const& file, std::vector<std::string>& col_names,
     col_names = reader.get_col_names();
 
     for (CSVRow& row : reader) {  // Input iterator
-      table::Record record;
+      scheme::table::Record record;
       for (CSVField& field : row) {
         record.push_back(std::string(field.get<>()));
       }
@@ -43,18 +40,19 @@ bool LoadCsvTable(std::string const& file, std::vector<std::string>& col_names,
   }
 }
 
-bool LoadTable(std::string const& file, table::Type table_type,
-               std::vector<std::string>& col_names, table::Table& table) {
-  if (table_type != table::Type::kCsv) {
+bool LoadTable(std::string const& file, scheme::table::Type table_type,
+               std::vector<std::string>& col_names,
+               scheme::table::Table& table) {
+  if (table_type != scheme::table::Type::kCsv) {
     // TBD: support more db file types
     return false;
   }
   return LoadCsvTable(file, col_names, table);
 }
 
-void PadRubbishRow(table::Table& table) {
+void PadRubbishRow(scheme::table::Table& table) {
   Tick _tick_(__FUNCTION__);
-  table::Record record(table[0].size());
+  scheme::table::Record record(table[0].size());
   for (auto& i : record) {
     i = "PAD";
   }
@@ -66,10 +64,6 @@ bool PublishTable(std::string publish_file, std::string output_path,
                   scheme::table::Type table_type,
                   std::vector<uint64_t> vrf_colnums_index,
                   std::vector<bool> unique_key) {
-  using namespace scheme;
-  using namespace scheme::table;
-  using namespace misc;
-
   assert(unique_key.size() == vrf_colnums_index.size());
 
   auto& ecc_pub = GetEccPub();
@@ -103,7 +97,7 @@ bool PublishTable(std::string publish_file, std::string output_path,
     key_m_files[i] = public_path + "/key_m_" + str_i;
   }
 
-  if (!CopyData(publish_file, original_file)) {
+  if (!scheme::CopyData(publish_file, original_file)) {
     assert(false);
     return false;
   }
@@ -113,8 +107,8 @@ bool PublishTable(std::string publish_file, std::string output_path,
 
   vrf::Generate<>(vrf_pk, vrf_sk);
 
-  Table table;
-  VrfMeta vrf_meta;
+  scheme::table::Table table;
+  scheme::table::VrfMeta vrf_meta;
   if (!LoadTable(original_file, table_type, vrf_meta.column_names, table)) {
     assert(false);
     return false;
@@ -131,13 +125,13 @@ bool PublishTable(std::string publish_file, std::string output_path,
   for (uint64_t i = 0; i < vrf_colnums_index.size(); ++i) {
     if (unique_key[i]) unique_index.push_back(vrf_colnums_index[i]);
   }
-  UniqueRecords(table, unique_index);
+  scheme::table::UniqueRecords(table, unique_index);
 
   PadRubbishRow(table);
 
-  auto max_record_size = GetMaxRecordSize(table);
+  auto max_record_size = scheme::table::GetMaxRecordSize(table);
 
-  Bulletin bulletin;
+  scheme::table::Bulletin bulletin;
   bulletin.n = table.size();
   auto record_fr_num = (max_record_size + 30) / 31;
   bulletin.s = vrf_colnums_index.size() + 1 + record_fr_num;
@@ -148,40 +142,40 @@ bool PublishTable(std::string publish_file, std::string output_path,
   }
 
   std::vector<Fr> m(bulletin.n * bulletin.s);
-  DataToM(table, vrf_colnums_index, bulletin.s, vrf_sk, m);
-  if (!SaveMatrix(matrix_file, m)) {
+  scheme::table::DataToM(table, vrf_colnums_index, bulletin.s, vrf_sk, m);
+  if (!scheme::SaveMatrix(matrix_file, m)) {
     assert(false);
     return false;
   }
 
   // sigma
-  std::vector<G1> sigmas = CalcSigma(m, bulletin.n, bulletin.s);
-  if (!SaveSigma(sigma_file, sigmas)) {
+  std::vector<G1> sigmas = scheme::CalcSigma(m, bulletin.n, bulletin.s);
+  if (!scheme::SaveSigma(sigma_file, sigmas)) {
     assert(false);
     return false;
   }
 
   // build sigma mkl tree
-  auto sigma_mkl_tree = BuildSigmaMklTree(sigmas);
-  if (!SaveMkl(sigma_mkl_tree_file, sigma_mkl_tree)) {
+  auto sigma_mkl_tree = scheme::BuildSigmaMklTree(sigmas);
+  if (!scheme::SaveMkl(sigma_mkl_tree_file, sigma_mkl_tree)) {
     assert(false);
     return false;
   }
   bulletin.sigma_mkl_root = sigma_mkl_tree.back();
 
   // vrf pk
-  if (!SaveVrfPk(vrf_pk_file, vrf_pk)) {
+  if (!scheme::table::SaveVrfPk(vrf_pk_file, vrf_pk)) {
     assert(false);
     return false;
   }
 
-  if (!GetFileSha256(vrf_pk_file, vrf_meta.pk_digest)) {
+  if (!misc::GetFileSha256(vrf_pk_file, vrf_meta.pk_digest)) {
     assert(false);
     return false;
   }
 
   // vrf sk
-  if (!SaveVrfSk(vrf_sk_file, vrf_sk)) {
+  if (!scheme::table::SaveVrfSk(vrf_sk_file, vrf_sk)) {
     assert(false);
     return false;
   }
@@ -197,13 +191,13 @@ bool PublishTable(std::string publish_file, std::string output_path,
     // still has very small probability that the km is not unique (two
     // difference key have same digest).
     // Here just simply not supporting such data.
-    if (vrf_meta.keys[j].unique && !IsElementUnique(km)) {
+    if (vrf_meta.keys[j].unique && !scheme::IsElementUnique(km)) {
       assert(false);
       return false;
     }
 
     // save key_m_files
-    if (!SaveMatrix(key_m_files[j], km)) {
+    if (!scheme::SaveMatrix(key_m_files[j], km)) {
       assert(false);
       return false;
     }
@@ -224,35 +218,36 @@ bool PublishTable(std::string publish_file, std::string output_path,
   for (size_t i = 0; i < vrf_colnums_index.size(); ++i) {
     auto& key = vrf_meta.keys[i];
     bp::P1Proof bp_p1_proof;
-    BuildKeyBp(bulletin.n, bulletin.s, m, bulletin.sigma_mkl_root,
-               key.column_index, key.mj_mkl_root, bp_p1_proof);
+    scheme::table::BuildKeyBp(bulletin.n, bulletin.s, m,
+                              bulletin.sigma_mkl_root, key.column_index,
+                              key.mj_mkl_root, bp_p1_proof);
 
 #ifdef _DEBUG
     std::vector<Fr> dummy_km(bulletin.n);
     for (uint64_t col = 0; col < bulletin.n; ++col) {
       dummy_km[col] = m[col * bulletin.s + key.column_index];
     }
-    assert(VerifyKeyBp(bulletin.n, bulletin.s, dummy_km, sigmas,
-                       key.column_index, bulletin.sigma_mkl_root,
-                       key.mj_mkl_root, bp_p1_proof));
+    assert(scheme::table::VerifyKeyBp(bulletin.n, bulletin.s, dummy_km, sigmas,
+                                      key.column_index, bulletin.sigma_mkl_root,
+                                      key.mj_mkl_root, bp_p1_proof));
 #endif
 
-    if (!SaveBpP1Proof(key_bp_files[i], bp_p1_proof)) {
+    if (!scheme::table::SaveBpP1Proof(key_bp_files[i], bp_p1_proof)) {
       assert(false);
       return false;
     }
-    if (!GetFileSha256(key_bp_files[i], key.bp_digest)) {
+    if (!misc::GetFileSha256(key_bp_files[i], key.bp_digest)) {
       assert(false);
       return false;
     }
   }
 
-  if (!SaveVrfMeta(vrf_meta_file, vrf_meta)) {
+  if (!scheme::table::SaveVrfMeta(vrf_meta_file, vrf_meta)) {
     assert(false);
     return false;
   }
 
-  if (!GetFileSha256(vrf_meta_file, bulletin.vrf_meta_digest)) {
+  if (!misc::GetFileSha256(vrf_meta_file, bulletin.vrf_meta_digest)) {
     assert(false);
     return false;
   }
@@ -273,8 +268,8 @@ bool PublishTable(std::string publish_file, std::string output_path,
     assert(false);
     return false;
   }
-  Table debug_table;
-  VrfMeta debug_vrf_meta;
+  scheme::table::Table debug_table;
+  scheme::table::VrfMeta debug_vrf_meta;
   if (!LoadTable(debug_data_file, table_type, debug_vrf_meta.column_names,
                  debug_table)) {
     assert(false);
@@ -291,10 +286,6 @@ bool PublishTable(std::string publish_file, std::string output_path,
 
 bool PublishPlain(std::string publish_file, std::string output_path,
                   uint64_t column_num) {
-  using namespace scheme;
-  using namespace scheme::plain;
-  using namespace misc;
-
   auto& ecc_pub = GetEccPub();
   auto max_s = ecc_pub.u1().size();
   if (column_num > max_s) {
@@ -316,11 +307,11 @@ bool PublishPlain(std::string publish_file, std::string output_path,
     return false;
   }
 
-  Bulletin bulletin;
+  scheme::plain::Bulletin bulletin;
   bulletin.size = fs::file_size(publish_file);
   if (!bulletin.size) return false;
   bulletin.s = column_num + 1;
-  bulletin.n = GetDataBlockCount(bulletin.size, column_num);
+  bulletin.n = scheme::plain::GetDataBlockCount(bulletin.size, column_num);
 
   std::string bulletin_file = output_path + "/bulletin";
   std::string original_file = private_path + "/original";
@@ -328,32 +319,33 @@ bool PublishPlain(std::string publish_file, std::string output_path,
   std::string sigma_file = public_path + "/sigma";
   std::string sigma_mkl_file = public_path + "/sigma_mkl_tree";
 
-  if (!CopyData(publish_file, original_file)) {
+  if (!scheme::CopyData(publish_file, original_file)) {
     assert(false);
     return false;
   }
 
   std::vector<Fr> m;
-  if (!DataToM(original_file, bulletin.size, bulletin.n, column_num, m)) {
+  if (!scheme::plain::DataToM(original_file, bulletin.size, bulletin.n,
+                              column_num, m)) {
     assert(false);
     return false;
   }
 
-  if (!SaveMatrix(matrix_file, m)) {
+  if (!scheme::SaveMatrix(matrix_file, m)) {
     assert(false);
     return false;
   }
 
-  std::vector<G1> sigmas = CalcSigma(m, bulletin.n, bulletin.s);
+  std::vector<G1> sigmas = scheme::CalcSigma(m, bulletin.n, bulletin.s);
 
-  if (!SaveSigma(sigma_file, sigmas)) {
+  if (!scheme::SaveSigma(sigma_file, sigmas)) {
     assert(false);
     return false;
   }
 
   // mkl
-  auto sigma_mkl_tree = BuildSigmaMklTree(sigmas);
-  if (!SaveMkl(sigma_mkl_file, sigma_mkl_tree)) {
+  auto sigma_mkl_tree = scheme::BuildSigmaMklTree(sigmas);
+  if (!scheme::SaveMkl(sigma_mkl_file, sigma_mkl_tree)) {
     assert(false);
     return false;
   }
@@ -367,13 +359,14 @@ bool PublishPlain(std::string publish_file, std::string output_path,
 
 #ifdef _DEBUG
   std::string debug_data_file = original_file + ".debug";
-  if (!DecryptedRangeMToFile(debug_data_file, bulletin.size, bulletin.s, 0,
-                             bulletin.n, m.begin(), m.end())) {
+  if (!scheme::plain::DecryptedRangeMToFile(debug_data_file, bulletin.size,
+                                            bulletin.s, 0, bulletin.n,
+                                            m.begin(), m.end())) {
     assert(false);
     return false;
   }
 
-  if (!IsSameFile(debug_data_file, original_file)) {
+  if (!misc::IsSameFile(debug_data_file, original_file)) {
     assert(false);
     return false;
   }

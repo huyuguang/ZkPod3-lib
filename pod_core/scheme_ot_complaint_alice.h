@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ecc.h"
+#include "ecc/ecc.h"
 #include "public.h"
 #include "scheme_ot_complaint_protocol.h"
 

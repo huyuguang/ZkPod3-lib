@@ -1,7 +1,7 @@
-#include "chain.h"
-#include "misc.h"
-#include "scheme_misc.h"
-#include "tick.h"
+#include "utils/chain.h"
+#include "misc/misc.h"
+#include "scheme/public_misc.h"
+#include "log/tick.h"
 
 namespace scheme::complaint {
 

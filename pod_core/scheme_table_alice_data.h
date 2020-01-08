@@ -5,13 +5,13 @@
 #include <memory>
 #include <string>
 
-#include "basic_types.h"
-#include "bp.h"
-#include "bulletin_table.h"
-#include "mkl_tree.h"
-#include "scheme_misc.h"
-#include "vrf.h"
-#include "vrf_meta.h"
+#include "misc/misc.h"
+#include "bp/bp.h"
+#include "scheme/bulletin_table.h"
+#include "utils/mkl_tree.h"
+#include "scheme/public_misc.h"
+#include "vrf/vrf.h"
+#include "scheme/vrf_meta.h"
 
 namespace scheme::table {
 

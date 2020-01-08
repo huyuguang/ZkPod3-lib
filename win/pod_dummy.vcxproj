@@ -107,31 +107,88 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\pod_dummy\main.cc" />
-    <ClCompile Include="..\public\ecc.cc">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\public\ecc_pub.h" />
-    <ClInclude Include="..\public\tick.h" />
-    <ClInclude Include="..\public\vrs\serialize.h" />
-    <ClInclude Include="..\public\vrs\vrs.h" />
-    <ClInclude Include="..\public\vrs\vrs_large.h" />
-    <ClInclude Include="..\public\vrs\vrs_mimc.h" />
-    <ClInclude Include="..\public\vrs\vrs_mimc5_gadget.h" />
-    <ClInclude Include="..\public\vrs\vrs_misc.h" />
-    <ClInclude Include="..\public\vrs\vrs_notary.h" />
-    <ClInclude Include="..\public\vrs\vrs_prover.h" />
-    <ClInclude Include="..\public\vrs\test.h" />
-    <ClInclude Include="..\public\vrs\vrs_types.h" />
-    <ClInclude Include="..\public\vrs\vrs_verifier.h" />
-    <ClInclude Include="msvc_hack.h" />
+    <ClCompile Include="..\public\ecc\ecc.cc" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\pod_dummy\Makefile" />
     <None Include="..\pod_dummy\README.md" />
+    <None Include="..\public\bp\readme.md" />
+    <None Include="..\public\ecc\readme.md" />
+    <None Include="..\public\groth09\readme.md" />
+    <None Include="..\public\hyrax\readme.md" />
+    <None Include="..\public\pod\readme.md" />
+    <Text Include="..\public\vrf\readme.md" />
+    <None Include="..\public\utils\readme.md" />
     <None Include="..\public\vrs\readme.md" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\public\bp\bp.h" />
+    <ClInclude Include="..\public\bp\details.h" />
+    <ClInclude Include="..\public\bp\p1.h" />
+    <ClInclude Include="..\public\bp\p2.h" />
+    <ClInclude Include="..\public\bp\test.h" />
+    <ClInclude Include="..\public\bp\types.h" />
+    <ClInclude Include="..\public\ecc\ecc.h" />
+    <ClInclude Include="..\public\ecc\ecc_pub.h" />
+    <ClInclude Include="..\public\ecc\funcs.h" />
+    <ClInclude Include="..\public\ecc\multiexp.h" />
+    <ClInclude Include="..\public\ecc\pds_pub.h" />
+    <ClInclude Include="..\public\ecc\serialize.h" />
+    <ClInclude Include="..\public\ecc\types.h" />
+    <ClInclude Include="..\public\groth09\details.h" />
+    <ClInclude Include="..\public\groth09\groth09.h" />
+    <ClInclude Include="..\public\groth09\sec43.h" />
+    <ClInclude Include="..\public\groth09\sec51.h" />
+    <ClInclude Include="..\public\groth09\sec52.h" />
+    <ClInclude Include="..\public\groth09\sec53.h" />
+    <ClInclude Include="..\public\groth09\serialize.h" />
+    <ClInclude Include="..\public\groth09\test.h" />
+    <ClInclude Include="..\public\hyrax\a1.h" />
+    <ClInclude Include="..\public\hyrax\a2.h" />
+    <ClInclude Include="..\public\hyrax\a3.h" />
+    <ClInclude Include="..\public\hyrax\details.h" />
+    <ClInclude Include="..\public\hyrax\hyrax.h" />
+    <ClInclude Include="..\public\hyrax\serialize.h" />
+    <ClInclude Include="..\public\log\log.h" />
+    <ClInclude Include="..\public\misc\funcs.h" />
+    <ClInclude Include="..\public\misc\func_alias.h" />
+    <ClInclude Include="..\public\misc\misc.h" />
+    <ClInclude Include="..\public\misc\mpz.h" />
+    <ClInclude Include="..\public\misc\msvc_hack.h" />
+    <ClInclude Include="..\public\misc\rng.h" />
+    <ClInclude Include="..\public\misc\serialize.h" />
+    <ClInclude Include="..\public\misc\tick.h" />
+    <ClInclude Include="..\public\misc\types.h" />
+    <ClInclude Include="..\public\misc\vectorop.h" />
+    <ClInclude Include="..\public\parallel\funcs.h" />
+    <ClInclude Include="..\public\parallel\parallel.h" />
+    <ClInclude Include="..\public\parallel\recursive_taskpool.h" />
+    <ClInclude Include="..\public\public.h" />
+    <ClInclude Include="..\public\scheme\bulletin_plain.h" />
+    <ClInclude Include="..\public\scheme\bulletin_table.h" />
+    <ClInclude Include="..\public\scheme\plain_misc.h" />
+    <ClInclude Include="..\public\scheme\public_misc.h" />
+    <ClInclude Include="..\public\scheme\table_misc.h" />
+    <ClInclude Include="..\public\scheme\vrf_meta.h" />
+    <ClInclude Include="..\public\utils\chain.h" />
+    <ClInclude Include="..\public\utils\fst.h" />
+    <ClInclude Include="..\public\utils\mkl_tree.h" />
+    <ClInclude Include="..\public\utils\schnorr.h" />
+    <ClInclude Include="..\public\vrf\details.h" />
+    <ClInclude Include="..\public\vrf\test.h" />
+    <ClInclude Include="..\public\vrf\vrf.h" />
+    <ClInclude Include="..\public\vrs\cache.h" />
+    <ClInclude Include="..\public\vrs\large.h" />
+    <ClInclude Include="..\public\vrs\mimc.h" />
+    <ClInclude Include="..\public\vrs\mimc5_gadget.h" />
+    <ClInclude Include="..\public\vrs\misc.h" />
+    <ClInclude Include="..\public\vrs\notary.h" />
+    <ClInclude Include="..\public\vrs\prover.h" />
+    <ClInclude Include="..\public\vrs\serialize.h" />
+    <ClInclude Include="..\public\vrs\test.h" />
+    <ClInclude Include="..\public\vrs\types.h" />
+    <ClInclude Include="..\public\vrs\verifier.h" />
+    <ClInclude Include="..\public\vrs\vrs.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

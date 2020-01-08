@@ -3,7 +3,7 @@
 #include <map>
 #include <memory>
 
-#include "../fst.h"
+#include "utils/fst.h"
 #include "groth09/details.h"
 #include "groth09/sec51.h"
 
@@ -284,6 +284,18 @@ inline bool operator!=(CommitmentExtPub const& left,
   return !(left == right);
 }
 
+// save to bin
+template <typename Ar>
+void serialize(Ar &ar, CommitmentExtPub const &t) {
+  ar &YAS_OBJECT_NVP("53.cep", ("cl", t.cl), ("cu", t.cu));
+}
+
+// load from bin
+template <typename Ar>
+void serialize(Ar &ar, CommitmentExtPub &t) {
+  ar &YAS_OBJECT_NVP("53.cep", ("cl", t.cl), ("cu", t.cu));
+}
+
 struct RomProof {
   CommitmentExtPub com_ext_pub;  // 2*log(m) G1
   sec51::RomProof rom_proof_51;  // 4 G1, 2n+3 Fr
@@ -305,10 +317,21 @@ inline bool operator!=(RomProof const& left, RomProof const& right) {
   return !(left == right);
 }
 
+// save to bin
+template <typename Ar>
+void serialize(Ar &ar, RomProof const &t) {
+  ar &YAS_OBJECT_NVP("53.rp", ("c", t.com_ext_pub), ("r", t.rom_proof_51));
+}
+
+// load from bin
+template <typename Ar>
+void serialize(Ar &ar, RomProof &t) {
+  ar &YAS_OBJECT_NVP("53.rp", ("c", t.com_ext_pub), ("r", t.rom_proof_51));
+}
+
 inline void ComputeCom(ProverInput const& input, CommitmentPub* com_pub,
                        CommitmentSec const& com_sec) {
   // Tick tick(__FUNCTION__);
-  using details::ComputeCommitment;
   auto const m = input.m();
   auto const n = input.n();
 
@@ -316,12 +339,12 @@ inline void ComputeCom(ProverInput const& input, CommitmentPub* com_pub,
   com_pub->b.resize(m);
 
   auto parallel_f = [&input, &com_pub, &com_sec](int64_t i) mutable {
-    com_pub->a[i] = ComputeCommitment(input.x(i), com_sec.r[i]);
-    com_pub->b[i] = ComputeCommitment(input.y(i), com_sec.s[i]);
+    com_pub->a[i] = PcComputeCommitment(input.x(i), com_sec.r[i]);
+    com_pub->b[i] = PcComputeCommitment(input.y(i), com_sec.s[i]);
   };
   parallel::For(m, parallel_f, n < 16 * 1024);
 
-  com_pub->c = ComputeCommitment(input.z(), com_sec.t);
+  com_pub->c = PcComputeCommitment(input.z(), com_sec.t);
 }
 
 inline void ComputeCom(ProverInput const& input, CommitmentPub* com_pub,
@@ -450,8 +473,8 @@ inline void RomProveRecursive(RomProof& rom_proof, h256_t& seed,
   // compute cl, cu
   Fr tl = FrRand();
   Fr tu = FrRand();
-  G1 cl = details::ComputeCommitment(sigma_xy1, tl);
-  G1 cu = details::ComputeCommitment(sigma_xy2, tu);
+  G1 cl = PcComputeCommitment(sigma_xy1, tl);
+  G1 cu = PcComputeCommitment(sigma_xy2, tu);
   rom_proof.com_ext_pub.cl.push_back(cl);
   rom_proof.com_ext_pub.cu.push_back(cu);
 
@@ -476,7 +499,7 @@ inline void RomProveRecursive(RomProof& rom_proof, h256_t& seed,
 inline void RomProve(RomProof& rom_proof, h256_t seed, ProverInput input,
                      CommitmentPub com_pub, CommitmentSec com_sec) {
   // Tick tick(__FUNCTION__);
-  assert(PdsPub::kGSize >= input.n());
+  assert(PcBase::kGSize >= input.n());
 
   while (input.m() > 1) {
     RomProveRecursive(rom_proof, seed, input, com_pub, com_sec);

@@ -1,7 +1,7 @@
 #include "scheme_table_bob_data.h"
 
-#include "misc.h"
-#include "scheme_table.h"
+#include "misc/misc.h"
+#include "scheme/table_misc.h"
 
 namespace scheme::table {
 

@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include "basic_types.h"
+#include "misc/misc.h"
 
 namespace scheme::table::ot_complaint::capi {
 bool Test(std::string const& publish_path, std::string const& output_path,

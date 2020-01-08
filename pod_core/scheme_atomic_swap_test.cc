@@ -4,10 +4,10 @@
 #include "scheme_atomic_swap_bob.h"
 #include "scheme_atomic_swap_notary.h"
 #include "scheme_atomic_swap_protocol.h"
-#include "scheme_plain.h"
+#include "scheme/plain_misc.h"
 #include "scheme_plain_alice_data.h"
 #include "scheme_plain_bob_data.h"
-#include "scheme_table.h"
+#include "scheme/table_misc.h"
 #include "scheme_table_alice_data.h"
 #include "scheme_table_bob_data.h"
 

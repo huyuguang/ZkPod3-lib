@@ -1,10 +1,9 @@
 #pragma once
 
-#include "./serialize.h"
-#include "./vrs_cache.h"
-#include "./vrs_large.h"
-#include "./vrs_mimc.h"
-#include "./vrs_notary.h"
-#include "./vrs_prover.h"
-#include "./vrs_types.h"
-#include "./vrs_verifier.h"
+#include "./cache.h"
+#include "./large.h"
+#include "./misc.h"
+#include "./notary.h"
+#include "./prover.h"
+#include "./types.h"
+#include "./verifier.h"

@@ -1,8 +1,8 @@
-#include "chain.h"
-#include "misc.h"
+#include "utils/chain.h"
+#include "misc/misc.h"
 #include "scheme_atomic_swap_vc_misc.h"
-#include "scheme_misc.h"
-#include "tick.h"
+#include "scheme/public_misc.h"
+#include "log/tick.h"
 
 namespace scheme::atomic_swap_vc {
 
@@ -134,7 +134,8 @@ bool Alice<AliceData>::OnRequest(Request request, Response& response) {
       response.m[ij] = v_[ij] + w_[i] * m[m_ij];
     }
   };
-  parallel::For(mappings_.size(), parallel_f2);
+  // mappings_.size == demands_count_
+  parallel::For(mappings_.size(), parallel_f2);  
 
   response.vw.resize(s_);
   auto parallel_f3 = [this, &response](int64_t j) mutable {
@@ -182,7 +183,7 @@ bool Alice<AliceData>::OnReceipt(Receipt const& receipt, Secret& secret) {
   }
 
   secret.seed0 = seed0_;
-  secret.seed0_r = seed0_com_r_;
+  secret.seed0_com_r = seed0_com_r_;
 
   got_peer_receipt_ = true;
 

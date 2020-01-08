@@ -1,6 +1,6 @@
 #pragma once
 
-#include "func_alias.h"
+#include "misc/func_alias.h"
 #include "scheme_ot_complaint_notary.h"
 
 namespace scheme::complaint {

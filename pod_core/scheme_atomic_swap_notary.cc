@@ -1,8 +1,8 @@
 #include "scheme_atomic_swap_notary.h"
 
-#include "chain.h"
-#include "mkl_tree.h"
-#include "scheme_misc.h"
+#include "utils/chain.h"
+#include "utils/mkl_tree.h"
+#include "scheme/public_misc.h"
 
 namespace scheme::atomic_swap {
 bool VerifySecret(uint64_t s, Receipt const& receipt, Secret const& secret) {

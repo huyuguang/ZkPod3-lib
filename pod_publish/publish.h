@@ -5,9 +5,9 @@
 #include <string>
 #include <vector>
 
-#include "scheme_misc.h"
-#include "scheme_plain.h"
-#include "scheme_table.h"
+#include "scheme/public_misc.h"
+#include "scheme/plain_misc.h"
+#include "scheme/table_misc.h"
 
 bool PublishTable(std::string publish_file, std::string output_path,
                   scheme::table::Type table_type,

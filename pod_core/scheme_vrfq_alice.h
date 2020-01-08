@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#include "ecc.h"
+#include "ecc/ecc.h"
 #include "scheme_table_alice_data.h"
 #include "scheme_vrfq_protocol.h"
 

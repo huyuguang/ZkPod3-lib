@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 
-#include "ecc.h"
+#include "ecc/ecc.h"
 #include "vrs/vrs.h"
 
 namespace scheme::atomic_swap_vc {
@@ -49,11 +49,11 @@ inline bool operator!=(Receipt const& left, Receipt const& right) {
 
 struct Secret {
   Fr seed0;
-  Fr seed0_r;
+  Fr seed0_com_r;
 };
 
 inline bool operator==(Secret const& left, Secret const& right) {
-  return left.seed0 == right.seed0 && left.seed0_r == right.seed0_r;
+  return left.seed0 == right.seed0 && left.seed0_com_r == right.seed0_com_r;
 }
 
 inline bool operator!=(Secret const& left, Secret const& right) {

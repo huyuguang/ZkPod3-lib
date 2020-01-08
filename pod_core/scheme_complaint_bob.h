@@ -1,12 +1,12 @@
 #pragma once
 
-#include "basic_types.h"
-#include "ecc.h"
-#include "parallel.h"
+#include "misc/misc.h"
+#include "ecc/ecc.h"
+#include "parallel/parallel.h"
 #include "public.h"
 #include "scheme_complaint_notary.h"
 #include "scheme_complaint_protocol.h"
-#include "scheme_misc.h"
+#include "scheme/public_misc.h"
 
 namespace scheme::complaint {
 

@@ -3,7 +3,7 @@
 #include <map>
 #include <memory>
 
-#include "../fst.h"
+#include "utils/fst.h"
 #include "./details.h"
 #include "./sec51.h"
 
@@ -216,7 +216,6 @@ struct RomProof {
 inline void ComputeCom(CommitmentPub& com_pub, CommitmentSec& com_sec,
                        ProverInput const& input) {
   Tick tick(__FUNCTION__);
-  using details::ComputeCommitment;
   auto const m = input.m();
   auto const n = input.n();
   com_sec.r.resize(m);
@@ -231,12 +230,12 @@ inline void ComputeCom(CommitmentPub& com_pub, CommitmentSec& com_sec,
   com_pub.b.resize(m);
 
   auto parallel_f = [&input, &com_pub, &com_sec](int64_t i) {
-    com_pub.a[i] = ComputeCommitment(input.x(i), com_sec.r[i]);
-    com_pub.b[i] = ComputeCommitment(input.y(i), com_sec.s[i]);
+    com_pub.a[i] = PcComputeCommitment(input.x(i), com_sec.r[i]);
+    com_pub.b[i] = PcComputeCommitment(input.y(i), com_sec.s[i]);
   };
   parallel::For(m, parallel_f);
 
-  com_pub.c = ComputeCommitment(input.z(), com_sec.t);
+  com_pub.c = PcComputeCommitment(input.z(), com_sec.t);
 }
 
 inline void ComputeComExt(CommitmentExtPub& com_ext_pub,
@@ -244,8 +243,6 @@ inline void ComputeComExt(CommitmentExtPub& com_ext_pub,
                           ProverInput const& input,
                           CommitmentPub const& com_pub,
                           CommitmentSec const& com_sec) {
-  using details::ComputeCommitment;
-
   Tick tick(__FUNCTION__);
 
   auto const m = input.m();
@@ -257,7 +254,7 @@ inline void ComputeComExt(CommitmentExtPub& com_ext_pub,
 
   auto parallel_f = [&input, &com_ext_pub, &com_ext_sec](int64_t l) {
     auto const& sum_xy = input.sum_xy(l);
-    com_ext_pub.cl[l] = ComputeCommitment(sum_xy, com_ext_sec.tl[l]);
+    com_ext_pub.cl[l] = PcComputeCommitment(sum_xy, com_ext_sec.tl[l]);
   };
   parallel::For(m * 2 - 1, parallel_f);
 
@@ -285,7 +282,7 @@ inline void RomProve(RomProof& rom_proof, h256_t const& common_seed,
   Tick tick(__FUNCTION__);
   auto m = input.m();
   auto n = input.n();
-  assert(PdsPub::kGSize >= input.n());
+  assert(PcBase::kGSize >= input.n());
 
   CommitmentExtSec com_ext_sec;
   ComputeComExt(rom_proof.com_ext_pub, com_ext_sec, input, com_pub, com_sec);
@@ -344,10 +341,9 @@ inline void RomProve(RomProof& rom_proof, h256_t const& common_seed,
   }
 
 #ifdef _DEBUG
-  using details::ComputeCommitment;
-  auto check_a = ComputeCommitment(input_51.x(), com_sec_51.r);
+  auto check_a = PcComputeCommitment(input_51.x(), com_sec_51.r);
   assert(check_a == com_pub_51.a);
-  auto check_b = ComputeCommitment(input_51.y(), com_sec_51.s);
+  auto check_b = PcComputeCommitment(input_51.y(), com_sec_51.s);
   assert(check_b == com_pub_51.b);
 #endif
 
@@ -358,7 +354,7 @@ inline void RomProve(RomProof& rom_proof, h256_t const& common_seed,
 inline bool RomVerify(RomProof const& rom_proof, h256_t const& common_seed,
                       VerifierInput const& input) {
   auto m = rom_proof.m();
-  assert(PdsPub::kGSize >= rom_proof.n());
+  assert(PcBase::kGSize >= rom_proof.n());
 
   auto const& com_pub = input.com_pub;
   auto const& com_ext_pub = rom_proof.com_ext_pub;

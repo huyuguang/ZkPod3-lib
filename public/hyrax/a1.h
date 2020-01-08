@@ -1,6 +1,5 @@
 #pragma once
 
-#include "../fst.h"
 #include "./details.h"
 
 // x, y, z: secret Fr
@@ -104,10 +103,8 @@ inline bool VerifyInternal(VerifierInput const& input, Fr const& c,
                            CommitmentExtPub const& com_ext_pub,
                            Proof const& proof) {
   // Tick tick(__FUNCTION__);
-  using details::ComputeCommitment;
-
-  auto const& g = details::GetPdsG();
-  auto const& h = details::GetPdsH();
+  auto const& g = PcG();
+  auto const& h = PcH();
   auto const& com_pub = input.com_pub;
 
   std::array<parallel::Task, 3> tasks;
@@ -141,8 +138,8 @@ inline bool VerifyInternal(VerifierInput const& input, Fr const& c,
 inline void ComputeCom(CommitmentPub& com_pub, CommitmentSec& com_sec,
                        ProverInput const& input) {
   // Tick tick(__FUNCTION__);
-  auto const& g = details::GetPdsG();
-  auto const& h = details::GetPdsH();
+  auto const& g = PcG();
+  auto const& h = PcH();
 
   com_sec.r_x = FrRand();
   com_sec.r_y = FrRand();
@@ -166,8 +163,8 @@ inline void ComputeCommitmentExt(CommitmentExtPub& com_ext_pub,
                                  CommitmentExtSec& com_ext_sec,
                                  CommitmentPub const& com_pub) {
   // Tick tick(__FUNCTION__);
-  auto const& g = details::GetPdsG();
-  auto const& h = details::GetPdsH();
+  auto const& g = PcG();
+  auto const& h = PcH();
 
   com_ext_sec.b1 = FrRand();
   com_ext_sec.b2 = FrRand();

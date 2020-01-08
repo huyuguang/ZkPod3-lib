@@ -1,7 +1,7 @@
 #include "scheme_plain_bob_data.h"
 
-#include "misc.h"
-#include "scheme_plain.h"
+#include "misc/misc.h"
+#include "scheme/plain_misc.h"
 
 namespace scheme::plain {
 BobData::BobData(Bulletin const& bulletin, std::string const& public_path)

@@ -1,7 +1,7 @@
-#include "misc.h"
+#include "misc/misc.h"
 #include "scheme_atomic_swap_vc_misc.h"
-#include "scheme_misc.h"
-#include "tick.h"
+#include "scheme/public_misc.h"
+#include "log/tick.h"
 
 namespace scheme::atomic_swap_vc {
 
@@ -108,7 +108,7 @@ bool Bob<BobData>::OnResponse(Response response, Receipt& receipt) {
   }
 
   sigma_vw_ = parallel::Accumulate(vw_.begin(), vw_.end(), FrZero());
-  G1 check_vw_com = groth09::details::ComputeCommitment(
+  G1 check_vw_com = PcComputeCommitment(
       sigma_vw_, response.vw_com_r);
   if (verifier.com_vw() != check_vw_com) {
     assert(false);
@@ -130,8 +130,8 @@ bool Bob<BobData>::CheckEncryptedM() const {
   auto const& sigmas = b_->sigmas();
 
   // uint64_t phantom_offset = phantom_.start - demand_.start;
-  std::vector<int64_t> rets(mappings_.size());
-  auto parallel_f = [this, &rets,&sigmas](int64_t i) mutable {
+  bool all_success = false;
+  auto parallel_f = [this, &sigmas](int64_t i) {
     auto const& mapping = mappings_[i];
     G1 const& sigma = sigmas[mapping.global_index];
     G1 left = sigma * w_[i] + k_[i];
@@ -139,12 +139,11 @@ bool Bob<BobData>::CheckEncryptedM() const {
       return encrypted_m_[i * s_ + j];
     });
 
-    rets[i] = left == right;
+    return left == right;
   };
-  parallel::For((int64_t)mappings_.size(), parallel_f);
+  parallel::For(&all_success, (int64_t)mappings_.size(), parallel_f);
 
-  if (std::any_of(rets.begin(), rets.end(), [](int64_t r) { return !r; })) {
-    assert(false);
+  if (!all_success) {
     std::cerr << "ASSERT: " << __FUNCTION__ << ": " << __LINE__ << "\n";
     return false;
   }

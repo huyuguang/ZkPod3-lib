@@ -1,8 +1,8 @@
 #include "scheme_vrfq_notary.h"
 
-#include "chain.h"
-#include "mkl_tree.h"
-#include "scheme_misc.h"
+#include "utils/chain.h"
+#include "utils/mkl_tree.h"
+#include "scheme/public_misc.h"
 
 namespace scheme::table::vrfq {
 bool VerifySecret(G1 const& g_exp_r, Secret const& secret) {

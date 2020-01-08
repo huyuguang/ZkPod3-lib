@@ -1,7 +1,6 @@
 #pragma once
 
-#include "basic_types_serialize.h"
-#include "misc.h"
+#include "misc/misc.h"
 #include "scheme_atomic_swap_protocol.h"
 
 namespace scheme::atomic_swap {

@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 
-#include "ecc.h"
+#include "ecc/ecc.h"
 
 namespace scheme::complaint {
 struct Request {

@@ -1,7 +1,6 @@
 #pragma once
 
-#include "basic_types_serialize.h"
-#include "misc.h"
+#include "misc/misc.h"
 #include "scheme_atomic_swap_vc_protocol.h"
 
 namespace scheme::atomic_swap_vc {
@@ -48,12 +47,12 @@ void serialize(Ar &ar, Receipt &t) {
 // save to json
 template <typename Ar>
 void serialize(Ar &ar, Secret const &t) {
-  ar &YAS_OBJECT_NVP("Secret", ("s", t.seed0), ("r", t.seed0_r));
+  ar &YAS_OBJECT_NVP("Secret", ("s", t.seed0), ("r", t.seed0_com_r));
 }
 
 // load from json
 template <typename Ar>
 void serialize(Ar &ar, Secret &t) {
-  ar &YAS_OBJECT_NVP("Secret", ("s", t.seed0), ("r", t.seed0_r));
+  ar &YAS_OBJECT_NVP("Secret", ("s", t.seed0), ("r", t.seed0_com_r));
 }
 }  // namespace scheme::atomic_swap_vc

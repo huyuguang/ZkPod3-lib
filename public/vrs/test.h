@@ -1,4 +1,4 @@
-#include "vrs.h"
+#include "./vrs.h"
 
 namespace vrs {
 
@@ -31,7 +31,7 @@ inline void Test() {
   prover.Prove(rom_seed, get_w, proof, prove_output);
 
   auto com_vw =
-      groth09::details::ComputeCommitment(prover.vw(), secret_input.vw_com_r);
+      PcComputeCommitment(prover.vw(), secret_input.vw_com_r);
   assert(com_vw == proof.com_vw);
 
   vrs::VerifyOutput verify_output;
@@ -77,7 +77,7 @@ inline void TestLarge() {
   prover.Prove(rom_seed, get_w, proofs, prove_output);
 
   auto check_com_vw =
-      groth09::details::ComputeCommitment(prover.vw(), secret_input.vw_com_r);
+      PcComputeCommitment(prover.vw(), secret_input.vw_com_r);
   auto com_vw =
       std::accumulate(proofs.begin(), proofs.end(), G1Zero(),
                       [](G1 const& a, Proof const& b) { return a + b.com_vw; });

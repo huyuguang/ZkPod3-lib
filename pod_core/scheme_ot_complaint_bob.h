@@ -3,10 +3,9 @@
 #include <memory>
 #include <string>
 
-#include "basic_types.h"
-#include "ecc.h"
-#include "misc.h"
-#include "scheme_misc.h"
+#include "misc/misc.h"
+#include "ecc/ecc.h"
+#include "scheme/public_misc.h"
 #include "scheme_ot_complaint_protocol.h"
 
 namespace scheme::ot_complaint {

@@ -3,10 +3,10 @@
 #include <memory>
 #include <string>
 
-#include "basic_types.h"
-#include "chain.h"
-#include "mkl_tree.h"
-#include "scheme_misc.h"
+#include "misc/misc.h"
+#include "utils/chain.h"
+#include "utils/mkl_tree.h"
+#include "scheme/public_misc.h"
 
 namespace scheme::ot_complaint {
 template <typename Receipt, typename Secret, typename Claim>

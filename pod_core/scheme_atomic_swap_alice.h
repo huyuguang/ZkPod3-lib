@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#include "ecc.h"
+#include "ecc/ecc.h"
 #include "scheme_atomic_swap_protocol.h"
 
 namespace scheme::atomic_swap {

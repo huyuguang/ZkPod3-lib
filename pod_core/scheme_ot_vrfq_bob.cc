@@ -1,9 +1,9 @@
 #include "scheme_ot_vrfq_bob.h"
 
-#include "misc.h"
+#include "misc/misc.h"
 #include "public.h"
 #include "scheme_ot_vrfq_notary.h"
-#include "scheme_table.h"
+#include "scheme/table_misc.h"
 #include "scheme_table_bob_data.h"
 
 namespace scheme::table::ot_vrfq {

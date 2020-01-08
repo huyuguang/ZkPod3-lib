@@ -1,4 +1,4 @@
-#include "ecc.h"
+#include "ecc/ecc.h"
 #include "public.h"
 #include "vrs/vrs.h"
 

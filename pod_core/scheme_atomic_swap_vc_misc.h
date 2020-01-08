@@ -6,8 +6,7 @@
 #include <vector>
 //#include <execution>
 
-#include "ecc.h"
-#include "ecc_pub.h"
+#include "ecc/ecc.h"
 #include "scheme_atomic_swap_vc_protocol.h"
 #include "vrs/vrs.h"
 

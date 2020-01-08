@@ -3,8 +3,8 @@
 #include <string>
 #include <vector>
 
-#include "ecc.h"
-#include "vrf.h"
+#include "ecc/ecc.h"
+#include "vrf/vrf.h"
 
 namespace scheme::table::vrfq {
 struct Request {

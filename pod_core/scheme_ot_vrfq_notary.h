@@ -3,7 +3,7 @@
 #include <memory>
 #include <string>
 
-#include "basic_types.h"
+#include "misc/misc.h"
 #include "scheme_ot_vrfq_protocol.h"
 
 namespace scheme::table::ot_vrfq {

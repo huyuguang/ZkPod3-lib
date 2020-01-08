@@ -16,13 +16,9 @@
 #include <algorithm>
 #include <array>
 #include <atomic>
+#include <bitset>
 #include <chrono>
 #include <condition_variable>
-//#if defined(_MSC_VER)
-//#include <execution>
-//#else
-//#include <parallel/algorithm>
-//#endif
 #include <functional>
 #include <map>
 #include <memory>
@@ -34,9 +30,6 @@
 #include <thread>
 #include <unordered_map>
 #include <vector>
-//#include <boost/archive/binary_iarchive.hpp>
-//#include <boost/archive/binary_oarchive.hpp>
-//#include <boost/asio.hpp>
 #include <boost/any.hpp>
 #include <boost/endian/conversion.hpp>
 #include <boost/filesystem.hpp>
@@ -58,8 +51,7 @@
 #include <boost/program_options.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
-
-//#include <boost/random.hpp>
+#include <boost/dynamic_bitset.hpp>
 
 #include <cryptopp/aes.h>
 #include <cryptopp/cryptlib.h>
@@ -75,7 +67,6 @@
 #include <cryptopp/sha.h>
 #include <cryptopp/sha3.h>
 
-// namespace asio = boost::asio;
 namespace bs = boost::system;
 namespace fs = boost::filesystem;
 namespace mp = boost::multiprecision;

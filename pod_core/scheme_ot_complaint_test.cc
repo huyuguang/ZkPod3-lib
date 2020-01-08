@@ -4,10 +4,10 @@
 #include "scheme_ot_complaint_bob.h"
 #include "scheme_ot_complaint_notary.h"
 #include "scheme_ot_complaint_protocol.h"
-#include "scheme_plain.h"
+#include "scheme/plain_misc.h"
 #include "scheme_plain_alice_data.h"
 #include "scheme_plain_bob_data.h"
-#include "scheme_table.h"
+#include "scheme/table_misc.h"
 #include "scheme_table_alice_data.h"
 #include "scheme_table_bob_data.h"
 

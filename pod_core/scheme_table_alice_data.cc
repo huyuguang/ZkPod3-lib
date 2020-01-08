@@ -1,6 +1,6 @@
 #include "scheme_table_alice_data.h"
 
-#include "misc.h"
+#include "misc/misc.h"
 #include "public.h"
 
 namespace {}  // namespace

@@ -4,10 +4,10 @@
 
 #include <string>
 
-#include "basic_types.h"
-#include "bulletin_plain.h"
-#include "mkl_tree.h"
-#include "scheme_misc.h"
+#include "misc/misc.h"
+#include "scheme/bulletin_plain.h"
+#include "utils/mkl_tree.h"
+#include "scheme/public_misc.h"
 
 namespace scheme::plain {
 

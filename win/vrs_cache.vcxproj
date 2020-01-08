@@ -104,17 +104,22 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\public\ecc\ecc.cc" />
     <ClCompile Include="..\vrs_cache\main.cc" />
-    <ClCompile Include="..\public\ecc.cc" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\public\ecc.h" />
-    <ClInclude Include="..\public\msvc_hack.h" />
-    <ClInclude Include="..\public\tick.h" />
-  </ItemGroup>
-  <ItemGroup>
+    <None Include="..\public\ecc\readme.md" />
     <None Include="..\vrs_cache\Makefile" />
     <None Include="..\vrs_cache\README.md" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\public\ecc\ecc.h" />
+    <ClInclude Include="..\public\ecc\ecc_pub.h" />
+    <ClInclude Include="..\public\ecc\funcs.h" />
+    <ClInclude Include="..\public\ecc\multiexp.h" />
+    <ClInclude Include="..\public\ecc\pds_pub.h" />
+    <ClInclude Include="..\public\ecc\serialize.h" />
+    <ClInclude Include="..\public\ecc\types.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

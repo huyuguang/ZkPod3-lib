@@ -3,7 +3,7 @@
 #include "scheme_ot_vrfq_alice.h"
 #include "scheme_ot_vrfq_bob.h"
 #include "scheme_ot_vrfq_protocol.h"
-#include "scheme_table.h"
+#include "scheme/table_misc.h"
 #include "scheme_table_alice_data.h"
 #include "scheme_table_bob_data.h"
 
