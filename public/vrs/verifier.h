@@ -93,7 +93,7 @@ class Verifier {
 
   void Evaluate() {
     // Tick tick(__FUNCTION__);
-    gadget_.reset(new Mimc5Gadget(pb_));
+    gadget_.reset(new Mimc5Gadget(pb_, "Mimc5Gadget"));
     pb_.set_input_sizes(primary_input_size_);  // var_plain is public statement
   }
 

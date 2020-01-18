@@ -15,6 +15,7 @@
 #include "public.h"
 #include "vrs/test.h"
 #include "cmd/test.h"
+#include "vrs/sha256c_gadget.h"
 
 int main(int argc, char** argv) {
   (void)argc;
@@ -51,6 +52,9 @@ int main(int argc, char** argv) {
   
   //pod::Test();
   //pc_utils::Test();
-  cmd::Test();
+  //cmd::Test();
+
+  //vrs::details::test_sha256_compress();
+  vrs::TestSha256cGadget();
   return 0;
 }

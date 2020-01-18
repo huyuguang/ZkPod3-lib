@@ -46,7 +46,7 @@ class LargeProver {
   void Evaluate() {
     Tick tick(__FUNCTION__);
     v_.resize(public_input_.count);
-    auto parallel_f = [this](int64_t i) mutable {
+    auto parallel_f = [this](int64_t i) {
       provers_[i]->Evaluate();
       auto const& v = provers_[i]->v();
       std::copy(v.begin(), v.end(), v_.begin() + i * kMaxUnitPerZkp);
@@ -63,7 +63,7 @@ class LargeProver {
     std::vector<Fr> vws(size);
 
     auto parallel_f = [this, &vws, &get_w, &rom_seed, &proofs,
-                       &outputs](int64_t i) mutable {
+                       &outputs](int64_t i) {
       auto const& item = items_[i];
       auto this_get_w = [&item, &get_w](int64_t j) {
         return get_w(j + item.first);

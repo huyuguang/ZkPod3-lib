@@ -355,6 +355,9 @@
     <ClInclude Include="..\public\vrs\sha256c_gadget.h">
       <Filter>public\vrs</Filter>
     </ClInclude>
+    <ClInclude Include="..\public\vrs\base_gadget.h">
+      <Filter>public\vrs</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="..\public\vrf\readme.md">

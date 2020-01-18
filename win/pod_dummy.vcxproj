@@ -200,6 +200,7 @@
     <ClInclude Include="..\public\vrf\details.h" />
     <ClInclude Include="..\public\vrf\test.h" />
     <ClInclude Include="..\public\vrf\vrf.h" />
+    <ClInclude Include="..\public\vrs\base_gadget.h" />
     <ClInclude Include="..\public\vrs\cache.h" />
     <ClInclude Include="..\public\vrs\large.h" />
     <ClInclude Include="..\public\vrs\mimc5.h" />

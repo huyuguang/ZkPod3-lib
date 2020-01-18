@@ -36,6 +36,7 @@ inline std::vector<Fr> const& Mimc5Const() {
   return instance;
 }
 
+// TODO: wrapped by OneWayGadget
 inline Fr Mimc5Enc(Fr const& plain, Fr const& key) {
   auto const& kMimc5Const = Mimc5Const();
   auto box = [](Fr const& v) {

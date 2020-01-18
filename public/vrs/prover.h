@@ -4,6 +4,8 @@
 #include "./mimc5_gadget.h"
 #include "./misc.h"
 #include "./types.h"
+#include "./sha256c.h"
+#include "./sha256c_gadget.h"
 #include "utils/fst.h"
 
 // Verifiable Random Sequence Prover
@@ -23,7 +25,7 @@ class Prover {
     v_.resize(count);
     values_.resize(count);
     pb_.reset(new libsnark::protoboard<Fr>);
-    gadget_.reset(new Mimc5Gadget(*pb_));
+    gadget_.reset(new Mimc5Gadget(*pb_, "Mimc5Gadget"));
     pb_->set_input_sizes(primary_input_size_);  // var_plain is public statement
 
     assert(cached_var_coms_.size() == cached_var_coms_r_.size());

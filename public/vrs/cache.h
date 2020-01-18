@@ -20,7 +20,7 @@ inline bool CheckVarComs(h256_t const& seed, Fr const& key, Fr const& key_com_r,
   std::vector<Fr> v(count);
   std::vector<std::vector<Fr>> values(count);
   libsnark::protoboard<Fr> pb;
-  Mimc5Gadget gadget(pb);
+  Mimc5Gadget gadget(pb, "Mimc5Gadget");
   pb.set_input_sizes(kPrimaryInputSize);
   auto num_var = (int64_t)pb.num_variables();
   if ((int64_t)var_coms.size() != num_var) {
@@ -112,7 +112,7 @@ inline void ComputeVarComs(h256_t const& seed, Fr const& key,
   std::vector<Fr> v(count);
   std::vector<std::vector<Fr>> values(count);
   libsnark::protoboard<Fr> pb;
-  Mimc5Gadget gadget(pb);
+  Mimc5Gadget gadget(pb, "Mimc5Gadget");
   pb.set_input_sizes(kPrimaryInputSize);
 
   for (int64_t i = 0; i < count; ++i) {
@@ -158,7 +158,7 @@ inline void UpgradeVarComs(h256_t const& seed, Fr const& key, int64_t begin,
   auto count = max_end - min_end;
   std::vector<std::vector<Fr>> values(count);
   libsnark::protoboard<Fr> pb;
-  Mimc5Gadget gadget(pb);
+  Mimc5Gadget gadget(pb, "Mimc5Gadget");
   pb.set_input_sizes(kPrimaryInputSize);
 
   for (int64_t i = 0; i < count; ++i) {
@@ -210,7 +210,7 @@ inline Cache CreateCache(int64_t count) {
   auto& var_coms_r = cache.var_coms_r;
 
   auto f = [&items, &cache, &key_com_rs, &var_coms,
-            &var_coms_r](int64_t i) mutable {
+            &var_coms_r](int64_t i) {
     auto const& item = items[i];
     ComputeVarComs(cache.seed, cache.key, key_com_rs[i], item.first,
                    item.second, var_coms[i], var_coms_r[i]);
