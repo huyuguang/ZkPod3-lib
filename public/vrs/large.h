@@ -80,8 +80,9 @@ class LargeProver {
     vw_ = parallel::Accumulate(vws.begin(), vws.end(), FrZero());
 
 #ifdef _DEBUG
+    int64_t g_offset = -1; // prover.h IpProve(), y_g_offset = -1
     auto com_vw1 =
-        PcComputeCommitment(vw_, secret_input_.vw_com_r);
+        PcComputeCommitmentG(g_offset, vw_, secret_input_.vw_com_r);
     auto op = [](G1 const& a, Proof const& b) { return a + b.com_vw; };
     auto com_vw2 = parallel::Accumulate(proofs.begin(), proofs.end(), G1Zero(),
                                         std::move(op));
@@ -202,8 +203,8 @@ class LargeProverLowRam {
     vw_ = parallel::Accumulate(vws.begin(), vws.end(), FrZero());
 
 #ifdef _DEBUG
-    auto com_vw1 =
-        PcComputeCommitment(vw_, secret_input_.vw_com_r);
+    int64_t g_offset = -1; // prover.h IpProve(), y_g_offset = -1
+    auto com_vw1 = PcComputeCommitmentG(g_offset, vw_, secret_input_.vw_com_r);
     auto op = [](G1 const& a, Proof const& b) { return a + b.com_vw; };
     auto com_vw2 = parallel::Accumulate(proofs.begin(), proofs.end(), G1Zero(),
                                         std::move(op));

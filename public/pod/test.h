@@ -25,7 +25,8 @@ inline bool Test() {
   
   std::vector<G1> com(n);
   auto parallel_f = [&m, &com, &r, s](int64_t i) {
-    com[i] = PcComputeCommitment(s, m.data() + i * s, r[i]);
+    int64_t g_offset = 0;
+    com[i] = PcComputeCommitmentG(g_offset, s, m.data() + i * s, r[i]);
     com[i].normalize();
   };
   parallel::For(n, parallel_f);

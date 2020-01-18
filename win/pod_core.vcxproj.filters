@@ -449,13 +449,7 @@
     <ClInclude Include="..\public\misc\vectorop.h">
       <Filter>public\misc</Filter>
     </ClInclude>
-    <ClInclude Include="..\public\parallel\recursive_taskpool.h">
-      <Filter>public\parallel</Filter>
-    </ClInclude>
     <ClInclude Include="..\public\parallel\parallel.h">
-      <Filter>public\parallel</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\parallel\funcs.h">
       <Filter>public\parallel</Filter>
     </ClInclude>
     <ClInclude Include="..\public\misc\tick.h">
@@ -631,6 +625,9 @@
     </ClInclude>
     <ClInclude Include="..\public\pc_utils\matchpack.h">
       <Filter>public\pc_utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\hyrax\test.h">
+      <Filter>public\hyrax</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -3,6 +3,8 @@
 #include <vector>
 #include <functional>
 
+#include "parallel/parallel.h"
+
 template <typename T>
 void VectorMul(std::vector<T>& c, std::vector<T> const& a, T const& b) {
   c.resize(a.size());

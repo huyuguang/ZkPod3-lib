@@ -54,7 +54,7 @@ inline void EncryptAndProve(ProveOutput& output, h256_t seed,
   output.proved_data.k.resize(n + 1);
   auto parallel_f_k = [&v, &output, s](uint64_t i) {
     Fr const* vi0 = &v[i * (s + 1)];
-    output.proved_data.k[i] = MultiExpBdlo12<G1>(PcU, vi0, s + 1);
+    output.proved_data.k[i] = MultiExpBdlo12<G1>(PcHG, vi0, s + 1);
     output.proved_data.k[i].normalize();
   };
   parallel::For(n + 1, parallel_f_k);

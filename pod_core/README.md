@@ -18,3 +18,22 @@
 
 --dump_ecc_pub  
 
+
+
+https://askubuntu.com/questions/1170054/install-newest-tbb-thread-building-blocks-on-ubuntu-18-04  
+To upgrade to the latest version, please do the following:
+
+Add the Ubuntu repository that contains the latest version 2019~U8-1, run the following command in terminal:
+
+echo "deb http://cz.archive.ubuntu.com/ubuntu eoan main universe" | sudo tee -a  /etc/apt/sources.list
+
+Update the repositories, run the following command in terminal:
+
+sudo apt update
+
+Upgrade to the latest version, run the following command in terminal:
+
+sudo apt install libtbb-dev
+
+After this you should have the latest libtbb-dev installed.
+

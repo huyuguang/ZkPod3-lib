@@ -13,7 +13,8 @@ inline bool CheckCommitedData(CommitedData const& data) {
   auto parallel_f = [&data](int64_t i) {
     auto x = [&data, i](int64_t j) -> Fr const& { return data.get_m(i, j); };
     auto const& r = data.get_r(i);
-    return PcComputeCommitment(data.s, x, r) == data.get_com(i);
+    int64_t g_offset = 0;
+    return PcComputeCommitmentG(g_offset, data.s, x, r) == data.get_com(i);
   };
   parallel::For(&all_success, data.n, parallel_f);
   return all_success;
@@ -48,7 +49,9 @@ inline bool CheckVrs(int64_t n, int64_t s, h256_t const& seed,
 
   auto const& vw = proved_data.vw;
   output.sigma_vw = parallel::Accumulate(vw.begin(), vw.end(), FrZero());
-  G1 check_vw_com = PcComputeCommitment(output.sigma_vw, proved_data.vw_com_r);
+  int64_t g_offset = -1;
+  G1 check_vw_com =
+      PcComputeCommitmentG(g_offset, output.sigma_vw, proved_data.vw_com_r);
   if (verifier.com_vw() != check_vw_com) {
     assert(false);
     return false;

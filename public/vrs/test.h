@@ -2,14 +2,8 @@
 
 namespace vrs {
 
-inline void Test() {
+inline bool TestBasic(int64_t count) {
   auto rom_seed = misc::RandH256();
-  // int64_t offset = 0;
-#ifdef _DEBUG
-  int64_t count = 10;
-#else
-  int64_t count = 1024 * 32;
-#endif
 
   h256_t vrs_plain_seed = misc::RandH256();
   auto get_p = [&vrs_plain_seed](int64_t i) {
@@ -30,8 +24,10 @@ inline void Test() {
   auto get_w = [&w](int64_t i) { return w[i]; };
   prover.Prove(rom_seed, get_w, proof, prove_output);
 
+  int64_t y_g_offset = -1;
   auto com_vw =
-      PcComputeCommitment(prover.vw(), secret_input.vw_com_r);
+      PcComputeCommitmentG(y_g_offset, prover.vw(), secret_input.vw_com_r);
+  (void)com_vw;
   assert(com_vw == proof.com_vw);
 
   vrs::VerifyOutput verify_output;
@@ -46,16 +42,11 @@ inline void Test() {
   ret = vrs::VerifySecret(prove_output.h, prove_output.g, prove_output.key_com,
                           secret_input.key_com_r, secret_input.key);
   assert(ret);
-  std::cout << (ret ? "success" : "failed") << "\n";
+  return ret;
 }
 
-inline void TestLarge() {
+inline bool TestLarge(int64_t count) {
   auto rom_seed = misc::RandH256();
-#ifdef _DEBUG
-  int64_t count = 64;
-#else
-  int64_t count = 1024 * 128;
-#endif
   h256_t vrs_plain_seed = misc::RandH256();
   auto get_p = [&vrs_plain_seed](int64_t i) {
     return GeneratePlain(vrs_plain_seed, i);
@@ -76,11 +67,14 @@ inline void TestLarge() {
   auto get_w = [&w](int64_t i) { return w[i]; };
   prover.Prove(rom_seed, get_w, proofs, prove_output);
 
+  int64_t y_g_offset = -1;
   auto check_com_vw =
-      PcComputeCommitment(prover.vw(), secret_input.vw_com_r);
+      PcComputeCommitmentG(y_g_offset,prover.vw(), secret_input.vw_com_r);
   auto com_vw =
       std::accumulate(proofs.begin(), proofs.end(), G1Zero(),
                       [](G1 const& a, Proof const& b) { return a + b.com_vw; });
+  (void)check_com_vw;
+  (void)com_vw;
   assert(check_com_vw == com_vw);
 
   vrs::VerifyOutput verify_output;
@@ -97,7 +91,7 @@ inline void TestLarge() {
                           secret_input.key_com_r, secret_input.key);
   assert(ret);
 
-  std::cout << (ret ? "success" : "failed") << "\n";
+  return ret;
 }
 
 inline void TestCache() {
@@ -143,4 +137,27 @@ inline void TestCache() {
   }
 }
 
+inline void Test() {
+  std::vector<bool> ret;
+
+  ret.push_back(TestBasic(10));
+  ret.push_back(TestLarge(164));
+
+  std::cout << __FUNCTION__ << " summary:\n";
+  for (auto i : ret) {
+    std::cout << (i ? "success" : "failed") << "\n";
+  }
+}
+
+inline void TestPerformance() {
+  std::vector<bool> ret;
+
+  ret.push_back(TestBasic(1024*32));
+  ret.push_back(TestLarge(1024*128));
+
+  std::cout << __FUNCTION__ << " summary:\n";
+  for (auto i : ret) {
+    std::cout << (i ? "success" : "failed") << "\n";
+  }
+}
 }  // namespace vrs

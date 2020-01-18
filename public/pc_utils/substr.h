@@ -13,7 +13,7 @@
 // x: vector<Fr>, size = n
 // k: Fr
 // y: vector<Fr>, size = n, {0,1}
-// open com(x), k, com(y)
+// open com(gx,x), k, com(gx,y)
 // prove y[i] = IsSubStr(x[i],k)? 1:0
 
 namespace pc_utils::substr {
@@ -43,7 +43,7 @@ class HasZeroGadget : public libsnark::gadget<Fr> {
       this->pb.add_r1cs_constraint(
           libsnark::r1cs_constraint<Fr>(x_[0], x_[1], y_[0]),
           "y[0] = x[0] * x[1]");
-      for (auto i = 1; i < x_.size() - 1; ++i) {
+      for (size_t i = 1; i < x_.size() - 1; ++i) {
         // y[i-1] * x[i+1] == y[i]
         this->pb.add_r1cs_constraint(
             libsnark::r1cs_constraint<Fr>(y_[i - 1], x_[i + 1], y_[i]),
@@ -70,11 +70,8 @@ class HasZeroGadget : public libsnark::gadget<Fr> {
       pie_of_x = this->pb.lc_val(x_[0]);
     } else {
       // y_[0] = x_[0] * x_[1];
-      auto x0 = this->pb.lc_val(x_[0]);
-      auto x1 = this->pb.lc_val(x_[1]);
-      auto y0 = x0 * x1;
       this->pb.val(y_[0]) = this->pb.lc_val(x_[0]) * this->pb.lc_val(x_[1]);
-      for (auto i = 1; i < x_.size() - 1; ++i) {
+      for (size_t i = 1; i < x_.size() - 1; ++i) {
         // y[i] = y[i-1] * x[i+1]
         this->pb.val(y_[i]) =
             this->pb.val(y_[i - 1]) * this->pb.lc_val(x_[i + 1]);
@@ -96,7 +93,7 @@ class HasZeroGadget : public libsnark::gadget<Fr> {
 class SubstrGadget : public libsnark::gadget<Fr> {
  public:
   SubstrGadget(libsnark::protoboard<Fr>& pb, std::string const& k)
-      : libsnark::gadget<Fr>(pb, "SubstrGadget"), k_(PackStrToFr(k)) {
+      : libsnark::gadget<Fr>(pb, "SubstrGadget"), k_(PackStrToFr(k.c_str())) {
     // NOTE: 1 Fr pack 31 char
     x_.allocate(pb, " x");
     dual_.reset(
@@ -105,7 +102,7 @@ class SubstrGadget : public libsnark::gadget<Fr> {
     int64_t k_len = k.size();
     sub_duals_.resize(31 - k_len + 1);
     sub_minus_k_.resize(sub_duals_.size());
-    for (auto i = 0; i < sub_duals_.size(); ++i) {
+    for (size_t i = 0; i < sub_duals_.size(); ++i) {
       auto begin = dual_->bits.begin() + i * 8;
       auto end = begin + k_len * 8;
       libsnark::pb_variable_array<Fr> bits(begin, end);
@@ -153,7 +150,7 @@ class SubstrGadget : public libsnark::gadget<Fr> {
   }
 
  private:
-  Fr const& k_;
+  Fr k_;
 
   libsnark::pb_variable<Fr> x_;
 
@@ -169,7 +166,7 @@ class SubstrGadget : public libsnark::gadget<Fr> {
 };
 
 struct Proof {
-  groth09::sec43::RomProof hp_proof;
+  groth09::sec43b::RomProof hp_proof;
   std::vector<G1> com_w;
   G1 const& com_x() const { return com_w.front(); }
   G1 const& com_y() const { return com_w.back(); }
@@ -193,64 +190,124 @@ void serialize(Ar& ar, Proof& t) {
   ar& YAS_OBJECT_NVP("s.p", ("hp", t.hp_proof), ("w", t.com_w));
 }
 
-inline void Prove(Proof& proof, h256_t seed, std::vector<Fr> const& x,
-                  std::string const& k, G1 const& com_x, Fr const& com_x_r,
-                  G1 const& com_y, Fr const& com_y_r) {
-  Tick tick(__FUNCTION__);
-  int64_t n = (int64_t)x.size();
-  int64_t const primary_input_size = 0;
-  libsnark::protoboard<Fr> pb;
-  SubstrGadget gadget(pb, k);
-  pb.set_input_sizes(primary_input_size);
-  int64_t s = (int64_t)pb.num_variables();
+struct ProverInput {
+  ProverInput(std::string const& k, std::vector<Fr> const& x, G1 const& com_x,
+              Fr const& com_x_r, std::vector<Fr> const& y, G1 const& com_y,
+              Fr const& com_y_r, int64_t g_offset)
+      : k(k),
+        x(x),
+        com_x(com_x),
+        com_x_r(com_x_r),
+        y(y),
+        com_y(com_y),
+        com_y_r(com_y_r),
+        g_offset(g_offset),
+        n((int64_t)x.size()),
+        gadget(SubstrGadget(pb, k)),
+        s((int64_t)pb.num_variables()) {
+    int64_t const primary_input_size = 0;
+    pb.set_input_sizes(primary_input_size);
 
-  std::vector<std::vector<Fr>> w(s);
-  for (auto& i : w) i.resize(n);
+    w.resize(s);
+    for (auto& i : w) i.resize(n);
 
-  for (int64_t j = 0; j < n; ++j) {
-    gadget.Assign(x[j]);
-    auto v = pb.full_variable_assignment();
-    for (int64_t i = 0; i < s; ++i) {
-      w[i][j] = v[i];
+    for (int64_t j = 0; j < n; ++j) {
+      gadget.Assign(x[j]);
+      assert(pb.is_satisfied());
+      auto v = pb.full_variable_assignment();
+      for (int64_t i = 0; i < s; ++i) {
+        w[i][j] = v[i];
+      }
+      assert(w.front()[j] == x[j]);
+      assert(w.back()[j] == y[j]);
     }
   }
+  std::string const& k;
+  std::vector<Fr> const& x;
+  G1 const& com_x;
+  Fr const& com_x_r;
+  std::vector<Fr> const& y;
+  G1 const& com_y;
+  Fr const& com_y_r;
+  int64_t const g_offset;
 
-  std::vector<G1> com_w(s);
-  std::vector<Fr> com_w_r(s);
+  int64_t const n;
+  libsnark::protoboard<Fr> pb;
+  SubstrGadget gadget;
+  int64_t const s;
+  std::vector<std::vector<Fr>> mutable w;
+};
 
-  com_w[0] = com_x;
-  com_w_r[0] = com_x_r;
-  com_w[s - 1] = com_y;
-  com_w_r[s - 1] = com_y_r;
+inline void Prove(Proof& proof, h256_t seed, ProverInput const& input) {
+  Tick tick(__FUNCTION__);
+  std::vector<G1> com_w(input.s);
+  std::vector<Fr> com_w_r(input.s);
+
+  com_w.front() = input.com_x;
+  com_w_r.front() = input.com_x_r;
+  com_w.back() = input.com_y;
+  com_w_r.back() = input.com_y_r;
 
   {
     // Tick tick2("compute com(witness)");
-    auto parallel_f = [&com_w_r, &com_w, &w](int64_t i) {
+    auto parallel_f = [&com_w_r, &com_w, &input](int64_t i) {
       com_w_r[i] = FrRand();
-      com_w[i] = PcComputeCommitment(w[i], com_w_r[i], true);
+      com_w[i] =
+          PcComputeCommitmentG(input.g_offset, input.w[i], com_w_r[i], true);
     };
-    parallel::For(1LL, s - 1, parallel_f);
+    parallel::For<int64_t>(1LL, input.s - 1, parallel_f);
   }
 
-  parallel_r1cs::Prove(proof.hp_proof, seed, pb, w, com_w, com_w_r);
+  parallel_r1cs::ProverInput pr_input(input.pb, std::move(input.w), com_w,
+                                      com_w_r, input.g_offset);
+  parallel_r1cs::Prove(proof.hp_proof, seed, std::move(pr_input));
   proof.com_w = std::move(com_w);
 }
 
-// NOTE: com_x and com_y can get by proof.com_x() and proof.com_y()
-inline bool Verify(Proof const& proof, h256_t seed, int64_t n,
-                   std::string const& k) {
-  Tick tick(__FUNCTION__);
-  int64_t const primary_input_size = 0;
+struct VerifierInput {
+  VerifierInput(int64_t n, std::string const& k, int64_t g_offset)
+      : n(n),
+        k(k),
+        g_offset(g_offset),
+        gadget(SubstrGadget(pb, k)),
+        m((int64_t)pb.num_constraints()),
+        s((int64_t)pb.num_variables()) {
+    int64_t const primary_input_size = 0;
+    pb.set_input_sizes(primary_input_size);
+  }
+  int64_t n;
+  std::string const& k;
+  int64_t const g_offset;
   libsnark::protoboard<Fr> pb;
-  SubstrGadget gadget(pb, k);
-  pb.set_input_sizes(primary_input_size);
-  std::vector<std::vector<Fr>> public_w;  // empty public_w
-  return parallel_r1cs::Verify(proof.hp_proof, seed, n, pb, proof.com_w,
-                               public_w);
+  SubstrGadget gadget;
+  int64_t const m;
+  int64_t const s;
+  // since primary_input_size = 0, public_w is empty
+  std::vector<std::vector<Fr>> public_w;
+};
+
+// NOTE: com_x and com_y can get by proof.com_x() and proof.com_y()
+inline bool Verify(Proof const& proof, h256_t seed,
+                   VerifierInput const& input) {
+  Tick tick(__FUNCTION__);
+  if ((int64_t)proof.com_w.size() != input.s) {
+    assert(false);
+    return false;
+  }
+  
+  if (proof.hp_proof.m() != (int64_t)misc::Pow2UB(input.m)) {
+    assert(false);
+    return false;
+  }
+
+  parallel_r1cs::VerifierInput pr_input(input.n, input.pb, proof.com_w,
+                                        input.public_w, input.g_offset);
+  return parallel_r1cs::Verify(proof.hp_proof, seed, pr_input);
 }
 
 inline bool Test() {
   auto seed = misc::RandH256();
+  int64_t g_offset = 30;
 
   std::vector<std::string> x_str{{"1234567890123456789012345678901", "",
                                   "abcdefg", "34356356", "234qasdfaq44uUU",
@@ -272,12 +329,12 @@ inline bool Test() {
   int64_t n = (int64_t)x_str.size();
   std::vector<Fr> x(n);
   for (int64_t i = 0; i < n; ++i) {
-    x[i] = PackStrToFr(x_str[i]);
+    x[i] = PackStrToFr(x_str[i].c_str());
   }
   std::string k = "343";
   std::vector<Fr> y(x.size());
   int64_t find_count = 0;
-  for (auto i = 0; i < x_str.size(); ++i) {
+  for (size_t i = 0; i < x_str.size(); ++i) {
     bool find = x_str[i].find(k) != std::string::npos;
     if (find) ++find_count;
     y[i] = find ? 1 : 0;
@@ -286,17 +343,22 @@ inline bool Test() {
 
   Tick tick(__FUNCTION__);
   Fr com_x_r = FrRand();
-  G1 com_x = PcComputeCommitment(x, com_x_r);
+  G1 com_x = PcComputeCommitmentG(g_offset,x, com_x_r);
   Fr com_y_r = FrRand();
-  G1 com_y = PcComputeCommitment(y, com_y_r, true);  // y is {0,1}
+  G1 com_y = PcComputeCommitmentG(g_offset,y, com_y_r, true);  // y is {0,1}
 
+  ProverInput prover_input(k, x, com_x, com_x_r, y, com_y, com_y_r, g_offset);
   Proof proof;
-  Prove(proof, seed, x, k, com_x, com_x_r, com_y, com_y_r);
+  Prove(proof, seed, prover_input);
 
   if (proof.com_x() != com_x || proof.com_y() != com_y) {
     assert(false);
     return false;
   }
-  return Verify(proof, seed, n, k);
+
+  VerifierInput verifier_input(n, k, g_offset);
+  bool success = Verify(proof, seed, verifier_input);
+  std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success << "\n";
+  return success;
 }
 }  // namespace pc_utils::substr

@@ -4,7 +4,7 @@
 #include "./equal_ip.h"
 #include "./types.h"
 
-// for vector x and y, open com(x) and com(y), prove overlap
+// for vector x and y, open com(gx, x) and com(gy, y), prove overlap
 
 namespace pc_utils::overlap {
 
@@ -16,7 +16,8 @@ struct OverlapPosition {
 };
 
 inline void UpdateSeed(h256_t& seed, G1 const& c1, G1 const& c2, int64_t xn,
-                       int64_t yn, std::vector<OverlapPosition> const& overlap) {
+                       int64_t yn,
+                       std::vector<OverlapPosition> const& overlap) {
   CryptoPP::Keccak_256 hash;
   HashUpdate(hash, seed);
   HashUpdate(hash, c1);
@@ -30,51 +31,104 @@ inline void UpdateSeed(h256_t& seed, G1 const& c1, G1 const& c2, int64_t xn,
   hash.Final(seed.data());
 }
 
-inline void Prove(Proof& proof, h256_t seed, std::vector<Fr> const& x,
-                  std::vector<Fr> const& y,
-                  std::vector<OverlapPosition> const& overlap, G1 const& com_x,
-                  G1 const& com_y, Fr const& com_x_r, Fr const& com_y_r) {
-  int64_t xn = (int64_t)x.size();
-  int64_t yn = (int64_t)y.size();
+struct ProverInput {
+  ProverInput(std::vector<Fr> const& x, std::vector<Fr> const& y,
+              std::vector<OverlapPosition> const& overlap, G1 const& com_x,
+              G1 const& com_y, Fr const& com_x_r, Fr const& com_y_r,
+              int64_t x_g_offset, int64_t y_g_offset)
+      : x(x),
+        y(y),
+        overlap(overlap),
+        com_x(com_x),
+        com_y(com_y),
+        com_x_r(com_x_r),
+        com_y_r(com_y_r),
+        x_g_offset(x_g_offset),
+        y_g_offset(y_g_offset) {}
+  std::vector<Fr> const& x;
+  std::vector<Fr> const& y;
+  std::vector<OverlapPosition> const& overlap;
+  G1 const& com_x;
+  G1 const& com_y;
+  Fr const& com_x_r;
+  Fr const& com_y_r;
+  int64_t const x_g_offset;
+  int64_t const y_g_offset;
+  int64_t xn() const { return (int64_t)x.size(); }
+  int64_t yn() const { return (int64_t)y.size(); }
+};
 
-  UpdateSeed(seed, com_x, com_y, xn, yn, overlap);
-  std::vector<Fr> c(overlap.size());
+inline void Prove(Proof& proof, h256_t seed, ProverInput const& input) {
+  int64_t xn = input.xn();
+  int64_t yn = input.yn();
+
+  UpdateSeed(seed, input.com_x, input.com_y, xn, yn, input.overlap);
+  std::vector<Fr> c(input.overlap.size());
   ComputeFst(seed, "consistency::overlap::c", c);
 
   std::vector<Fr> a(xn, FrZero());
   std::vector<Fr> b(yn, FrZero());
-  for (auto i = 0; i < overlap.size(); ++i) {
-    auto const& o = overlap[i];
-    assert(x[o.x] == y[o.y]);
+  for (size_t i = 0; i < input.overlap.size(); ++i) {
+    auto const& o = input.overlap[i];
+    assert(input.x[o.x] == input.y[o.y]);
     a[o.x] += c[i];  // NOTE: here is +=
     b[o.y] += c[i];
   }
 
-  Fr z = InnerProduct(x, a);
-  assert(z == InnerProduct(y, b));
-  equal_ip::Prove(proof, seed, x, a, com_x, com_x_r, y, b, com_y, com_y_r, z);
+  Fr z = InnerProduct(input.x, a);
+  assert(z == InnerProduct(input.y, b));
+
+  equal_ip::ProverInput eip_input(input.x, a, input.com_x, input.com_x_r,
+                                  input.x_g_offset, input.y, b, input.com_y,
+                                  input.com_y_r, input.y_g_offset, z);
+  equal_ip::Prove(proof, seed, eip_input);
 }
 
-inline bool Verify(h256_t seed, int64_t xn, G1 const& com_x, int64_t yn,
-                   G1 const& com_y, std::vector<OverlapPosition> const& overlap,
+struct VerifierInput {
+  VerifierInput(int64_t xn, G1 const& com_x, int64_t x_g_offset, int64_t yn,
+                G1 const& com_y, int64_t y_g_offset,
+                std::vector<OverlapPosition> const& overlap)
+      : xn(xn),
+        com_x(com_x),
+        x_g_offset(x_g_offset),
+        yn(yn),
+        com_y(com_y),
+        y_g_offset(y_g_offset),
+        overlap(overlap) {}
+  int64_t const xn;
+  G1 const& com_x;
+  int64_t const x_g_offset;
+  int64_t const yn;
+  G1 const& com_y;
+  int64_t const y_g_offset;
+  std::vector<OverlapPosition> const& overlap;
+};
+
+inline bool Verify(h256_t seed, VerifierInput const& input,
                    Proof const& proof) {
-  UpdateSeed(seed, com_x, com_y, xn, yn, overlap);
-  std::vector<Fr> c(overlap.size());
+  UpdateSeed(seed, input.com_x, input.com_y, input.xn, input.yn, input.overlap);
+  std::vector<Fr> c(input.overlap.size());
   ComputeFst(seed, "consistency::overlap::c", c);
 
-  std::vector<Fr> a(xn, FrZero());
-  std::vector<Fr> b(yn, FrZero());
-  for (auto i = 0; i < overlap.size(); ++i) {
-    auto const& o = overlap[i];
+  std::vector<Fr> a(input.xn, FrZero());
+  std::vector<Fr> b(input.yn, FrZero());
+  for (size_t i = 0; i < input.overlap.size(); ++i) {
+    auto const& o = input.overlap[i];
     a[o.x] += c[i];  // NOTE: here is +=
     b[o.y] += c[i];
   }
 
-  return equal_ip::Verify(seed, a, com_x, b, com_y, proof);
+  equal_ip::VerifierInput eip_input(a, input.com_x, input.x_g_offset, b,
+                                    input.com_y, input.y_g_offset);
+  return equal_ip::Verify(seed, proof, eip_input);
 }
 
 inline bool Test() {
   auto seed = misc::RandH256();
+
+  int64_t x_g_offset = 20;
+  int64_t y_g_offset = 40;
+
   std::vector<Fr> x(10);
   FrRand(x);
   std::vector<Fr> y(7);
@@ -99,19 +153,22 @@ inline bool Test() {
   overlap[4].y = 4;
 
   Fr com_x_r = FrRand();
-  G1 com_x = PcComputeCommitment(x, com_x_r);
+  G1 com_x = PcComputeCommitmentG(x_g_offset, x, com_x_r);
   Fr com_y_r = FrRand();
-  G1 com_y = PcComputeCommitment(y, com_y_r);
+  G1 com_y = PcComputeCommitmentG(y_g_offset, y, com_y_r);
+
+  ProverInput prover_input(x, y, overlap, com_x, com_y, com_x_r, com_y_r,
+                           x_g_offset, y_g_offset);
 
   Proof proof;
-  Prove(proof, seed, x, y, overlap, com_x, com_y, com_x_r, com_y_r);
+  Prove(proof, seed, prover_input);
 
   auto xn = (int64_t)x.size();
   auto yn = (int64_t)y.size();
-  if (!Verify(seed, xn, com_x, yn, com_y, overlap, proof)) {
-    assert(false);
-    return false;
-  }
-  return true;
+  VerifierInput verifier_input(xn, com_x, x_g_offset, yn, com_y, y_g_offset,
+                               overlap);
+  bool success = Verify(seed, verifier_input, proof);
+  std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success << "\n";
+  return success;
 }
 }  // namespace pc_utils::overlap

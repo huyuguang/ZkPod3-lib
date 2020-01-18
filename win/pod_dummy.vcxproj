@@ -38,11 +38,11 @@
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="props\vcpkg.staticrt.64.debug.props" />
+    <Import Project="props\vcpkg.64.debug.props" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="props\vcpkg.staticrt.64.release.props" />
+    <Import Project="props\vcpkg.64.release.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -61,11 +61,11 @@
       <WarningLevel>Level4</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_WIN32_WINNT=0x0600;_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>USE_TBB;_WIN32_WINNT=0x0600;_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>$(SolutionDir)/../thirdparty/csv;$(SolutionDir)/../thirdparty/yas/include;$(SolutionDir)/../thirdparty;$(SolutionDir)/../public</AdditionalIncludeDirectories>
-      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <AdditionalOptions>/utf-8 /Zc:twoPhase- %(AdditionalOptions)</AdditionalOptions>
       <OpenMPSupport>false</OpenMPSupport>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -74,7 +74,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>cryptopp-static.lib;boost_program_options-vc140-mt-gd.lib;boost_system-vc140-mt-gd.lib;boost_filesystem-vc140-mt-gd.lib;boost_iostreams-vc140-mt-gd.lib;boost_thread-vc140-mt-gd.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)\..\depends\libsnark\msvc\lib\$(Platform)\$(Configuration)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
@@ -90,7 +90,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>$(SolutionDir)/../thirdparty/csv;$(SolutionDir)/../thirdparty/yas/include;$(SolutionDir)/../thirdparty;$(SolutionDir)/../public</AdditionalIncludeDirectories>
-      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <AdditionalOptions>/utf-8 /Zc:twoPhase- %(AdditionalOptions)</AdditionalOptions>
       <OpenMPSupport>false</OpenMPSupport>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -101,7 +101,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>cryptopp-static.lib;boost_program_options-vc140-mt.lib;boost_system-vc140-mt.lib;boost_filesystem-vc140-mt.lib;boost_iostreams-vc140-mt.lib;boost_thread-vc140-mt.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)\..\depends\libsnark\msvc\lib\$(Platform)\$(Configuration)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
@@ -128,6 +128,11 @@
     <ClInclude Include="..\public\bp\p2.h" />
     <ClInclude Include="..\public\bp\test.h" />
     <ClInclude Include="..\public\bp\types.h" />
+    <ClInclude Include="..\public\cmd\cmd.h" />
+    <ClInclude Include="..\public\cmd\details.h" />
+    <ClInclude Include="..\public\cmd\match_query.h" />
+    <ClInclude Include="..\public\cmd\substr_query.h" />
+    <ClInclude Include="..\public\cmd\test.h" />
     <ClInclude Include="..\public\ecc\ecc.h" />
     <ClInclude Include="..\public\ecc\ecc_pub.h" />
     <ClInclude Include="..\public\ecc\funcs.h" />
@@ -137,11 +142,16 @@
     <ClInclude Include="..\public\ecc\types.h" />
     <ClInclude Include="..\public\groth09\details.h" />
     <ClInclude Include="..\public\groth09\groth09.h" />
-    <ClInclude Include="..\public\groth09\sec43.h" />
-    <ClInclude Include="..\public\groth09\sec51.h" />
-    <ClInclude Include="..\public\groth09\sec52.h" />
-    <ClInclude Include="..\public\groth09\sec53.h" />
-    <ClInclude Include="..\public\groth09\serialize.h" />
+    <ClInclude Include="..\public\groth09\sec43b.h" />
+    <ClInclude Include="..\public\groth09\sec43c.h" />
+    <ClInclude Include="..\public\groth09\sec51a.h" />
+    <ClInclude Include="..\public\groth09\sec51b.h" />
+    <ClInclude Include="..\public\groth09\sec51c.h" />
+    <ClInclude Include="..\public\groth09\sec52a.h" />
+    <ClInclude Include="..\public\groth09\sec52b.h" />
+    <ClInclude Include="..\public\groth09\sec53a.h" />
+    <ClInclude Include="..\public\groth09\sec53b.h" />
+    <ClInclude Include="..\public\groth09\sec53c.h" />
     <ClInclude Include="..\public\groth09\test.h" />
     <ClInclude Include="..\public\hyrax\a1.h" />
     <ClInclude Include="..\public\hyrax\a2.h" />
@@ -149,6 +159,7 @@
     <ClInclude Include="..\public\hyrax\details.h" />
     <ClInclude Include="..\public\hyrax\hyrax.h" />
     <ClInclude Include="..\public\hyrax\serialize.h" />
+    <ClInclude Include="..\public\hyrax\test.h" />
     <ClInclude Include="..\public\log\log.h" />
     <ClInclude Include="..\public\misc\funcs.h" />
     <ClInclude Include="..\public\misc\func_alias.h" />
@@ -160,9 +171,21 @@
     <ClInclude Include="..\public\misc\tick.h" />
     <ClInclude Include="..\public\misc\types.h" />
     <ClInclude Include="..\public\misc\vectorop.h" />
-    <ClInclude Include="..\public\parallel\funcs.h" />
     <ClInclude Include="..\public\parallel\parallel.h" />
-    <ClInclude Include="..\public\parallel\recursive_taskpool.h" />
+    <ClInclude Include="..\public\pc_utils\details.h" />
+    <ClInclude Include="..\public\pc_utils\divide.h" />
+    <ClInclude Include="..\public\pc_utils\equal_ip.h" />
+    <ClInclude Include="..\public\pc_utils\match.h" />
+    <ClInclude Include="..\public\pc_utils\matchpack.h" />
+    <ClInclude Include="..\public\pc_utils\matrix.h" />
+    <ClInclude Include="..\public\pc_utils\overlap.h" />
+    <ClInclude Include="..\public\pc_utils\pack.h" />
+    <ClInclude Include="..\public\pc_utils\parallel_r1cs.h" />
+    <ClInclude Include="..\public\pc_utils\pc_utils.h" />
+    <ClInclude Include="..\public\pc_utils\substr.h" />
+    <ClInclude Include="..\public\pc_utils\substrpack.h" />
+    <ClInclude Include="..\public\pc_utils\test.h" />
+    <ClInclude Include="..\public\pc_utils\types.h" />
     <ClInclude Include="..\public\public.h" />
     <ClInclude Include="..\public\scheme\bulletin_plain.h" />
     <ClInclude Include="..\public\scheme\bulletin_table.h" />
@@ -179,12 +202,14 @@
     <ClInclude Include="..\public\vrf\vrf.h" />
     <ClInclude Include="..\public\vrs\cache.h" />
     <ClInclude Include="..\public\vrs\large.h" />
-    <ClInclude Include="..\public\vrs\mimc.h" />
+    <ClInclude Include="..\public\vrs\mimc5.h" />
     <ClInclude Include="..\public\vrs\mimc5_gadget.h" />
     <ClInclude Include="..\public\vrs\misc.h" />
     <ClInclude Include="..\public\vrs\notary.h" />
     <ClInclude Include="..\public\vrs\prover.h" />
     <ClInclude Include="..\public\vrs\serialize.h" />
+    <ClInclude Include="..\public\vrs\sha256c.h" />
+    <ClInclude Include="..\public\vrs\sha256c_gadget.h" />
     <ClInclude Include="..\public\vrs\test.h" />
     <ClInclude Include="..\public\vrs\types.h" />
     <ClInclude Include="..\public\vrs\verifier.h" />

@@ -6,17 +6,15 @@
 #include <iostream>
 
 #include "ecc/ecc.h"
-#include "groth09/groth09.h"
 #include "groth09/test.h"
-#include "hyrax/hyrax.h"
+#include "hyrax/test.h"
 #include "log/tick.h"
 #include "misc/misc.h"
 #include "pc_utils/test.h"
 #include "pod/test.h"
 #include "public.h"
 #include "vrs/test.h"
-#include "cmd/cmd.h"
-
+#include "cmd/test.h"
 
 int main(int argc, char** argv) {
   (void)argc;
@@ -28,14 +26,11 @@ int main(int argc, char** argv) {
   int thread_num = 0;
 #endif
 
-#ifdef USE_TBB
   int tbb_thread_num =
       thread_num ? (int)thread_num : tbb::task_scheduler_init::automatic;
   tbb::task_scheduler_init init(tbb_thread_num);
-  std::cout << "use tbb, thread_num " << tbb_thread_num << "\n";
-#else
-  setenv("options:thread_num", std::to_string(thread_num).c_str(), true);
-#endif
+
+  parallel::CheckAllocationHook();
 
   InitEcc();
 
@@ -50,16 +45,12 @@ int main(int argc, char** argv) {
     return -1;
   }
 
-  // TestMultiexp();
-
-  // groth09::Test();
-  // vrs::Test();
-  // vrs::TestLarge();
-  // vrs::TestCache();
-  // hyrax::a1::TestRom();
-  // pod::Test();
+  //hyrax::Test();
+  //groth09::Test();
+  //vrs::Test();
+  
+  //pod::Test();
   //pc_utils::Test();
-  //cmd::substr_query::Test();
-  cmd::match_query::Test();
+  cmd::Test();
   return 0;
 }

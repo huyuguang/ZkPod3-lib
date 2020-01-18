@@ -48,10 +48,10 @@ P2Proof P2Prove(P1Committment const& p1_committment, GET_G const& get_g,
     // L = MultiExpGH(&g[nn], &a[0], &h[0], &b[nn], nn);
     // R = MultiExpGH(&g[0], &a[nn], &h[nn], &b[0], nn);
     std::array<parallel::Task, 2> tasks;
-    tasks[0] = [&L, &g, &a, &h, &b, nn]() mutable {
+    tasks[0] = [&L, &g, &a, &h, &b, nn]() {
       L = MultiExpGH(&g[nn], &a[0], &h[0], &b[nn], nn);
     };
-    tasks[1] = [&R, &g, &a, &h, &b, nn]() mutable {
+    tasks[1] = [&R, &g, &a, &h, &b, nn]() {
       R = MultiExpGH(&g[0], &a[nn], &h[nn], &b[0], nn);
     };
     parallel::Invoke(tasks);
@@ -65,14 +65,14 @@ P2Proof P2Prove(P1Committment const& p1_committment, GET_G const& get_g,
 
     std::vector<G1> gg;
     gg.resize(nn);
-    auto parallel_f = [&x_inverse, &gg, &g, &x, nn](int64_t i) mutable {
+    auto parallel_f = [&x_inverse, &gg, &g, &x, nn](int64_t i) {
       gg[i] = MultiExp(g[i], x_inverse, g[nn + i], x);
     };
     parallel::For((int64_t)nn, parallel_f);
 
     std::vector<G1> hh;
     hh.resize(nn);
-    auto parallel_f2 = [&x_inverse, &hh, &h, &x, nn](int64_t i) mutable {
+    auto parallel_f2 = [&x_inverse, &hh, &h, &x, nn](int64_t i) {
       hh[i] = MultiExp(h[i], x, h[nn + i], x_inverse);
     };
     parallel::For((int64_t)nn, parallel_f2);
@@ -81,14 +81,14 @@ P2Proof P2Prove(P1Committment const& p1_committment, GET_G const& get_g,
 
     std::vector<Fr> aa;
     aa.resize(nn);
-    auto parallel_f3 = [&aa, &a, &x_inverse, &x, nn](int64_t i) mutable {
+    auto parallel_f3 = [&aa, &a, &x_inverse, &x, nn](int64_t i) {
       aa[i] = a[i] * x + a[nn + i] * x_inverse;
     };
     parallel::For((int64_t)nn, parallel_f3);
 
     std::vector<Fr> bb;
     bb.resize(nn);
-    auto parallel_f4 = [&bb, &b, &x_inverse, &x, nn](int64_t i) mutable {
+    auto parallel_f4 = [&bb, &b, &x_inverse, &x, nn](int64_t i) {
       bb[i] = b[i] * x_inverse + b[nn + i] * x;
     };
     parallel::For((int64_t)nn, parallel_f4);
@@ -156,7 +156,7 @@ bool P2Verify(P1Committment const& p1_committment, GET_G const& get_g,
   ss_inverse.resize(g_count);
 
   auto parallel_f = [&ss, x_count, &get_b, &x, &x_inverse,
-                     &ss_inverse](int64_t i) mutable {
+                     &ss_inverse](int64_t i) {
     ss[i] = FrOne();
     for (size_t j = 0; j < x_count; ++j) {
       auto b = get_b(i, j);
@@ -170,10 +170,10 @@ bool P2Verify(P1Committment const& p1_committment, GET_G const& get_g,
   G1 last_g, last_h;
 
   std::array<parallel::Task, 2> tasks;
-  tasks[0] = [&last_g, &g, &ss, g_count]() mutable {
+  tasks[0] = [&last_g, &g, &ss, g_count]() {
     last_g = MultiExpBdlo12(&g[0], &ss[0], g_count);
   };
-  tasks[1] = [&last_h, &h, &ss_inverse, g_count]() mutable {
+  tasks[1] = [&last_h, &h, &ss_inverse, g_count]() {
     last_h = MultiExpBdlo12(&h[0], &ss_inverse[0], g_count);
   };
   parallel::Invoke(tasks);

@@ -32,6 +32,7 @@ class PcBase : boost::noncopyable {
     BuildSigmaG();
   }
 
+  G1 const& u() const& { return u_; }
   G1 const& h() const& { return h_; }
   std::array<G1, kGSize> const& g() const { return g_; }
 
@@ -45,41 +46,59 @@ class PcBase : boost::noncopyable {
     }
   }
 
-  G1 ComputeSigmaG(uint64_t count) const {
-    if (count > kGSize) throw std::runtime_error("bad count");
-    G1 ret;
-    auto index = count / kSigmaGInterval;
-    if (index == 0) {
-      ret = std::accumulate(g_.data() + index * kSigmaGInterval,
-                            g_.data() + count, G1Zero());
-    } else {
-      ret = sigma_g_[index - 1] +
-            std::accumulate(g_.data() + index * kSigmaGInterval,
-                            g_.data() + count, G1Zero());
+  G1 ComputeSigmaG(int64_t offset, uint64_t count) const {
+    if (offset < 0 || offset >= kGSize || (offset + count) > kGSize) {
+      throw std::invalid_argument(std::to_string(offset) + "," +
+                                  std::to_string(count));
     }
-    assert(ret == std::accumulate(g_.data(), g_.data() + count, G1Zero()));
+    int64_t index1 = (offset + kSigmaGInterval - 1) / kSigmaGInterval;
+    int64_t index2 = (offset + count) / kSigmaGInterval;
+    G1 ret = std::accumulate(sigma_g_.begin() + index1,
+                             sigma_g_.begin() + index2, G1Zero());
+    ret = std::accumulate(g_.begin() + index2 * kSigmaGInterval,
+                          g_.begin() + offset + count, ret);
+    ret = std::accumulate(g_.begin() + offset,
+                          g_.begin() + index1 * kSigmaGInterval, ret);
+
+    assert(ret == std::accumulate(g_.begin() + offset,
+                                  g_.begin() + offset + count, G1Zero()));
     return ret;
   }
 
   typedef std::function<Fr const&(int64_t i)> GetX;
-  G1 ComputeCommitment(int64_t n, GetX const& x, Fr const& r,
-                       bool check_01) const {
+  G1 ComputeCommitmentG(int64_t g_offset, int64_t n, GetX const& x, Fr const& r,
+                        bool check_01) const {
+    assert(g_offset >= 0);
     assert(kGSize >= n);
-    auto get_g = [this](int64_t i) -> G1 const& { return i ? g_[i - 1] : h_; };
+    auto get_g = [this, g_offset](int64_t i) -> G1 const& {
+      return i ? g_[g_offset + i - 1] : h_;
+    };
     auto get_f = [&x, &r](int64_t i) -> Fr const& { return i ? x(i - 1) : r; };
     return MultiExpBdlo12<G1>(get_g, get_f, n + 1, check_01);
   }
 
-  G1 ComputeCommitment(std::vector<Fr> const& x, Fr const& r,
-                       bool check_01) const {
-    assert(kGSize >= (int64_t)x.size());
-    auto get_g = [this](int64_t i) -> G1 const& { return i ? g_[i - 1] : h_; };
+  G1 ComputeCommitmentG(int64_t g_offset, std::vector<Fr> const& x, Fr const& r,
+                        bool check_01) const {
+    assert(g_offset >= 0);
+    assert(kGSize >= g_offset + (int64_t)x.size());
+    auto get_g = [this, g_offset](int64_t i) -> G1 const& {
+      return i ? g_[g_offset + i - 1] : h_;
+    };
     auto get_f = [&x, &r](int64_t i) -> Fr const& { return i ? x[i - 1] : r; };
     return MultiExpBdlo12<G1>(get_g, get_f, x.size() + 1, check_01);
   }
 
-  G1 ComputeCommitment(Fr const& x, Fr const& r) const {
-    return h_ * r + g_[0] * x;
+  G1 ComputeCommitmentG(int64_t g_offset, Fr const& x, Fr const& r) const {
+    if (g_offset == -1) return h_ * r + u_ * x;
+    assert(g_offset >= 0 && g_offset < kGSize);
+    return h_ * r + g_[g_offset] * x;
+  }
+  
+  std::vector<G1> CopyG(size_t offset, size_t count) const {
+    assert(offset + count <= kGSize);
+    auto begin = g_.begin() + offset;
+    auto end = begin + count;
+    return std::vector<G1>(begin, end);
   }
 
  private:
@@ -92,8 +111,10 @@ class PcBase : boost::noncopyable {
     Tick tick(__FUNCTION__);
 
     GenerateG1(0xffffffff, &h_);
+    
+    GenerateG1(0xfffffffe, &u_);
 
-    auto parallel_f = [this](int64_t i) mutable { GenerateG1(i, &g_[i]); };
+    auto parallel_f = [this](int64_t i) { GenerateG1(i, &g_[i]); };
     parallel::For(kGSize, parallel_f);
   }
 
@@ -116,6 +137,10 @@ class PcBase : boost::noncopyable {
       throw std::runtime_error("Write pedersen_base failed");
     }
 
+    if (!WriteG1(f, u_)) {
+      throw std::runtime_error("Write pedersen_base failed");
+    }
+
     for (auto& i : g_) {
       if (!WriteG1(f, i)) {
         throw std::runtime_error("Write pedersen_base failed");
@@ -132,9 +157,12 @@ class PcBase : boost::noncopyable {
 
     Header header;
     if (!ReadHeader(f, header)) throw std::runtime_error("Read header failed");
+    
     if (header.g_size != kGSize) throw std::runtime_error("Invalid data");
 
     if (!ReadG1(f, h_)) throw std::runtime_error("Read pedersen_base failed");
+    
+    if (!ReadG1(f, u_)) throw std::runtime_error("Read pedersen_base failed");
 
     for (auto& i : g_) {
       if (!ReadG1(f, i)) throw std::runtime_error("Read pedersen_base failed");
@@ -145,14 +173,13 @@ class PcBase : boost::noncopyable {
     static_assert(kGSize % kSigmaGInterval == 0 && kGSize >= kSigmaGInterval,
                   "");
     sigma_g_.resize(kGSize / kSigmaGInterval);
-    auto begin = g_.data();
-    auto end = begin + kSigmaGInterval;
-    sigma_g_[0] = std::accumulate(begin, end, G1Zero());
-    for (size_t i = 1; i < sigma_g_.size(); ++i) {
-      begin += kSigmaGInterval;
-      end += kSigmaGInterval;
-      sigma_g_[i] = std::accumulate(begin, end, sigma_g_[i - 1]);
-    }
+    
+    auto parallel_f = [this](int64_t i) {
+      auto begin = g_.data() + i * kSigmaGInterval;
+      auto end = begin + kSigmaGInterval;
+      sigma_g_[i] = std::accumulate(begin, end, G1Zero());
+    };
+    parallel::For(sigma_g_.size(), parallel_f);
   }
 
   enum {
@@ -208,7 +235,7 @@ class PcBase : boost::noncopyable {
  private:
   static inline size_t const kSigmaGInterval = 32;
   static_assert(kGSize % kSigmaGInterval == 0 && kGSize >= kSigmaGInterval, "");
-
+  G1 u_;
   G1 h_;
   std::array<G1, kGSize> g_;
   std::vector<G1> sigma_g_;
@@ -259,38 +286,43 @@ inline bool OpenOrCreatePdsPub(std::string const& file) {
   }
 }
 
-inline G1 PcComputeSigmaG(uint64_t count) {
+inline G1 PcComputeSigmaG(int64_t offset, uint64_t count) {
   auto const& base = GetPcBase();
-  return base.ComputeSigmaG(count);
+  return base.ComputeSigmaG(offset, count);
 }
 
-inline G1 PcComputeCommitment(int64_t n, PcBase::GetX const& x, Fr const& r,
+inline G1 PcComputeCommitmentG(int64_t g_offset, int64_t n,
+                               PcBase::GetX const& x, Fr const& r,
                                bool check_01 = false) {
   auto const& base = GetPcBase();
-  return base.ComputeCommitment(n, x, r, check_01);
+  return base.ComputeCommitmentG(g_offset, n, x, r, check_01);
 }
 
-inline G1 PcComputeCommitment(int64_t n, Fr const* x, Fr const& r,
-                               bool check_01 = false) {
+inline G1 PcComputeCommitmentG(int64_t g_offset, int64_t n, Fr const* x,
+                               Fr const& r, bool check_01 = false) {
   auto const& base = GetPcBase();
   auto get_x = [x](int64_t i) -> Fr const& { return x[i]; };
-  return base.ComputeCommitment(n, get_x, r, check_01);
+  return base.ComputeCommitmentG(g_offset, n, get_x, r, check_01);
 }
 
-inline G1 PcComputeCommitment(std::vector<Fr> const& x, Fr const& r,
-                               bool check_01 = false) {
+inline G1 PcComputeCommitmentG(int64_t g_offset, std::vector<Fr> const& x,
+                               Fr const& r, bool check_01 = false) {
   auto const& base = GetPcBase();
-  return base.ComputeCommitment(x, r, check_01);
+  return base.ComputeCommitmentG(g_offset, x, r, check_01);
 }
 
-inline G1 PcComputeCommitment(Fr const& x, Fr const& r) {
+inline G1 PcComputeCommitmentG(int64_t g_offset, Fr const& x, Fr const& r) {
   auto const& base = GetPcBase();
-  return base.ComputeCommitment(x, r);
+  return base.ComputeCommitmentG(g_offset, x, r);
 }
 
-inline G1 const& PcG(int64_t i = 0) {
+inline G1 const& PcG(int64_t i) {
   auto const& base = GetPcBase();
-  return base.g()[i];
+  if (i == -1) {
+    return base.u();
+  } else {
+    return base.g()[i];
+  }
 }
 
 inline G1 const& PcH() {
@@ -298,7 +330,7 @@ inline G1 const& PcH() {
   return base.h();
 }
 
-inline G1 const& PcU(int64_t i) {
+inline G1 const& PcHG(int64_t i) {
   if (i == 0) return PcH();
   return PcG(i - 1);
 }

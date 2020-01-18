@@ -441,14 +441,19 @@ inline std::string UnPackStrFromFr(Fr const& fr) {
 }
 
 // ex: if s = "ab", return 25185, BinToFr32 use little endian
-inline Fr PackStrToFr(std::string const& s) {
-  assert(s.size() <= 31);
-  size_t copy_len = std::min<size_t>(s.size(), 31);
+// NOTE: we do not allow the '\0' in s.
+inline Fr PackStrToFr(char const* s) {
+  auto size = strlen(s);
+  assert(size <= 31);
+  size_t copy_len = std::min<size_t>(size, 31);
   uint8_t buf[32];
-  memcpy(buf, s.data(), copy_len);
+  memcpy(buf, s, copy_len);
   memset(buf + copy_len, 0, sizeof(buf) - copy_len);
   Fr ret = BinToFr32(buf);
-  assert(UnPackStrFromFr(ret) == s);
+#ifdef _DEBUG
+  auto check_s = UnPackStrFromFr(ret);
+  assert(check_s == s);
+#endif
   return ret;
 }
 
@@ -481,7 +486,7 @@ inline Fr FrBitsToFr(Fr const* p, size_t size) {
 
 inline std::vector<Fr> FrBitsToFrs(Fr const* p, size_t size) {
   std::vector<Fr> ret((size + 252) / 253);
-  for (auto i = 0; i < ret.size(); ++i) {
+  for (size_t i = 0; i < ret.size(); ++i) {
     ret[i] = FrBitsToFr(p, std::min<size_t>(size, 253));
     p += 253;
     size -= 253;
@@ -532,7 +537,7 @@ inline std::vector<Fr> FrsToFrBits(std::vector<Fr> const& f) {
 inline boost::dynamic_bitset<uint8_t> FrsToBitset(Fr const* f, size_t size) {
   boost::dynamic_bitset<uint8_t> ret;
   ret.resize(size * 253);
-  for (auto i = 0; i < size; ++i) {
+  for (size_t i = 0; i < size; ++i) {
     h256_t h = FrToBin(f[i]);
     boost::dynamic_bitset<uint8_t> b(h.begin(), h.end());
     for (auto j = 0; j < 253; ++j) {

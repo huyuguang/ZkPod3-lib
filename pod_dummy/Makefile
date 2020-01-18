@@ -4,6 +4,8 @@ CXX11_HOME = /usr
 
 HOME = ../linux
 THIRD_PARTY_HOME = ../thirdparty
+YAS_HOME = ../thirdparty/yas/include
+CSV_HOME = ../thirdparty/csv
 PUB_HOME = ../public
 SNARK_HOME = ../depends/libsnark
 FF_HOME = $(SNARK_HOME)/depends/libff
@@ -26,6 +28,8 @@ CXXFLAGS := \
  -isystem $(SNARK_HOME) \
  -isystem $(MCL_HOME) \
  -isystem $(FF_HOME) \
+ -isystem $(YAS_HOME) \
+ -isystem $(CSV_HOME) \
  -isystem $(THIRD_PARTY_HOME) \
  -I $(PUB_HOME) \
  -I. \
@@ -68,6 +72,8 @@ LIBS := \
  -lboost_system \
  -lboost_iostreams \
  -lboost_program_options \
+ -ltbbmalloc_proxy \
+ -ltbbmalloc \
 
 ifdef USE_TBB
 LIBS += -ltbb
@@ -79,13 +85,13 @@ BUILDPUB := ./build/public
 
 $(shell mkdir -p $(HOME)/bin)
 $(shell mkdir -p $(BUILD))
-$(shell mkdir -p $(BUILDPUB))
+$(shell mkdir -p $(BUILDPUB)/ecc)
 
 DIR := . 
 
 SRC := $(foreach d, $(DIR), $(wildcard $(d)/*.cc))
 
-SRC += ../public/ecc.cc
+SRC += ../public/ecc/ecc.cc
 
 RELEASE_OBJ := $(patsubst %.cc, %.o, $(SRC))
 

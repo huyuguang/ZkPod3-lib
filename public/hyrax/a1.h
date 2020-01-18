@@ -3,20 +3,23 @@
 #include "./details.h"
 
 // x, y, z: secret Fr
-// open: com(x), com(y), com(z)
+// open: com(gx,x), com(gy,y), com(gx,z), gx can equal gy
 // prove: z = x*y
 // proof size: 3 G1 and 5 Fr
 // prove cost: 6 eccmul
 // verify cost: 6 eccmul
 namespace hyrax::a1 {
 struct ProverInput {
-  ProverInput(Fr const& x, Fr const& y, Fr const& z) : x(x), y(y), z(z) {
+  ProverInput(Fr const& x, Fr const& y, Fr const& z, int64_t x_g_offset,
+              int64_t y_g_offset)
+      : x(x), y(y), z(z), x_g_offset(x_g_offset), y_g_offset(y_g_offset) {
     assert(z == x * y);
   }
-  ProverInput(Fr const& x, Fr const& y) : x(x), y(y) { z = x * y; }
-  Fr x;
-  Fr y;
-  Fr z;
+  Fr const x;
+  Fr const y;
+  Fr const z;
+  int64_t const x_g_offset;
+  int64_t const y_g_offset;
 };
 
 struct CommitmentPub {
@@ -95,35 +98,40 @@ inline bool operator!=(RomProof const& left, RomProof const& right) {
 }
 
 struct VerifierInput {
-  VerifierInput(CommitmentPub const& com_pub) : com_pub(com_pub) {}
+  VerifierInput(CommitmentPub const& com_pub, int64_t x_g_offset,
+                int64_t y_g_offset)
+      : com_pub(com_pub), x_g_offset(x_g_offset), y_g_offset(y_g_offset) {}
   CommitmentPub const& com_pub;
+  int64_t const x_g_offset;
+  int64_t const y_g_offset;
 };
 
 inline bool VerifyInternal(VerifierInput const& input, Fr const& c,
                            CommitmentExtPub const& com_ext_pub,
                            Proof const& proof) {
   // Tick tick(__FUNCTION__);
-  auto const& g = PcG();
+  auto const& gx = PcG(input.x_g_offset);
+  auto const& gy = PcG(input.y_g_offset);
   auto const& h = PcH();
   auto const& com_pub = input.com_pub;
 
   std::array<parallel::Task, 3> tasks;
   bool ret0 = false;
-  tasks[0] = [&ret0, &com_pub, &com_ext_pub, &c, &proof, &g, &h]() {
+  tasks[0] = [&ret0, &com_pub, &com_ext_pub, &c, &proof, &gx, &h]() {
     G1 left = com_ext_pub.alpha + com_pub.x * c;
-    G1 right = g * proof.z1 + h * proof.z2;
+    G1 right = gx * proof.z1 + h * proof.z2;
     ret0 = left == right;
   };
 
   bool ret1 = false;
-  tasks[1] = [&ret1, &com_pub, &com_ext_pub, &c, &proof, &g, &h]() {
+  tasks[1] = [&ret1, &com_pub, &com_ext_pub, &c, &proof, &gy, &h]() {
     G1 left = com_ext_pub.beta + com_pub.y * c;
-    G1 right = g * proof.z3 + h * proof.z4;
+    G1 right = gy * proof.z3 + h * proof.z4;
     ret1 = left == right;
   };
 
   bool ret2 = false;
-  tasks[2] = [&ret2, &com_pub, &com_ext_pub, &c, &proof, &g, &h]() {
+  tasks[2] = [&ret2, &com_pub, &com_ext_pub, &c, &proof, &h]() {
     G1 left = com_ext_pub.delta + com_pub.z * c;
     G1 right = com_pub.x * proof.z3 + h * proof.z5;
     ret2 = left == right;
@@ -138,7 +146,9 @@ inline bool VerifyInternal(VerifierInput const& input, Fr const& c,
 inline void ComputeCom(CommitmentPub& com_pub, CommitmentSec& com_sec,
                        ProverInput const& input) {
   // Tick tick(__FUNCTION__);
-  auto const& g = PcG();
+  auto const& gx = PcG(input.x_g_offset);
+  auto const& gy = PcG(input.y_g_offset);
+  auto const& gz = gx;
   auto const& h = PcH();
 
   com_sec.r_x = FrRand();
@@ -146,14 +156,14 @@ inline void ComputeCom(CommitmentPub& com_pub, CommitmentSec& com_sec,
   com_sec.r_z = FrRand();
 
   std::array<parallel::Task, 3> tasks;
-  tasks[0] = [&com_pub, &input, &com_sec, &g, &h]() {
-    com_pub.x = g * input.x + h * com_sec.r_x;
+  tasks[0] = [&com_pub, &input, &com_sec, &gx, &h]() {
+    com_pub.x = gx * input.x + h * com_sec.r_x;
   };
-  tasks[1] = [&com_pub, &input, &com_sec, &g, &h]() {
-    com_pub.y = g * input.y + h * com_sec.r_y;
+  tasks[1] = [&com_pub, &input, &com_sec, &gy, &h]() {
+    com_pub.y = gy * input.y + h * com_sec.r_y;
   };
-  tasks[2] = [&com_pub, &input, &com_sec, &g, &h]() {
-    com_pub.z = g * input.z + h * com_sec.r_z;
+  tasks[2] = [&com_pub, &input, &com_sec, &gz, &h]() {
+    com_pub.z = gz * input.z + h * com_sec.r_z;
   };
 
   parallel::Invoke(tasks, true);
@@ -161,9 +171,11 @@ inline void ComputeCom(CommitmentPub& com_pub, CommitmentSec& com_sec,
 
 inline void ComputeCommitmentExt(CommitmentExtPub& com_ext_pub,
                                  CommitmentExtSec& com_ext_sec,
+                                 ProverInput const& input,
                                  CommitmentPub const& com_pub) {
   // Tick tick(__FUNCTION__);
-  auto const& g = PcG();
+  auto const& gx = PcG(input.x_g_offset);
+  auto const& gy = PcG(input.y_g_offset);
   auto const& h = PcH();
 
   com_ext_sec.b1 = FrRand();
@@ -173,11 +185,11 @@ inline void ComputeCommitmentExt(CommitmentExtPub& com_ext_pub,
   com_ext_sec.b5 = FrRand();
 
   std::array<parallel::Task, 3> tasks;
-  tasks[0] = [&com_ext_pub, &com_ext_sec, &g, &h]() {
-    com_ext_pub.alpha = g * com_ext_sec.b1 + h * com_ext_sec.b2;
+  tasks[0] = [&com_ext_pub, &com_ext_sec, &gx, &h]() {
+    com_ext_pub.alpha = gx * com_ext_sec.b1 + h * com_ext_sec.b2;
   };
-  tasks[1] = [&com_ext_pub, &com_ext_sec, &g, &h]() {
-    com_ext_pub.beta = g * com_ext_sec.b3 + h * com_ext_sec.b4;
+  tasks[1] = [&com_ext_pub, &com_ext_sec, &gy, &h]() {
+    com_ext_pub.beta = gy * com_ext_sec.b3 + h * com_ext_sec.b4;
   };
   tasks[2] = [&com_ext_pub, &com_pub, &com_ext_sec, &h]() {
     com_ext_pub.delta = com_pub.x * com_ext_sec.b3 + h * com_ext_sec.b5;
@@ -214,7 +226,7 @@ inline void RomProve(RomProof& rom_proof, h256_t const& common_seed,
   // Tick tick(__FUNCTION__);
 
   CommitmentExtSec com_ext_sec;
-  ComputeCommitmentExt(rom_proof.com_ext_pub, com_ext_sec, com_pub);
+  ComputeCommitmentExt(rom_proof.com_ext_pub, com_ext_sec, input, com_pub);
 
   auto seed = common_seed;
   UpdateSeed(seed, com_pub, rom_proof.com_ext_pub);
@@ -236,7 +248,12 @@ inline bool RomVerify(RomProof const& rom_proof, h256_t const& common_seed,
 inline bool TestRom() {
   h256_t UpdateSeed = misc::RandH256();
 
-  ProverInput prover_input(FrRand(), FrRand());
+  int64_t x_g_offset = 1;
+  int64_t y_g_offset = 10;
+  Fr x = FrRand();
+  Fr y = FrRand();
+  Fr z = x * y;
+  ProverInput prover_input(x, y, z, x_g_offset, y_g_offset);
 
   CommitmentPub com_pub;
   CommitmentSec com_sec;
@@ -245,7 +262,9 @@ inline bool TestRom() {
   RomProof rom_proof;
   RomProve(rom_proof, UpdateSeed, prover_input, com_pub, com_sec);
 
-  VerifierInput verifier_input(com_pub);
-  return RomVerify(rom_proof, UpdateSeed, verifier_input);
+  VerifierInput verifier_input(com_pub, x_g_offset, y_g_offset);
+  bool success = RomVerify(rom_proof, UpdateSeed, verifier_input);
+  std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success << "\n";
+  return success;
 }
 }  // namespace hyrax::a1

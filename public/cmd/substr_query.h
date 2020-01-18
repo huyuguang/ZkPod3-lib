@@ -38,7 +38,7 @@ struct ProveOutput {
     Proof ret;
     ret.pod_proved_data = pod_output.proved_data;
     ret.sp_proofs.resize(sp_outputs.size());
-    for (auto i = 0; i < sp_outputs.size(); ++i) {
+    for (size_t i = 0; i < sp_outputs.size(); ++i) {
       ret.sp_proofs[i] = sp_outputs[i].BuildProof();
     }
     return ret;
@@ -55,35 +55,54 @@ inline void UpdateSeed(h256_t& seed, int64_t n, int64_t s,
   hash.Final(seed.data());
 }
 
-inline void ProveLine(ProveOutput& output, h256_t seed, std::string const& k,
-                      int64_t i, pod::CommitedData const& data_x) {
+struct ProverInput {
+  ProverInput(std::string const& key, pod::CommitedData const& data_x,
+              int64_t x_g_offset, std::string const& vrs_cache_dir = "")
+      : key(key),
+        data_x(data_x),
+        x_g_offset(x_g_offset),
+        vrs_cache_dir(vrs_cache_dir),
+        n(data_x.n),
+        s(data_x.s) {}
+  std::string const& key;
+  pod::CommitedData const& data_x;
+  int64_t const x_g_offset;
+  int64_t const py_g_offset = 0; // must be 0 because of pod
+  std::string vrs_cache_dir;
+  int64_t const n;
+  int64_t const s;
+};
+
+inline void ProveLine(ProveOutput& output, h256_t seed,
+                      ProverInput const& input, int64_t i) {
   auto& sp_output = output.sp_outputs[i];
 
-  std::vector<Fr> x(data_x.s);
-  for (int64_t j = 0; j < data_x.s; ++j) {
-    x[j] = data_x.get_m(i, j);
+  std::vector<Fr> x(input.s);
+  for (int64_t j = 0; j < input.s; ++j) {
+    x[j] = input.data_x.get_m(i, j);
   }
 
-  G1 com_x = data_x.get_com(i);
-  Fr com_x_r = data_x.get_r(i);
+  G1 com_x = input.data_x.get_com(i);
+  Fr com_x_r = input.data_x.get_r(i);
 
-  pc_utils::substrpack::Prove(sp_output, seed, x, k, com_x, com_x_r);
+  pc_utils::substrpack::ProverInput s_input(
+      input.key, x, com_x, com_x_r, input.x_g_offset, input.py_g_offset);
+
+  pc_utils::substrpack::Prove(sp_output, seed, s_input);
 }
 
-inline void Prove(ProveOutput& output, h256_t seed, std::string const& key,
-                  pod::CommitedData const& data_x,
-                  std::string vrs_cache_dir = "") {
+inline void Prove(ProveOutput& output, h256_t seed, ProverInput const& input) {
   Tick tick(__FUNCTION__);
-  int64_t n = data_x.n;
-  int64_t s = data_x.s;
+  int64_t n = input.n;
+  int64_t s = input.s;
 
-  UpdateSeed(seed, n, s, key);
+  UpdateSeed(seed, n, s, input.key);
 
   output.sp_outputs.resize(n);
-  auto parallel_f = [&output, &key, &data_x, &seed](int64_t i) {
-    ProveLine(output, seed, key, i, data_x);
+  auto parallel_f = [&output, &input, &seed](int64_t i) {
+    ProveLine(output, seed, input, i);
   };
-  parallel::For(data_x.n, parallel_f);
+  parallel::For(n, parallel_f);
 
   for (auto const& i : output.sp_outputs) {
     (void)i;
@@ -107,16 +126,32 @@ inline void Prove(ProveOutput& output, h256_t seed, std::string const& key,
     return output.sp_outputs[i].com_pack_y_r;
   };
 
-  pod::EncryptAndProve(output.pod_output, seed, data_y, vrs_cache_dir);
+  pod::EncryptAndProve(output.pod_output, seed, data_y, input.vrs_cache_dir);
 }
 
-inline bool Verify(Proof const& proof, h256_t seed, std::string const& key,
-                   int64_t s, std::vector<G1> const& com_x,
+struct VerifierInput {
+  VerifierInput(std::string const& key, int64_t s, std::vector<G1> const& com_x,
+                int64_t x_g_offset)
+      : key(key),
+        s(s),
+        com_x(com_x),
+        x_g_offset(x_g_offset),
+        n((int64_t)com_x.size()) {}
+  std::string const& key;
+  int64_t const s;
+  std::vector<G1> const& com_x;
+  int64_t const x_g_offset;
+  int64_t const py_g_offset = 0; // must be 0 because of pod use 0
+  int64_t const n;
+};
+
+inline bool Verify(Proof const& proof, h256_t seed, VerifierInput const& input,
                    pod::VerifyOutput& output) {
   Tick tick(__FUNCTION__);
-  int64_t n = (int64_t)com_x.size();
+  int64_t n = input.n;
+  int64_t s = input.s;
 
-  UpdateSeed(seed, n, s, key);
+  UpdateSeed(seed, n, s, input.key);
 
   if ((int64_t)proof.sp_proofs.size() != n) {
     assert(false);
@@ -124,18 +159,21 @@ inline bool Verify(Proof const& proof, h256_t seed, std::string const& key,
   }
   for (auto i = 0; i < n; ++i) {
     auto const& com_w = proof.sp_proofs[i].substr_proof.com_w;
-    if (com_w.empty() || com_w[0] != com_x[i]) {
+    if (com_w.empty() || com_w[0] != input.com_x[i]) {
       assert(false);
       return false;
     }
   }
 
   bool all_success = false;
-  auto parallel_f = [&proof, &seed, s, &key](int64_t i) {
+  auto parallel_f = [&proof, &seed, s, &input](int64_t i) {
     auto const& sp_proof = proof.sp_proofs[i];
-    return pc_utils::substrpack::Verify(sp_proof, seed, s, key);
+    pc_utils::substrpack::VerifierInput s_input(s, input.key, input.x_g_offset,
+                                               input.py_g_offset);
+    return pc_utils::substrpack::Verify(sp_proof, seed, s_input);
   };
   parallel::For(&all_success, n, parallel_f);
+
   if (!all_success) {
     assert(false);
     return false;
@@ -182,9 +220,15 @@ inline bool DecryptData(int64_t n, int64_t s,
 
 inline bool Test() {
   auto seed = misc::RandH256();
+  int64_t x_g_offset = 33;
   std::string key = "cde";
-  int64_t s = 32 * 1000;
-  int64_t n = 24;
+#ifdef _DEBUG
+  int64_t s = 32;
+  int64_t n = 3;
+#else
+  int64_t s = 4 * 1000;
+  int64_t n = 15;
+#endif
   std::vector<std::vector<Fr>> x(n);
   auto parallel_f = [&x, s](int64_t i) {
     auto& xi = x[i];
@@ -218,10 +262,10 @@ inline bool Test() {
   FrRand(com_x_r);
 
   std::vector<G1> com_x(n);
-  auto parallel_f2 = [&x, &com_x, &com_x_r](int64_t i) {
-    com_x[i] = PcComputeCommitment(x[i], com_x_r[i]);
+  auto parallel_f2 = [&x, &com_x, &com_x_r, x_g_offset](int64_t i) {
+    com_x[i] = PcComputeCommitmentG(x_g_offset, x[i], com_x_r[i]);
   };
-  parallel::For(n, parallel_f);
+  parallel::For(n, parallel_f2);
 
   Tick tick(__FUNCTION__);
 
@@ -232,12 +276,34 @@ inline bool Test() {
   data_x.get_r = [&com_x_r](int64_t i) -> Fr const& { return com_x_r[i]; };
   data_x.get_m = [&x](int64_t i, int64_t j) -> Fr const& { return x[i][j]; };
 
-  ProveOutput prove_output;
-  Prove(prove_output, seed, key, data_x);
-  Proof proof = prove_output.BuildProof();
+  ProverInput prover_input(key,data_x,x_g_offset);
 
+  ProveOutput prove_output;
+  Prove(prove_output, seed, prover_input);
+  Proof proof = prove_output.BuildProof();
+  
+  size_t proof_size;
+  {
+    // serialize to buffer
+    yas::mem_ostream os;
+    yas::binary_oarchive<yas::mem_ostream, YasBinF()> oa(os);
+    oa.serialize(proof);
+    proof_size = os.get_shared_buffer().size;
+    // serialize from buffer
+    yas::mem_istream is(os.get_intrusive_buffer());
+    yas::binary_iarchive<yas::mem_istream, YasBinF()> ia(is);
+    Proof proof2;
+    ia.serialize(proof2);
+    if (proof != proof2) {
+      assert(false);
+      std::cout << "oops, serialize error\n";
+      return false;
+    }
+  }
+
+  VerifierInput verifier_input(key, s, com_x,x_g_offset);
   pod::VerifyOutput verify_output;
-  if (!Verify(proof, seed, key, s, com_x, verify_output)) {
+  if (!Verify(proof, seed, verifier_input, verify_output)) {
     assert(false);
     return false;
   }
@@ -257,12 +323,10 @@ inline bool Test() {
     return false;
   }
 
-  if (check_rets != rets) {
-    assert(false);
-    std::cout << __LINE__ << ", oops\n";
-  }
+  bool success = check_rets == rets;  
+  std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success << "\n";
+  std::cout << "proof size: " << proof_size << "\n";
 
-  std::cout << __FUNCTION__ << ": success\n";
-  return true;
+  return success;
 }
 }  // namespace cmd::substr_query

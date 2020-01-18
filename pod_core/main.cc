@@ -140,14 +140,9 @@ int main(int argc, char** argv) {
 
   setenv("options:data_dir", data_dir.c_str(), true);
 
-#ifdef USE_TBB
   int tbb_thread_num =
       thread_num ? (int)thread_num : tbb::task_scheduler_init::automatic;
   tbb::task_scheduler_init init(tbb_thread_num);
-  std::cout << "use tbb\n";
-#else
-  setenv("options:thread_num", std::to_string(thread_num).c_str(), true);
-#endif
 
   if (!InitAll(data_dir)) {
     std::cerr << "Init failed\n";

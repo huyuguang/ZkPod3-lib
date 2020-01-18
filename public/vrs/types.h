@@ -4,13 +4,13 @@
 #include <memory>
 
 #include "ecc/ecc.h"
-#include "groth09/sec43.h"
+#include "groth09/groth09.h"
 #include "hyrax/a2.h"
 #include "misc/misc.h"
 
 namespace vrs {
 struct Cache {
-  int64_t count;
+  int64_t count = 0;
   h256_t seed;  // plain seed
   Fr key;
   Fr key_com_r;
@@ -70,7 +70,7 @@ struct CheckInput {
 struct Proof {
   std::vector<G1> var_coms;
   G1 com_vw;
-  groth09::sec43::RomProof proof_hp;
+  groth09::sec43b::RomProof proof_hp;
   hyrax::a2::RomProof proof_ip;
 };
 

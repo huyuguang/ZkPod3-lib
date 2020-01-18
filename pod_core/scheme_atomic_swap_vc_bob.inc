@@ -108,7 +108,7 @@ bool Bob<BobData>::OnResponse(Response response, Receipt& receipt) {
   }
 
   sigma_vw_ = parallel::Accumulate(vw_.begin(), vw_.end(), FrZero());
-  G1 check_vw_com = PcComputeCommitment(
+  G1 check_vw_com = PcComputeCommitmentU(
       sigma_vw_, response.vw_com_r);
   if (verifier.com_vw() != check_vw_com) {
     assert(false);

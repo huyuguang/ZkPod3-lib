@@ -37,14 +37,14 @@ inline bool VerifyAndSign(VerifyOutput& output, h256_t seed, int64_t n,
     G1 left1 = MultiExpBdlo12<G1>(get_com, output.w, n);
     left1 = parallel::Accumulate(k.begin(), k.begin() + n, left1);
     auto get_g = [s](int64_t ij) -> G1 const& {
-      return PcU(ij % (s + 1));
+      return PcHG(ij % (s + 1));
     };
     // MultiExp(n*(s+1))! 70% of the time here.
     G1 right1 = MultiExpBdlo12<G1>(get_g, proved_data.em, n * (s + 1));
     if (left1 != right1) return;
 
     G1 left2 = MultiExpBdlo12(proved_data.k, output.w);
-    G1 right2 = MultiExpBdlo12<G1>(PcU, proved_data.vw, s + 1);
+    G1 right2 = MultiExpBdlo12<G1>(PcHG, proved_data.vw, s + 1);
     if (left2 != right2) return;
     ret[0] = 1;
   };

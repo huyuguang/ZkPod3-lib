@@ -12,7 +12,7 @@ namespace vrs {
 class Verifier {
  public:
   Verifier(PublicInput const& public_input) : public_input_(public_input) {
-    pds_sigma_g_ = PcComputeSigmaG(public_input_.count);
+    pds_sigma_g_ = PcComputeSigmaG(g_offset_, public_input_.count);
     Evaluate();
   }
 
@@ -36,18 +36,23 @@ class Verifier {
       for (int64_t i = 0; i < count; ++i) {
         data[i] = public_input_.get_p(i);
       }
-      auto check_value = PcComputeCommitment(data, com_plain_r);
+      int64_t x_g_offset = 0; // hardcode 0, because prover always use 0
+      auto check_value = PcComputeCommitmentG(x_g_offset, data, com_plain_r);
       ret_com_plain = check_value == com_plain;
     };
 
     // check hadamard product
     bool ret_hp = false;
     tasks[1] = [this, &proof, &ret_hp, &seed]() {
-      groth09::sec43::CommitmentPub com_pub_hp;
+      groth09::sec43b::CommitmentPub com_pub_hp;
       BuildHpCom(proof, com_pub_hp);
       com_pub_hp.Align();
-      groth09::sec43::VerifierInput input_hp(com_pub_hp);
-      ret_hp = groth09::sec43::RomVerify(proof.proof_hp, seed, input_hp);
+      int64_t x_g_offset = 0;
+      int64_t y_g_offset = 0;
+      int64_t z_g_offset = 0;
+      groth09::sec43b::VerifierInput input_hp(com_pub_hp, x_g_offset,
+                                              y_g_offset, z_g_offset);
+      ret_hp = groth09::sec43b::RomVerify(proof.proof_hp, seed, input_hp);
     };
 
     // check inner product
@@ -59,7 +64,10 @@ class Verifier {
       }
       hyrax::a2::CommitmentPub com_pub_ip;
       BuildIpCom(proof, com_pub_ip);
-      hyrax::a2::VerifierInput input_ip(input_w, com_pub_ip);
+      int64_t x_g_offset = 0;
+      int64_t y_g_offset = -1;
+      hyrax::a2::VerifierInput input_ip(input_w, com_pub_ip, x_g_offset,
+                                        y_g_offset);
       ret_ip = hyrax::a2::RomVerify(proof.proof_ip, seed, input_ip);
     };
 
@@ -94,7 +102,7 @@ class Verifier {
     com_pub.tau = proof.com_vw;
   }
 
-  void BuildHpCom(Proof const& proof, groth09::sec43::CommitmentPub& com_pub) {
+  void BuildHpCom(Proof const& proof, groth09::sec43b::CommitmentPub& com_pub) {
     // Tick tick(__FUNCTION__);
     auto m = num_constraints();
     com_pub.a.resize(m);
@@ -139,6 +147,7 @@ class Verifier {
   libsnark::protoboard<Fr> pb_;
   std::shared_ptr<Mimc5Gadget> gadget_;
   G1 pds_sigma_g_;
+  int64_t const g_offset_ = 0;
 };
 
 }  // namespace vrs

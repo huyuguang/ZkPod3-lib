@@ -7,7 +7,7 @@
 #include "./types.h"
 
 namespace vrs {
-
+// TODO: more check format (maybe kMaxUnitPerZkp changed?)
 inline static const std::string kExtensionUsing = ".using";
 inline static const std::string kExtensionUsed = ".used";
 
@@ -59,7 +59,8 @@ inline bool CheckVarComs(h256_t const& seed, Fr const& key, Fr const& key_com_r,
         return false;
       }
     }
-    auto check_var_com = PcComputeCommitment(data, var_com_r);
+    int64_t g_offset = 0;
+    auto check_var_com = PcComputeCommitmentG(g_offset, data, var_com_r);
     if (var_com != check_var_com) {
       assert(false);
       return false;
@@ -140,7 +141,8 @@ inline void ComputeVarComs(h256_t const& seed, Fr const& key,
     } else {
       var_com_r = FrRand();
     }
-    var_com = PcComputeCommitment(data, var_com_r);
+    int64_t g_offset = 0;
+    var_com = PcComputeCommitmentG(g_offset, data, var_com_r);
   }
 }
 

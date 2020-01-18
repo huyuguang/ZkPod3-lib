@@ -152,4 +152,15 @@ inline bool GetFileSha256(std::string const& file, h256_t& h) {
     return false;
   }
 }
+
+inline std::string RandString(size_t max_len) {
+  size_t len = rand() % max_len;
+  if (!len) return std::string();
+  std::string ret;
+  ret.reserve(len);
+  for (size_t i = 0; i < len; ++i) {
+    ret.push_back((char)rand());
+  }
+  return ret;
+}
 }  // namespace misc

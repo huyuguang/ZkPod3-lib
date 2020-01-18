@@ -5,6 +5,15 @@
 #pragma warning(disable : 4996)
 #endif
 
+#include <cryptopp/aes.h>
+#include <cryptopp/cryptlib.h>
+#include <cryptopp/eccrypto.h>
+#include <cryptopp/hex.h>
+#include <cryptopp/keccak.h>
+#include <cryptopp/modes.h>
+#include <cryptopp/oids.h>
+#include <cryptopp/osrng.h>
+#include <cryptopp/pwdbased.h>
 #include <fcntl.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -17,20 +26,8 @@
 #include <array>
 #include <atomic>
 #include <bitset>
-#include <chrono>
-#include <condition_variable>
-#include <functional>
-#include <map>
-#include <memory>
-#include <numeric>
-#include <queue>
-#include <random>
-#include <set>
-#include <string>
-#include <thread>
-#include <unordered_map>
-#include <vector>
 #include <boost/any.hpp>
+#include <boost/dynamic_bitset.hpp>
 #include <boost/endian/conversion.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/iostreams/device/array.hpp>
@@ -51,17 +48,19 @@
 #include <boost/program_options.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
-#include <boost/dynamic_bitset.hpp>
-
-#include <cryptopp/aes.h>
-#include <cryptopp/cryptlib.h>
-#include <cryptopp/eccrypto.h>
-#include <cryptopp/hex.h>
-#include <cryptopp/keccak.h>
-#include <cryptopp/modes.h>
-#include <cryptopp/oids.h>
-#include <cryptopp/osrng.h>
-#include <cryptopp/pwdbased.h>
+#include <chrono>
+#include <condition_variable>
+#include <functional>
+#include <map>
+#include <memory>
+#include <numeric>
+#include <queue>
+#include <random>
+#include <set>
+#include <string>
+#include <thread>
+#include <unordered_map>
+#include <vector>
 //#include <cryptopp/scrypt.h>
 #include <cryptopp/secblock.h>
 #include <cryptopp/sha.h>

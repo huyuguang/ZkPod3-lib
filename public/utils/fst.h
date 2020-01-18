@@ -69,7 +69,7 @@ inline void ComputeFst2(h256_t const& seed, std::string const& salt,
   c[0] = 1;
   c[1] = H256ToFr(digest);
   H256ToFr(digest);
-  for (auto i = 2; i < c.size(); ++i) {
+  for (size_t i = 2; i < c.size(); ++i) {
     c[i] = c[i - 1] * c[1];
   }
 }

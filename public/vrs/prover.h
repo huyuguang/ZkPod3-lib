@@ -1,10 +1,10 @@
 #pragma once
 
-#include "utils/fst.h"
 #include "./mimc5.h"
 #include "./mimc5_gadget.h"
 #include "./misc.h"
 #include "./types.h"
+#include "utils/fst.h"
 
 // Verifiable Random Sequence Prover
 
@@ -19,7 +19,7 @@ class Prover {
         cached_var_coms_(std::move(cached_var_coms)),
         cached_var_coms_r_(std::move(cached_var_coms_r)) {
     auto count = public_input_.count;
-    pds_sigma_g_ = PcComputeSigmaG(count);
+    pds_sigma_g_ = PcComputeSigmaG(g_offset_, count);
     v_.resize(count);
     values_.resize(count);
     pb_.reset(new libsnark::protoboard<Fr>);
@@ -62,10 +62,9 @@ class Prover {
     }
   }
 
-  void Prove(h256_t const& rom_seed, std::function<Fr(int64_t)> get_w,
-             Proof& proof, ProveOutput& output) {
+  void Prove(h256_t seed, std::function<Fr(int64_t)> get_w, Proof& proof,
+             ProveOutput& output) {
     // Tick tick(__FUNCTION__);
-    auto seed = rom_seed;
     BuildVarComs();
 
     CryptoPP::Keccak_256 hash;
@@ -117,19 +116,19 @@ class Prover {
       }
       // var_coms_[0]:plain, var_coms_[1]:key
       if (i < primary_input_size_) {
-        var_com_r = FrZero(); // public val
+        var_com_r = FrZero();  // public val
       } else if (i == primary_input_size_) {
         var_com_r = secret_input_.key_com_r;
       } else {
         var_com_r = FrRand();
       }
-      var_com = PcComputeCommitment(data, var_com_r);
+      var_com = PcComputeCommitmentG(g_offset_, data, var_com_r);
     };
     parallel::For((int64_t)var_coms_.size(), parallel_f);
   }
 
   // <A,X>=constraint.a, <B,X>=constraint.b, <C,X>=constraint.c
-  groth09::sec43::ProverInput BuildHpInput() {
+  groth09::sec43b::ProverInput BuildHpInput() {
     // Tick tick(__FUNCTION__);
     auto m = num_constraints();
     auto n = public_input_.count;
@@ -139,7 +138,7 @@ class Prover {
     for (auto& i : x) i.resize(n);
     for (auto& i : y) i.resize(n);
     for (auto& i : z) i.resize(n);
-    // std::cout << "sec43: " << m << "*" << n << "\n";
+    // std::cout << "sec43b: " << m << "*" << n << "\n";
 
     auto constraint_system = pb_->get_constraint_system();
     auto const& constraints = constraint_system.constraints;
@@ -160,12 +159,13 @@ class Prover {
     values_.clear();
     values_.shrink_to_fit();
 
-    return groth09::sec43::ProverInput(std::move(x), std::move(y),
-                                       std::move(z));
+    return groth09::sec43b::ProverInput(std::move(x), std::move(y),
+                                        std::move(z), g_offset_, g_offset_,
+                                        g_offset_);
   }
 
-  void BuildHpCom(groth09::sec43::CommitmentPub& com_pub,
-                  groth09::sec43::CommitmentSec& com_sec) {
+  void BuildHpCom(groth09::sec43b::CommitmentPub& com_pub,
+                  groth09::sec43b::CommitmentSec& com_sec) {
     // Tick tick(__FUNCTION__);
     auto m = num_constraints();
     com_pub.a.resize(m);
@@ -214,9 +214,9 @@ class Prover {
     }
   }
 
-  void DebugCheckHpCom(groth09::sec43::ProverInput const& input,
-                       groth09::sec43::CommitmentPub const& com_pub,
-                       groth09::sec43::CommitmentSec const& com_sec) {
+  void DebugCheckHpCom(groth09::sec43b::ProverInput const& input,
+                       groth09::sec43b::CommitmentPub const& com_pub,
+                       groth09::sec43b::CommitmentSec const& com_sec) {
 #ifdef _DEBUG
     Tick tick(__FUNCTION__);
     auto m = num_constraints();
@@ -228,16 +228,16 @@ class Prover {
       auto& com_sec_s = com_sec.s[i];
       auto& com_sec_t = com_sec.t[i];
 
-      auto const& xi = input.x(i);
-      G1 check_com_pub_a = PcComputeCommitment(xi, com_sec_r);
+      auto const& xi = input.x[i];
+      G1 check_com_pub_a = PcComputeCommitmentG(g_offset_, xi, com_sec_r);
       assert(check_com_pub_a == com_pub_a);
 
-      auto const& yi = input.y(i);
-      G1 check_com_pub_b = PcComputeCommitment(yi, com_sec_s);
+      auto const& yi = input.y[i];
+      G1 check_com_pub_b = PcComputeCommitmentG(g_offset_, yi, com_sec_s);
       assert(check_com_pub_b == com_pub_b);
 
-      auto const& zi = input.z(i);
-      G1 check_com_pub_c = PcComputeCommitment(zi, com_sec_t);
+      auto const& zi = input.z[i];
+      G1 check_com_pub_c = PcComputeCommitmentG(g_offset_, zi, com_sec_t);
       assert(check_com_pub_c == com_pub_c);
     }
 #else
@@ -247,20 +247,20 @@ class Prover {
 #endif
   }
 
-  void HpProve(h256_t const& seed, groth09::sec43::RomProof& rom_proof) {
+  void HpProve(h256_t const& seed, groth09::sec43b::RomProof& rom_proof) {
     // Tick tick(__FUNCTION__);
     auto input = BuildHpInput();
-    groth09::sec43::CommitmentPub com_pub;
-    groth09::sec43::CommitmentSec com_sec;
+    groth09::sec43b::CommitmentPub com_pub;
+    groth09::sec43b::CommitmentSec com_sec;
     BuildHpCom(com_pub, com_sec);
     DebugCheckHpCom(input, com_pub, com_sec);
 
     gadget_.reset();
     pb_.reset();
 
-    groth09::sec43::AlignData(input, com_pub, com_sec);
-    groth09::sec43::RomProve(rom_proof, seed, std::move(input),
-                             std::move(com_pub), std::move(com_sec));
+    groth09::sec43b::AlignData(input, com_pub, com_sec);
+    groth09::sec43b::RomProve(rom_proof, seed, std::move(input),
+                              std::move(com_pub), std::move(com_sec));
   }
 
   void IpProve(h256_t const& seed, std::function<Fr(int64_t)> get_w,
@@ -271,13 +271,15 @@ class Prover {
       input_w[i] = get_w(i);
     }
     vw_ = InnerProduct(v_, input_w);
-    hyrax::a2::ProverInput input(v_, input_w, vw_);
+    int64_t x_g_offset = g_offset_;
+    int64_t y_g_offset = -1;
+    hyrax::a2::ProverInput input(v_, input_w, vw_, x_g_offset, y_g_offset);
     hyrax::a2::CommitmentPub com_pub;
     hyrax::a2::CommitmentSec com_sec;
     com_sec.r_xi = var_coms_r_.back();
     com_sec.r_tau = secret_input_.vw_com_r;
-    com_pub.xi = var_coms_.back(); // the last var is the result of the mimc
-    com_pub.tau = PcComputeCommitment(input.y, com_sec.r_tau);
+    com_pub.xi = var_coms_.back();  // the last var is the result of the mimc
+    com_pub.tau = PcComputeCommitmentG(y_g_offset, input.y, com_sec.r_tau);
     com_vw_ = com_pub.tau;
     hyrax::a2::RomProve(rom_proof, seed, std::move(input), std::move(com_pub),
                         std::move(com_sec));
@@ -298,6 +300,7 @@ class Prover {
   Fr vw_;
   G1 com_vw_;
   G1 pds_sigma_g_;
+  int64_t const g_offset_ = 0;  // hardcode 0 because the cache use 0
 };
 
 }  // namespace vrs
