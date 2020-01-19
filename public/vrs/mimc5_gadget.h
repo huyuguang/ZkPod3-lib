@@ -3,11 +3,11 @@
 #include "./base_gadget.h"
 
 namespace vrs {
-class Mimc5Gadget : public BaseGadget {
+class Mimc5Gadget : public BaseOnewayGadget {
  public:
   Mimc5Gadget(libsnark::protoboard<Fr>& pb,
               const std::string& annotation_prefix)
-      : BaseGadget(pb, annotation_prefix), constants_(Mimc5Const()) {
+      : BaseOnewayGadget(pb, annotation_prefix), constants_(Mimc5Const()) {
     plain_.allocate(pb, "plain");
     key_.allocate(pb, "key");
     rounds_x2_.allocate(pb, constants_.size(),

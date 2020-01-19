@@ -6,11 +6,11 @@
 #include "./sha256c.h"
 
 namespace vrs {
-class Sha256cGadget : public BaseGadget {
+class Sha256cGadget : public BaseOnewayGadget {
  public:
   Sha256cGadget(libsnark::protoboard<Fr>& pb,
                 const std::string& annotation_prefix)
-      : BaseGadget(pb, annotation_prefix) {
+      : BaseOnewayGadget(pb, annotation_prefix) {
     plain_.allocate(pb, "plain");
     key_.allocate(pb, "key");
 
