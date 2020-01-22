@@ -160,15 +160,15 @@ inline bool Verify(h256_t const& seed, Proof const& proof,
   return true;
 }
 
-inline bool Test() {
+inline bool Test(int64_t xn, int64_t yn) {
   auto seed = misc::RandH256();
-  std::vector<Fr> x(10);
+  std::vector<Fr> x(xn);
   FrRand(x);
-  std::vector<Fr> a(10);
+  std::vector<Fr> a(xn);
   FrRand(a);
-  std::vector<Fr> y(3);
+  std::vector<Fr> y(yn);
   FrRand(y);
-  std::vector<Fr> b(3);
+  std::vector<Fr> b(yn);
   FrRand(b);
   auto z = InnerProduct(x, a);
   auto temp = InnerProduct(y, b);

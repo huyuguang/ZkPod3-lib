@@ -6,8 +6,8 @@ namespace pc_utils {
 
 inline bool Test() {
   std::vector<bool> rets;
-  rets.push_back(matrix::Test());
-  rets.push_back(equal_ip::Test());
+  rets.push_back(matrix::Test(10,3));
+  rets.push_back(equal_ip::Test(10,3));
   rets.push_back(overlap::Test());
   rets.push_back(divide::Test());
   rets.push_back(match::Test());

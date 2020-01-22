@@ -154,12 +154,10 @@ inline bool Verify(h256_t seed, VerifierInput const& input,
   return equal_ip::Verify(seed, proof, eip_input);
 }
 
-inline bool Test() {
+inline bool Test(int64_t n, int64_t s) {
   auto seed = misc::RandH256();
   int64_t r_g_offset = 10;
   int64_t c_g_offset = 30;
-  int64_t n = 10;
-  int64_t s = 3;
   std::vector<Fr> m(n * s);
   std::vector<Fr> com_row_rs(n);
   std::vector<Fr> com_col_rs(s);
