@@ -9,7 +9,7 @@ sudo apt-get update
 sudo apt-get install libcrypto++-dev libcrypto++-doc libcrypto++-utils  
 sudo apt-get install libboost-all-dev   
 
-如果希望用TBB处理并行，那么还需要安装TBB库（可选，使用TBB性能会略微高5%~10%）：  
+安装tbb
 sudo apt install libtbb-dev  
 或者可以参考如下URL：  
 https://askubuntu.com/questions/1170054/install-newest-tbb-thread-building-blocks-on-ubuntu-18-04
@@ -20,40 +20,19 @@ git submodule init && git submodule update
 cd depends/libsnark  
 git submodule init && git submodule update
 
-##### 编译pod_core，pod_setup，pod_publish（linux or osx）  
-cd pod_core  
-make -j8 或者 make -j8 USE_TBB=1  
+##### 编译pod_dummy，vrs_cache（linux or osx）  
+cd pod_dummy  
+make -j8  
 
-cd ../vrs_cache  
-make -j8 或者 make -j8 USE_TBB=1  
+cd vrs_cache  
+make -j8  
 
-cd ../pod_publish  
-make -j8 或者 make -j8 USE_TBB=1  
 
 编译好的代码在linux/bin目录下。  
 
-##### 运行pod_publish发布一个文件  
+##### 运行pod_dummy  
 cd linux/bin  
-./pod_publish -m plain -f test.txt -o plain_data -c 1023  
-./pod_publish -m table -f test100000.csv -o table_data -t csv -k 0 1  
-有两种模式，一种是plain，用于无结构的数据文件，另一种是数据表，目前仅支持csv格式。  
-运行完后会在plain_data或者table_data目录下产生发布文件。cat bulletin可以查看相关信息。  
-例如：  
-{  
-    "mode": "plain",  
-    "size": "140614293",  
-    "s": "1024",  
-    "n": "4434",  
-    "sigma_mkl_root":   "28accd27712939fb46e6313d18d67af36a523f44659ced9c27e2d3fd0e9cd3a5"  
-}  
-
-##### 运行pod_core  
-cd linux/bin  
-./pod_core -m plain -a atomic_swap_pod_vc -p plain_data -o plain_output --demand_ranges 0-10  
-./pod_core -m table -a atomic_swap_pod_vc -p table_data -o table_output --demand_ranges 1-10  
-
-demand_ranges支持多个区间。1-10表示从第2行开始取10行。  
-如果希望获取整个文件，那么是0-n，n可以从bulletin文件中获得。
+./pod_dummy -h  
 
 ##### vrs_cache
 vrs_cache的作用是预先生成一些gro09的commitment。比如说如果希望获取10行，也即demand_ranges x-10，且该文件每行是1024（bulletin里的s），那么 -c 10240。  
