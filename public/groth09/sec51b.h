@@ -377,6 +377,7 @@ inline bool RomVerify(RomProof const& rom_proof, h256_t seed,
 }
 
 inline bool TestRom(int64_t n) {
+  Tick tick(__FUNCTION__);
   std::vector<Fr> x(n);
   FrRand(x.data(), n);
   std::vector<Fr> y(n);

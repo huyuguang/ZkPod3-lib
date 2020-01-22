@@ -68,11 +68,12 @@ struct Secret {
   Fr seed0_com_r;
 };
 
+template<typename VrsScheme>
 struct ProveOutput {
   ProvedData proved_data;
   Receipt receipt;
   Secret secret;
-  vrs::AutoCacheFileUPtr auto_cache;
+  vrs::AutoCacheFileUPtr<VrsScheme> auto_cache;
 };
 
 struct VerifyOutput {

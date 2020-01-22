@@ -3,19 +3,20 @@
 #include "./mimc5.h"
 #include "./mimc5_gadget.h"
 #include "./misc.h"
-#include "./types.h"
 #include "./sha256c.h"
 #include "./sha256c_gadget.h"
+#include "./types.h"
 #include "utils/fst.h"
 
 // Verifiable Random Sequence Prover
 
 namespace vrs {
 
+template <typename Scheme>
 class Prover {
  public:
   Prover(PublicInput const& public_input, SecretInput const& secret_input,
-         std::vector<G1> cached_var_coms, std::vector<Fr> cached_var_coms_r)
+         std::vector<G1>&& cached_var_coms, std::vector<Fr>&& cached_var_coms_r)
       : public_input_(public_input),
         secret_input_(secret_input),
         cached_var_coms_(std::move(cached_var_coms)),
@@ -24,10 +25,7 @@ class Prover {
     pds_sigma_g_ = PcComputeSigmaG(g_offset_, count);
     v_.resize(count);
     values_.resize(count);
-    pb_.reset(new libsnark::protoboard<Fr>);
-    gadget_.reset(new Mimc5Gadget(*pb_, "Mimc5Gadget"));
-    pb_->set_input_sizes(primary_input_size_);  // var_plain is public statement
-
+    scheme_.reset(new Scheme);
     assert(cached_var_coms_.size() == cached_var_coms_r_.size());
   }
 
@@ -53,20 +51,22 @@ class Prover {
   // We need to compute the plain and v even have cache because we can not cache
   // the v (too large)
   void Evaluate() {
-    // Tick tick(__FUNCTION__);
+    Tick tick(__FUNCTION__);
+    auto& pb = scheme_->pb;
+    auto& gadget = scheme_->gadget;
     auto count = public_input_.count;
     for (int64_t i = 0; i < count; ++i) {
       auto plain = public_input_.get_p(i);
-      gadget_->Assign(plain, secret_input_.key);
-      assert(pb_->is_satisfied());
-      v_[i] = pb_->val(gadget_->result());
-      values_[i] = pb_->full_variable_assignment();
+      gadget.Assign(plain, secret_input_.key);
+      assert(pb.is_satisfied());
+      v_[i] = pb.val(gadget.result());
+      values_[i] = pb.full_variable_assignment();
     }
   }
 
   void Prove(h256_t seed, std::function<Fr(int64_t)> get_w, Proof& proof,
              ProveOutput& output) {
-    // Tick tick(__FUNCTION__);
+    Tick tick(__FUNCTION__);
     BuildVarComs();
 
     CryptoPP::Keccak_256 hash;
@@ -85,18 +85,19 @@ class Prover {
   }
 
  private:
-  int64_t num_variables() const { return (int64_t)pb_->num_variables(); }
+  int64_t num_variables() const { return scheme_->num_variables(); }
 
-  int64_t num_constraints() const { return (int64_t)pb_->num_constraints(); }
+  int64_t num_constraints() const { return scheme_->num_constraints(); }
 
   void BuildVarComs() {
+    auto constexpr kPrimaryInputSize = Scheme::kPrimaryInputSize;
     if ((int64_t)cached_var_coms_.size() == num_variables()) {
       var_coms_ = std::move(cached_var_coms_);
       var_coms_r_ = std::move(cached_var_coms_r_);
-      for (int64_t i = 0; i < primary_input_size_; ++i) {
+      for (int64_t i = 0; i < kPrimaryInputSize; ++i) {
         assert(var_coms_r_[i] == FrZero());
       }
-      assert(var_coms_r_[primary_input_size_] == secret_input_.key_com_r);
+      assert(var_coms_r_[kPrimaryInputSize] == secret_input_.key_com_r);
     } else {
       assert(cached_var_coms_.empty());
       ComputeVarComs();
@@ -104,12 +105,13 @@ class Prover {
   }
 
   void ComputeVarComs() {
-    // Tick tick(__FUNCTION__);
+    Tick tick(__FUNCTION__);
     auto count = public_input_.count;
     var_coms_.resize(num_variables());
     var_coms_r_.resize(var_coms_.size());
 
     auto parallel_f = [this, count](int64_t i) {
+      auto constexpr kPrimaryInputSize = Scheme::kPrimaryInputSize;
       std::vector<Fr> data(count);
       auto& var_com = var_coms_[i];
       auto& var_com_r = var_coms_r_[i];
@@ -117,9 +119,9 @@ class Prover {
         data[j] = values_[j][i];
       }
       // var_coms_[0]:plain, var_coms_[1]:key
-      if (i < primary_input_size_) {
+      if (i < kPrimaryInputSize) {
         var_com_r = FrZero();  // public val
-      } else if (i == primary_input_size_) {
+      } else if (i == kPrimaryInputSize) {
         var_com_r = secret_input_.key_com_r;
       } else {
         var_com_r = FrRand();
@@ -131,7 +133,7 @@ class Prover {
 
   // <A,X>=constraint.a, <B,X>=constraint.b, <C,X>=constraint.c
   groth09::sec43b::ProverInput BuildHpInput() {
-    // Tick tick(__FUNCTION__);
+    Tick tick(__FUNCTION__);
     auto m = num_constraints();
     auto n = public_input_.count;
     std::vector<std::vector<Fr>> x(m);
@@ -140,35 +142,38 @@ class Prover {
     for (auto& i : x) i.resize(n);
     for (auto& i : y) i.resize(n);
     for (auto& i : z) i.resize(n);
-    // std::cout << "sec43b: " << m << "*" << n << "\n";
+    std::cout << "sec43b: " << m << "*" << n << "\n";
 
-    auto constraint_system = pb_->get_constraint_system();
-    auto const& constraints = constraint_system.constraints;
+    {
+      Tick tick2("evaluate x,y,z");
+      auto const& constraint_system = scheme_->constraint_system;
+      auto const& constraints = constraint_system.constraints;
 
-    auto parallel_f = [this, &constraints, &x, &y, &z, m](int64_t j) {
-      auto const& values = values_[j];
-      for (int64_t i = 0; i < m; ++i) {
-        auto const& constraint = constraints[i];
-        x[i][j] = constraint.a.evaluate(values);
-        y[i][j] = constraint.b.evaluate(values);
-        z[i][j] = constraint.c.evaluate(values);
-        assert(z[i][j] == x[i][j] * y[i][j]);
-      }
-    };
-    parallel::For(n, parallel_f);
+      auto parallel_f = [this, &constraints, &x, &y, &z, m](int64_t j) {
+        auto const& values = values_[j];
+        for (int64_t i = 0; i < m; ++i) {
+          auto const& constraint = constraints[i];
+          x[i][j] = constraint.a.evaluate(values);
+          y[i][j] = constraint.b.evaluate(values);
+          z[i][j] = constraint.c.evaluate(values);
+          assert(z[i][j] == x[i][j] * y[i][j]);
+        }
+      };
+      parallel::For(n, parallel_f);
+    }
 
     // now we do not need values_
     values_.clear();
     values_.shrink_to_fit();
 
-    return groth09::sec43b::ProverInput(std::move(x), std::move(y),
+    return groth09::sec43b::ProverInput(m, std::move(x), std::move(y),
                                         std::move(z), g_offset_, g_offset_,
                                         g_offset_);
   }
 
   void BuildHpCom(groth09::sec43b::CommitmentPub& com_pub,
                   groth09::sec43b::CommitmentSec& com_sec) {
-    // Tick tick(__FUNCTION__);
+    Tick tick(__FUNCTION__);
     auto m = num_constraints();
     com_pub.a.resize(m);
     G1Zero(com_pub.a);
@@ -183,11 +188,10 @@ class Prover {
     com_sec.t.resize(m);
     FrZero(com_sec.t);
 
-    auto constraint_system = pb_->get_constraint_system();
+    auto const& constraint_system = scheme_->constraint_system;
     auto const& constraints = constraint_system.constraints;
 
-    auto parallel_f = [this, &com_pub, &com_sec,
-                       &constraints](int64_t i) mutable {
+    auto parallel_f = [this, &com_pub, &com_sec, &constraints](int64_t i) {
       auto& com_pub_a = com_pub.a[i];
       auto& com_pub_b = com_pub.b[i];
       auto& com_pub_c = com_pub.c[i];
@@ -205,13 +209,22 @@ class Prover {
   // com(<A,X>) or com(<B,X>) or com(<C,X>)
   void BuildHpCom(libsnark::linear_combination<Fr> const& lc, G1& com_pub,
                   Fr& com_sec, G1 const& sigma_g) {
-    // Tick tick(__FUNCTION__);
+    auto const& f1 = FrOne();
     for (auto const& term : lc.terms) {
       if (term.index == 0) {
-        com_pub += sigma_g * term.coeff;
+        if (term.coeff == f1) {
+          com_pub += sigma_g;
+        } else {
+          com_pub += sigma_g * term.coeff;
+        }        
       } else {
-        com_pub += var_coms_[term.index - 1] * term.coeff;
-        com_sec += var_coms_r_[term.index - 1] * term.coeff;
+        if (term.coeff == f1) {
+          com_pub += var_coms_[term.index - 1];
+          com_sec += var_coms_r_[term.index - 1];
+        } else {
+          com_pub += var_coms_[term.index - 1] * term.coeff;
+          com_sec += var_coms_r_[term.index - 1] * term.coeff;
+        }
       }
     }
   }
@@ -250,16 +263,13 @@ class Prover {
   }
 
   void HpProve(h256_t const& seed, groth09::sec43b::RomProof& rom_proof) {
-    // Tick tick(__FUNCTION__);
+    Tick tick(__FUNCTION__);
     auto input = BuildHpInput();
     groth09::sec43b::CommitmentPub com_pub;
     groth09::sec43b::CommitmentSec com_sec;
     BuildHpCom(com_pub, com_sec);
     DebugCheckHpCom(input, com_pub, com_sec);
-
-    gadget_.reset();
-    pb_.reset();
-
+    scheme_.reset();
     groth09::sec43b::AlignData(input, com_pub, com_sec);
     groth09::sec43b::RomProve(rom_proof, seed, std::move(input),
                               std::move(com_pub), std::move(com_sec));
@@ -267,7 +277,7 @@ class Prover {
 
   void IpProve(h256_t const& seed, std::function<Fr(int64_t)> get_w,
                hyrax::a2::RomProof& rom_proof) {
-    // Tick tick(__FUNCTION__);
+    Tick tick(__FUNCTION__);
     std::vector<Fr> input_w(public_input_.count);
     for (int64_t i = 0; i < public_input_.count; ++i) {
       input_w[i] = get_w(i);
@@ -288,13 +298,11 @@ class Prover {
   }
 
  private:
-  int64_t const primary_input_size_ = 1;
   PublicInput public_input_;
   SecretInput secret_input_;
   std::vector<G1> cached_var_coms_;
   std::vector<Fr> cached_var_coms_r_;
-  std::unique_ptr<libsnark::protoboard<Fr>> pb_;
-  std::unique_ptr<Mimc5Gadget> gadget_;
+  std::unique_ptr<Scheme> scheme_;
   std::vector<std::vector<Fr>> values_;
   std::vector<G1> var_coms_;
   std::vector<Fr> var_coms_r_;

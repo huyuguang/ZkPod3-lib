@@ -1,13 +1,13 @@
 #pragma once
 
 #include "./details.h"
-#include "./types.h"
 #include "./notary.h"
+#include "./types.h"
 
 namespace pod {
-inline bool VerifyAndSign(VerifyOutput& output, h256_t seed, int64_t n,
-                          int64_t s, GetCom const& get_com,
-                          ProvedData const& proved_data) {
+template <typename VrsScheme>
+bool VerifyAndSign(VerifyOutput& output, h256_t seed, int64_t n, int64_t s,
+                   GetCom const& get_com, ProvedData const& proved_data) {
   Tick _tick_(__FUNCTION__);
   if ((int64_t)proved_data.k.size() != (n + 1)) {
     assert(false);
@@ -26,19 +26,17 @@ inline bool VerifyAndSign(VerifyOutput& output, h256_t seed, int64_t n,
   details::UpdateSeed(seed, proved_data.k);
   output.w.resize(n + 1);
   ComputeFst(seed, "pod", output.w);
-  
+
   std::array<parallel::Task, 2> tasks;
   std::array<int64_t, 2> ret{0, 0};
 
   // check consistency of the encrypted m, vm and k.
   tasks[0] = [&ret, &get_com, &proved_data, &output, n, s]() {
-    //Tick tick(__FUNCTION__);
+    Tick tick("Check consistency of the encrypted m, vm and k.");
     auto const& k = proved_data.k;
     G1 left1 = MultiExpBdlo12<G1>(get_com, output.w, n);
     left1 = parallel::Accumulate(k.begin(), k.begin() + n, left1);
-    auto get_g = [s](int64_t ij) -> G1 const& {
-      return PcHG(ij % (s + 1));
-    };
+    auto get_g = [s](int64_t ij) -> G1 const& { return PcHG(ij % (s + 1)); };
     // MultiExp(n*(s+1))! 70% of the time here.
     G1 right1 = MultiExpBdlo12<G1>(get_g, proved_data.em, n * (s + 1));
     if (left1 != right1) return;
@@ -52,7 +50,8 @@ inline bool VerifyAndSign(VerifyOutput& output, h256_t seed, int64_t n,
   // check vrs
   vrs::VerifyOutput vrs_output;
   tasks[1] = [&ret, n, s, &seed, &proved_data, &output, &vrs_output]() {
-    ret[1] = details::CheckVrs(n, s, seed, proved_data, output, vrs_output);
+    ret[1] =
+        details::CheckVrs<VrsScheme>(n, s, seed, proved_data, output, vrs_output);
   };
 
   parallel::Invoke(tasks);
@@ -87,13 +86,13 @@ inline bool DecryptData(int64_t n, int64_t s,
   };
   parallel::For((int64_t)output.plain.size(), parallel_f);
 
-  #ifdef _DEBUG
-    Fr check_sigma_vw = FrZero();
-    for (size_t i = 0; i < v.size(); ++i) {
-      check_sigma_vw += v[i] * output.w[i / (s + 1)];
-    }
-    assert(check_sigma_vw == output.sigma_vw);
-  #endif
+#ifdef _DEBUG
+  Fr check_sigma_vw = FrZero();
+  for (size_t i = 0; i < v.size(); ++i) {
+    check_sigma_vw += v[i] * output.w[i / (s + 1)];
+  }
+  assert(check_sigma_vw == output.sigma_vw);
+#endif
 
   // decrypt m
   std::vector<Fr> inv_w = output.w;

@@ -227,9 +227,10 @@ inline void Prove(groth09::sec43b::RomProof& proof, h256_t seed,
   details::UpdateSeed(seed, input.com_w);
 
   // prove hadamard product
-  groth09::sec43b::ProverInput input_43(std::move(input.x), std::move(input.y),
-                                        std::move(input.z), input.g_offset,
-                                        input.g_offset, input.g_offset);
+  groth09::sec43b::ProverInput input_43(
+      m, std::move(input.x), std::move(input.y), std::move(input.z),
+      input.g_offset, input.g_offset, input.g_offset);
+
   groth09::sec43b::CommitmentPub com_pub;
   groth09::sec43b::CommitmentSec com_sec;
   details::BuildHpCom(m, n, input.com_w, input.com_w_r, input.constraints,

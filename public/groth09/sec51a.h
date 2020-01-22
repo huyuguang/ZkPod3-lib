@@ -269,6 +269,7 @@ inline bool VerifyInternal(VerifierInput const& input, Fr const& challenge,
                            Proof const& proof) {
   auto const n = proof.fx.size();
   assert(n == proof.fy.size());
+  (void)n;
 
   // std::cout << Tick::GetIndentString() << "multiexp(" << n << ")\n";
 
@@ -362,6 +363,7 @@ inline bool RomVerify(RomProof const& rom_proof, h256_t seed,
 }
 
 inline bool TestRom(int64_t n) {
+  Tick tick(__FUNCTION__);
   std::cout << "n=" << n << "\n";
   std::vector<Fr> x(n);
   FrRand(x.data(), n);

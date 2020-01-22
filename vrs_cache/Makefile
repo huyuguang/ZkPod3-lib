@@ -94,11 +94,9 @@ LIBS := \
  -lboost_system \
  -lboost_iostreams \
  -lboost_program_options \
-
-ifdef USE_TBB
-LIBS += -ltbb
-CXXFLAGS += -DUSE_TBB
-endif
+ -ltbb \
+ -ltbbmalloc_proxy \
+ -ltbbmalloc \
 
 ifeq ($(OS_TYPE),Darwin)
   TMPVAR := $(CXXFLAGS)
@@ -120,13 +118,13 @@ BUILDPUB := ./build/public
 
 $(shell mkdir -p $(HOME)/bin)
 $(shell mkdir -p $(BUILD))
-$(shell mkdir -p $(BUILDPUB))
+$(shell mkdir -p $(BUILDPUB)/ecc)
 
 DIR := . 
 
 SRC := $(foreach d, $(DIR), $(wildcard $(d)/*.cc))
 
-SRC += ../public/ecc.cc
+SRC += ../public/ecc/ecc.cc
 
 RELEASE_OBJ := $(patsubst %.cc, %.o, $(SRC))
 

@@ -1,13 +1,20 @@
 #pragma once
 
-#include "./base_gadget.h"
+#include <stdlib.h>
+
+#include <iostream>
+#include <libsnark/gadgetlib1/gadget.hpp>
+#include <libsnark/gadgetlib1/gadgets/basic_gadgets.hpp>
+#include <libsnark/gadgetlib1/pb_variable.hpp>
+
+#include "./mimc5.h"
 
 namespace vrs {
-class Mimc5Gadget : public BaseOnewayGadget {
+class Mimc5Gadget : public libsnark::gadget<Fr> {
  public:
   Mimc5Gadget(libsnark::protoboard<Fr>& pb,
               const std::string& annotation_prefix)
-      : BaseOnewayGadget(pb, annotation_prefix), constants_(Mimc5Const()) {
+      : libsnark::gadget<Fr>(pb, annotation_prefix), constants_(Mimc5Const()) {
     plain_.allocate(pb, "plain");
     key_.allocate(pb, "key");
     rounds_x2_.allocate(pb, constants_.size(),
@@ -20,15 +27,15 @@ class Mimc5Gadget : public BaseOnewayGadget {
     generate_r1cs_constraints();
   }
 
-  libsnark::pb_variable<Fr> plain() override { return plain_; }
+  libsnark::pb_variable<Fr> plain() { return plain_; }
 
-  libsnark::pb_variable<Fr> key() override { return key_; }
+  libsnark::pb_variable<Fr> key() { return key_; }
 
-  libsnark::pb_variable<Fr> result() override {
+  libsnark::pb_variable<Fr> result() {
     return rounds_x5_[constants_.size() - 1];
   }
 
-  void Assign(Fr const& plain, Fr const& key) override {
+  void Assign(Fr const& plain, Fr const& key) {
     this->pb.val(plain_) = plain;
     this->pb.val(key_) = key;
     generate_r1cs_witness();
@@ -91,21 +98,33 @@ class Mimc5Gadget : public BaseOnewayGadget {
   libsnark::pb_variable_array<Fr> rounds_x5_;
 };
 
-class Mimc5Scheme : public BaseOnewayScheme {
- public:
-  Mimc5Scheme() :BaseOnewayScheme(){
-    gadget_.reset(new Mimc5Gadget(pb_, "Mimc5Gadget"));
+struct Mimc5Scheme {
+  Mimc5Scheme() : gadget(pb, "Mimc5Gadget") {    
+    pb.set_input_sizes(kPrimaryInputSize);
+    constraint_system = pb.get_constraint_system();
   }
-  int64_t MaxUnitPerZkp() override {
+  Fr Generate(Fr const& plain, Fr const& key) { return Mimc5Enc(plain, key); }
+
+  int64_t num_variables() const { return (int64_t)pb.num_variables(); }
+
+  int64_t num_constraints() const { return (int64_t)pb.num_constraints(); }
+
+  static const int64_t kPrimaryInputSize = 1;
 #ifdef _DEBUG
-    const int64_t kMaxUnitPerZkp = 32;
+  static const int64_t kMaxUnitPerZkp = 32;
 #else
-    const int64_t kMaxUnitPerZkp = 1024 * 32;
+  static const int64_t kMaxUnitPerZkp = 1024 * 32;
 #endif
-    return kMaxUnitPerZkp;
-  }
-  Fr Generate(Fr const& plain, Fr const& key) override {
-    return Mimc5Enc(plain, key);
-  }
+  static_assert(kMaxUnitPerZkp <= (int64_t)PcBase::kGSize,
+                "kMaxUnitPerZkp too large");
+  
+  static std::string const& type() {
+    static const std::string a = "mimc5";
+    return a;
+  };
+
+  libsnark::protoboard<Fr> pb;
+  Mimc5Gadget gadget;
+  libsnark::r1cs_constraint_system<Fr> constraint_system;
 };
 }  // namespace vrs

@@ -13,11 +13,20 @@ bool InitAll(std::string const& data_dir) {
 
   auto ecc_pds_file = data_dir + "/" + "pds_pub.bin";
   if (!OpenOrCreatePdsPub(ecc_pds_file)) {
-    std::cerr << "Open or create pds pub file " << ecc_pub_file << " failed\n";
+    std::cerr << "Open or create pds pub file " << ecc_pds_file << " failed\n";
     return false;
   }
 
   return true;
+}
+
+enum VrsSchemeType { kMimic5 = 0, kSha256c = 1 };
+
+template <typename Scheme>
+bool CreateAndSave(std::string const& cache_dir, uint64_t count,
+                   std::string& cache_file) {
+  auto cache = vrs::CreateCache<Scheme>(count);
+  return vrs::SaveCache<Scheme>(cache_dir, cache, cache_file);
 }
 
 int main(int argc, char** argv) {
@@ -25,6 +34,7 @@ int main(int argc, char** argv) {
   std::string data_dir;
   uint64_t count;
   uint32_t thread_num = 0;
+  int vrs_scheme;
 
   try {
     po::options_description options("command line options");
@@ -34,7 +44,9 @@ int main(int argc, char** argv) {
         "count,c", po::value<uint64_t>(&count)->default_value(2),
         "Provide the count, must >1, should be (n+1)*s or multiple 32k")(
         "thread_num", po::value<uint32_t>(&thread_num)->default_value(0),
-        "Provide the number of the parallel thread, 1: disable, 0: default.");
+        "Provide the number of the parallel thread, 1: disable, 0: default.")(
+        "vrs_scheme", po::value<int>(&vrs_scheme)->default_value(kMimic5),
+        "Provide the scheme type, 0: mimc5, 1:sha256c");
 
     boost::program_options::variables_map vmap;
 
@@ -51,6 +63,12 @@ int main(int argc, char** argv) {
       std::cout << options << std::endl;
       return -1;
     }
+
+    if (vrs_scheme != kMimic5 && vrs_scheme != kSha256c) {
+      std::cout << options << std::endl;
+      return -1;
+    }
+
   } catch (std::exception& e) {
     std::cout << "Unknown parameters.\n"
               << e.what() << "\n"
@@ -62,22 +80,32 @@ int main(int argc, char** argv) {
       thread_num ? (int)thread_num : tbb::task_scheduler_init::automatic;
   tbb::task_scheduler_init init(tbb_thread_num);
 
+  parallel::CheckAllocationHook();
+
   if (!InitAll(data_dir)) {
     std::cerr << "Init failed\n";
     return -1;
   }
 
-  std::string cache_dir = data_dir + "/vrs_cache";
+  std::string cache_dir = data_dir + "/vrs_cache/";  
+  if (vrs_scheme == VrsSchemeType::kMimic5) {
+    cache_dir += vrs::Mimc5Scheme::type();
+  } else {
+    cache_dir += vrs::Sha256cScheme::type();
+  }
   fs::create_directories(cache_dir);
   if (!fs::is_directory(cache_dir)) {
     std::cerr << "create directory failed: " << cache_dir << "\n";
     return -1;
   }
 
-  auto cache = vrs::CreateCache(count);
-
+  bool ret = false;
   std::string cache_file;
-  bool ret = vrs::SaveCache(cache_dir, cache, cache_file);
+  if (vrs_scheme == VrsSchemeType::kMimic5) {    
+    ret = CreateAndSave<vrs::Mimc5Scheme>(cache_dir, count, cache_file);
+  } else {    
+    ret = CreateAndSave<vrs::Sha256cScheme>(cache_dir, count, cache_file);
+  }
 
   if (ret) {
     std::cout << "Success: cache_file: " << cache_file << "\n";

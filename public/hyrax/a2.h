@@ -258,7 +258,7 @@ inline void ComputeProof(Proof& proof, ProverInput const& input,
 // TODO: should ProverInput const& input?
 inline void RomProve(RomProof& rom_proof, h256_t seed, ProverInput input,
                      CommitmentPub com_pub, CommitmentSec com_sec) {
-  // Tick tick(__FUNCTION__);
+  Tick tick(__FUNCTION__);
 
   assert(PcBase::kGSize >= input.n());
 
@@ -286,6 +286,8 @@ inline bool RomVerify(RomProof const& rom_proof, h256_t seed,
 }
 
 inline bool TestRom(int64_t n) {
+  Tick tick(__FUNCTION__);
+  std::cout << "n = " << n << "\n";
   std::vector<Fr> x(n);
   FrRand(x.data(), n);
   std::vector<Fr> a(n);

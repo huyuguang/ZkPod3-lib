@@ -17,6 +17,27 @@
 #include <vector>
 namespace parallel {
 
+// #define DISABLE_TBB_RECURSION
+
+#ifdef DISABLE_TBB_RECURSION
+inline thread_local bool in_thread = false;
+
+struct AutoInThread {
+  AutoInThread() {
+    if (!in_thread) {
+      in_thread = true;
+      flag = true;
+    }
+  }
+  ~AutoInThread() {
+    if (flag) {
+      in_thread = false;
+    }
+  }
+  bool flag = false;
+};
+#endif
+
 inline void CheckAllocationHook() {
 #ifdef _WIN32
 #ifndef _DEBUG
@@ -40,11 +61,17 @@ typedef std::function<void()> Task;
 
 template <typename T, typename F>
 void For(T count, F& f, bool direct = false) {
+  
   if (!count) return;
   if (count == 1) {
     f(0);
     return;
   }
+
+#ifdef DISABLE_TBB_RECURSION
+  AutoInThread auto_in_thread;
+  if (!auto_in_thread.flag) direct = true;
+#endif
 
   if (direct) {
     for (T i = 0; i < count; ++i) f(i);
@@ -64,6 +91,11 @@ void Invoke(TaskContainer& tasks, bool direct = false) {
   if (tasks.empty()) return;
 
   if (tasks.size() == 1) return tasks[0]();
+
+#ifdef DISABLE_TBB_RECURSION
+  AutoInThread auto_in_thread;
+  if (!auto_in_thread.flag) direct = true;
+#endif
 
   if (direct) {
     for (auto& task : tasks) {

@@ -29,14 +29,13 @@ inline std::vector<Fr> ComputeConst(std::string const& prefix, size_t count) {
 }
 }  // namespace details
 
-inline static const int64_t kMimc5Round = 40;
+inline static const int64_t kMimc5Round = 110;
 
 inline std::vector<Fr> const& Mimc5Const() {
   static auto instance = details::ComputeConst("mimc_5_const", kMimc5Round);
   return instance;
 }
 
-// TODO: wrapped by OneWayGadget
 inline Fr Mimc5Enc(Fr const& plain, Fr const& key) {
   auto const& kMimc5Const = Mimc5Const();
   auto box = [](Fr const& v) {

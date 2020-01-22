@@ -60,7 +60,8 @@ bool Alice<AliceData>::OnRequest(Request request, Response& response) {
 
   char const* data_dir = std::getenv("options:data_dir");
   std::string cache_dir = data_dir ? data_dir : ".";
-  cache_dir += "/vrs_cache";
+  cache_dir += "/vrs_cache/";
+  cache_dir += vrs::Mimc5Scheme::type();
   auto vrs_count = (demands_count_ + 1) * s_;
 
   vrs::CacheUPtr cache;

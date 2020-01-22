@@ -6,7 +6,8 @@
 
 namespace pod {
 
-inline void EncryptAndProve(ProveOutput& output, h256_t seed,
+template<typename VrsScheme>
+void EncryptAndProve(ProveOutput<VrsScheme>& output, h256_t seed,
                             CommitedData const& commited_data,
                             std::string cache_dir = "") {
   Tick _tick_(__FUNCTION__);
@@ -16,10 +17,11 @@ inline void EncryptAndProve(ProveOutput& output, h256_t seed,
   if (cache_dir.empty()) {
     char const* data_dir = std::getenv("options:data_dir");
     cache_dir = data_dir ? data_dir : ".";
-    cache_dir += "/vrs_cache";
+    cache_dir += "/vrs_cache/";
+    cache_dir += VrsScheme::type();
   }
 
-  output.auto_cache.reset(new vrs::AutoCacheFile(cache_dir, (n + 1) * (s + 1)));
+  output.auto_cache.reset(new vrs::AutoCacheFile<VrsScheme>(cache_dir, (n + 1) * (s + 1)));
   auto cache = output.auto_cache->LoadAndUpgrade();
 
   std::vector<std::vector<G1>> cached_var_coms;
@@ -97,7 +99,7 @@ inline void EncryptAndProve(ProveOutput& output, h256_t seed,
   output.proved_data.vw_com_r = FrRand();
   vrs::SecretInput secret_input(output.secret.seed0, output.secret.seed0_com_r,
                                 output.proved_data.vw_com_r);
-  vrs::LargeProverLowRam prover(public_input, secret_input,
+  vrs::LargeProverLowRam<VrsScheme> prover(public_input, secret_input,
                                 std::move(cached_var_coms),
                                 std::move(cached_var_coms_r));
   auto get_w = [&w, s](int64_t i) { return w[i / (s + 1)]; };

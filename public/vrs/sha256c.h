@@ -206,7 +206,7 @@ inline void Sha256Compress(const uint8_t data[64], uint8_t hash[32]) {
   WriteBE32(hash + 28, s[7]);
 }
 
-void test_sha256_compress() {
+inline bool test_sha256_compress() {
   uint8_t data[64] = {183, 231, 178, 111, 197, 66,  169, 241, 210, 48,  239,
                       205, 118, 75,  152, 233, 23,  244, 68,  121, 155, 134,
                       181, 131, 32,  157, 253, 177, 49,  186, 62,  132, 0x80,
@@ -220,7 +220,10 @@ void test_sha256_compress() {
 
   uint8_t out[32];
   Sha256Compress(data, out);
-  assert(memcmp(out, sig, 32) == 0);
+  if (memcmp(out, sig, 32) != 0) {
+    assert(false);
+    return false;
+  }
 
   // copy from test_sha256_gadget.cpp
   uint8_t data2[64] = {
@@ -255,7 +258,10 @@ void test_sha256_compress() {
   };
 
   Sha256Compress(data2, out);
-  assert(memcmp(out, sig2, 32) == 0);
+  if (memcmp(out, sig2, 32) != 0) {
+    assert(false);
+    return false;
+  }
 
   uint8_t data3[64] = {
       0x00, 0x00, 0x00, 0x00,
@@ -288,7 +294,11 @@ void test_sha256_compress() {
       0xa0,0x1b,0xde,0x57
   };
   Sha256Compress(data3, out);
-  assert(memcmp(out, sig3, 32) == 0);
+  if (memcmp(out, sig3, 32) != 0) {
+    assert(false);
+    return false;
+  }
+  return true;
 }
 
 inline h256_t Sha256Compress(h256_t const& a, h256_t const& b) {

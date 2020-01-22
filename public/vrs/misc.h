@@ -11,16 +11,7 @@
 
 namespace vrs {
 
-#ifdef _DEBUG
-inline static const int64_t kMaxUnitPerZkp = 32;
-#else
-inline static const int64_t kMaxUnitPerZkp = 1024 * 32;
-#endif
-
 inline static const std::string kFstHpCom = "vrs_fst_hp_com";
-
-static_assert(kMaxUnitPerZkp <= (int64_t)PcBase::kGSize,
-              "kMaxUnitPerZkp too large");
 
 inline void GeneratePlain(Fr* out, h256_t const& plain_seed, int64_t position) {
   CryptoPP::Keccak_256 hash;
@@ -49,20 +40,6 @@ inline Fr GenerateV(int64_t offset, Fr const& key, h256_t const& plain_seed) {
   Fr ret;
   GenerateV(offset, key, plain_seed, &ret);
   return ret;
-}
-
-inline std::vector<std::pair<int64_t, int64_t>> SplitLargeTask(int64_t count) {
-  std::vector<std::pair<int64_t, int64_t>> items((count + kMaxUnitPerZkp - 1) /
-                                                 kMaxUnitPerZkp);
-  for (int64_t i = 0; i < (int64_t)items.size(); ++i) {
-    auto& item = items[i];
-    item.first = i * kMaxUnitPerZkp;
-    item.second = item.first + kMaxUnitPerZkp;
-    if (item.second > count) {
-      item.second = count;
-    }
-  }
-  return items;
 }
 
 inline std::vector<Fr> SplitFr(Fr const& fr, int64_t count) {

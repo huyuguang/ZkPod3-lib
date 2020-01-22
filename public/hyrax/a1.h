@@ -246,6 +246,7 @@ inline bool RomVerify(RomProof const& rom_proof, h256_t const& common_seed,
 }
 
 inline bool TestRom() {
+  Tick tick(__FUNCTION__);
   h256_t UpdateSeed = misc::RandH256();
 
   int64_t x_g_offset = 1;

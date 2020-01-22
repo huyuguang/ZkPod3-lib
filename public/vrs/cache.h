@@ -1,27 +1,27 @@
 #pragma once
 
-#include "parallel/parallel.h"
-#include "public.h"
 #include "./mimc5_gadget.h"
 #include "./misc.h"
+#include "./split_task.h"
 #include "./types.h"
+#include "parallel/parallel.h"
+#include "public.h"
 
 namespace vrs {
-// TODO: more check format (maybe kMaxUnitPerZkp changed?)
 inline static const std::string kExtensionUsing = ".using";
 inline static const std::string kExtensionUsed = ".used";
 
-inline bool CheckVarComs(h256_t const& seed, Fr const& key, Fr const& key_com_r,
-                         int64_t begin, int64_t end,
-                         std::vector<G1> const& var_coms,
-                         std::vector<Fr> const& var_coms_r) {
-  static constexpr int64_t kPrimaryInputSize = 1;
+template <typename Scheme>
+bool CheckVarComs(h256_t const& seed, Fr const& key, Fr const& key_com_r,
+                  int64_t begin, int64_t end, std::vector<G1> const& var_coms,
+                  std::vector<Fr> const& var_coms_r) {
+  int64_t const kPrimaryInputSize = Scheme::kPrimaryInputSize;
   auto count = end - begin;
   std::vector<Fr> v(count);
   std::vector<std::vector<Fr>> values(count);
-  libsnark::protoboard<Fr> pb;
-  Mimc5Gadget gadget(pb, "Mimc5Gadget");
-  pb.set_input_sizes(kPrimaryInputSize);
+  Scheme scheme;
+  auto& pb = scheme.pb;
+  auto& gadget = scheme.gadget;
   auto num_var = (int64_t)pb.num_variables();
   if ((int64_t)var_coms.size() != num_var) {
     assert(false);
@@ -69,11 +69,12 @@ inline bool CheckVarComs(h256_t const& seed, Fr const& key, Fr const& key_com_r,
   return true;
 }
 
-inline bool CheckCache(Cache const& cache) {
+template <typename Scheme>
+bool CheckCache(Cache const& cache) {
   static constexpr int64_t kPrimaryInputSize = 1;
   if (!cache.count) return false;
   auto count = cache.count;
-  auto items = SplitLargeTask(count);
+  auto items = SplitLargeTask<Scheme>(count);
   if (cache.var_coms.size() != items.size()) return false;
   if (cache.var_coms_r.size() != items.size()) return false;
 
@@ -92,8 +93,8 @@ inline bool CheckCache(Cache const& cache) {
   auto f = [&var_coms_r, &items, &cache, &var_coms](int64_t i) {
     auto const& item = items[i];
     auto const& key_com_r = var_coms_r[i][kPrimaryInputSize];
-    return CheckVarComs(cache.seed, cache.key, key_com_r, item.first,
-                           item.second, var_coms[i], var_coms_r[i]);
+    return CheckVarComs<Scheme>(cache.seed, cache.key, key_com_r, item.first,
+                                item.second, var_coms[i], var_coms_r[i]);
   };
   parallel::For(&all_success, items.size(), f);
 
@@ -103,17 +104,18 @@ inline bool CheckCache(Cache const& cache) {
   return true;
 }
 
-inline void ComputeVarComs(h256_t const& seed, Fr const& key,
-                           Fr const& key_com_r, int64_t begin, int64_t end,
-                           std::vector<G1>& var_coms,
-                           std::vector<Fr>& var_coms_r) {
-  static constexpr int64_t kPrimaryInputSize = 1;
+template <typename Scheme>
+void ComputeVarComs(h256_t const& seed, Fr const& key, Fr const& key_com_r,
+                    int64_t begin, int64_t end, std::vector<G1>& var_coms,
+                    std::vector<Fr>& var_coms_r) {
+  Tick tick(__FUNCTION__);
+  int64_t const kPrimaryInputSize = Scheme::kPrimaryInputSize;
   auto count = end - begin;
   std::vector<Fr> v(count);
   std::vector<std::vector<Fr>> values(count);
-  libsnark::protoboard<Fr> pb;
-  Mimc5Gadget gadget(pb, "Mimc5Gadget");
-  pb.set_input_sizes(kPrimaryInputSize);
+  Scheme scheme;
+  auto& pb = scheme.pb;
+  auto& gadget = scheme.gadget;
 
   for (int64_t i = 0; i < count; ++i) {
     auto plain = GeneratePlain(seed, i + begin);
@@ -146,20 +148,21 @@ inline void ComputeVarComs(h256_t const& seed, Fr const& key,
   }
 }
 
-inline void UpgradeVarComs(h256_t const& seed, Fr const& key, int64_t begin,
-                           int64_t old_end, int64_t new_end,
-                           std::vector<G1>& var_coms) {
+template <typename Scheme>
+void UpgradeVarComs(h256_t const& seed, Fr const& key, int64_t begin,
+                    int64_t old_end, int64_t new_end,
+                    std::vector<G1>& var_coms) {
   Tick tick(__FUNCTION__);
   if (old_end == new_end) return;
-  static constexpr int64_t kPrimaryInputSize = 1;
+  //int64_t const kPrimaryInputSize = Scheme::kPrimaryInputSize;
   auto min_end = std::min(old_end, new_end);
   auto max_end = std::max(old_end, new_end);
   bool is_grow = new_end > old_end;
   auto count = max_end - min_end;
   std::vector<std::vector<Fr>> values(count);
-  libsnark::protoboard<Fr> pb;
-  Mimc5Gadget gadget(pb, "Mimc5Gadget");
-  pb.set_input_sizes(kPrimaryInputSize);
+  Scheme scheme;
+  auto& pb = scheme.pb;
+  auto& gadget = scheme.gadget;
 
   for (int64_t i = 0; i < count; ++i) {
     auto plain = GeneratePlain(seed, i + min_end);
@@ -190,14 +193,17 @@ inline void UpgradeVarComs(h256_t const& seed, Fr const& key, int64_t begin,
   parallel::For(num_var, parallel_f);
 }
 
-inline Cache CreateCache(int64_t count) {
+template <typename Scheme>
+Cache CreateCache(int64_t count) {
   Tick tick(__FUNCTION__);
   Cache cache;
   cache.count = count;
   cache.seed = misc::RandH256();
   cache.key = FrRand();
+  cache.type = Scheme::type();
+  cache.max_unit_per_zkp = Scheme::kMaxUnitPerZkp;
 
-  auto items = SplitLargeTask(cache.count);
+  auto items = SplitLargeTask<Scheme>(cache.count);
 
   std::vector<Fr> key_com_rs(items.size());
   for (auto& i : key_com_rs) i = FrRand();
@@ -209,20 +215,19 @@ inline Cache CreateCache(int64_t count) {
   auto& var_coms = cache.var_coms;
   auto& var_coms_r = cache.var_coms_r;
 
-  auto f = [&items, &cache, &key_com_rs, &var_coms,
-            &var_coms_r](int64_t i) {
+  auto f = [&items, &cache, &key_com_rs, &var_coms, &var_coms_r](int64_t i) {
     auto const& item = items[i];
-    ComputeVarComs(cache.seed, cache.key, key_com_rs[i], item.first,
-                   item.second, var_coms[i], var_coms_r[i]);
+    ComputeVarComs<Scheme>(cache.seed, cache.key, key_com_rs[i], item.first,
+                           item.second, var_coms[i], var_coms_r[i]);
   };
   parallel::For(items.size(), f);
 
-  assert(CheckCache(cache));
+  assert(CheckCache<Scheme>(cache));
   return cache;
 }
 
-inline bool LoadCache(std::string const& pathname, Cache& cache,
-                      bool check_name) {
+template <typename Scheme>
+bool LoadCache(std::string const& pathname, Cache& cache, bool check_name) {
   Tick tick(__FUNCTION__);
   try {
     yas::file_istream is(pathname.c_str());
@@ -236,19 +241,34 @@ inline bool LoadCache(std::string const& pathname, Cache& cache,
     return false;
   }
 
+  if (cache.max_unit_per_zkp != Scheme::kMaxUnitPerZkp ||
+      cache.type != Scheme::type()) {
+    std::cout << "invalid max_unit_per_zkp or type\n";
+    assert(false);
+    return false;
+  }
+
   if (check_name) {
     auto base = fs::basename(pathname);
     auto check_base =
         std::to_string(cache.count) + "_" + misc::HexToStr(cache.seed);
     return base == check_base;
-  }  
+  }
 
   return true;
 }
 
-inline bool SaveCache(std::string const& dir, Cache const& cache,
-                      std::string& output) {
+template <typename Scheme>
+bool SaveCache(std::string const& dir, Cache const& cache,
+               std::string& output) {
   Tick tick(__FUNCTION__);
+  if (cache.max_unit_per_zkp != Scheme::kMaxUnitPerZkp ||
+      cache.type != Scheme::type()) {
+    std::cout << "invalid max_unit_per_zkp or type\n";
+    assert(false);
+    return false;
+  }
+
   std::string base_name =
       std::to_string(cache.count) + "_" + misc::HexToStr(cache.seed);
   std::string temp_name = base_name + ".tmp";
@@ -275,12 +295,13 @@ inline bool SaveCache(std::string const& dir, Cache const& cache,
 
 #ifdef _DEBUG
   Cache check_cache;
-  assert(LoadCache(output, check_cache, true) && check_cache == cache);
+  assert(LoadCache<Scheme>(output, check_cache, true) && check_cache == cache);
 #endif
   return true;
 }
 
-inline std::string SelectCacheFile(std::string const& dir, int64_t count) {
+template <typename Scheme>
+std::string SelectCacheFile(std::string const& dir, int64_t count) {
   boost::system::error_code ec;
   if (!fs::is_directory(dir, ec)) return "";
 
@@ -317,6 +338,7 @@ inline std::string SelectCacheFile(std::string const& dir, int64_t count) {
   if (files.empty()) return "";
   std::sort(files.begin(), files.end());
 
+  auto const kMaxUnitPerZkp = Scheme::kMaxUnitPerZkp;
   while (!files.empty()) {
     auto it = std::upper_bound(files.begin(), files.end(), Item(count));
     if (it == files.begin()) {
@@ -374,14 +396,15 @@ inline void ExhaustCacheFile(std::string const& using_name) {
   }
 }
 
-inline void UpgradeCache(Cache& cache, int64_t count) {
+template <typename Scheme>
+void UpgradeCache(Cache& cache, int64_t count) {
   Tick tick(__FUNCTION__);
   static constexpr int64_t kPrimaryInputSize = 1;
   if (cache.count == count) return;
   auto old_count = cache.count;
   auto new_count = count;
-  auto old_items = SplitLargeTask(old_count);
-  auto new_items = SplitLargeTask(new_count);
+  auto old_items = SplitLargeTask<Scheme>(old_count);
+  auto new_items = SplitLargeTask<Scheme>(new_count);
   std::cout << "old_count: " << old_count << ", old_items: " << old_items.size()
             << "\n";
   std::cout << "new_count: " << new_count << ", new_items: " << new_items.size()
@@ -391,8 +414,8 @@ inline void UpgradeCache(Cache& cache, int64_t count) {
     auto const& new_item = new_items[old_items.size() - 1];
     assert(old_item.first == new_item.first);
     auto& var_com = cache.var_coms.back();
-    UpgradeVarComs(cache.seed, cache.key, old_item.first, old_item.second,
-                   new_item.second, var_com);
+    UpgradeVarComs<Scheme>(cache.seed, cache.key, old_item.first,
+                           old_item.second, new_item.second, var_com);
 
     std::cout << "add " << new_items.size() - old_items.size() << " items\n";
     cache.var_coms.resize(new_items.size());
@@ -405,8 +428,9 @@ inline void UpgradeCache(Cache& cache, int64_t count) {
       auto& add_var_com_r = cache.var_coms_r[i];
       auto& key_com_r = key_com_rs[i - old_item_size];
       key_com_r = FrRand();
-      ComputeVarComs(cache.seed, cache.key, key_com_r, add_new_item.first,
-                     add_new_item.second, add_var_com, add_var_com_r);
+      ComputeVarComs<Scheme>(cache.seed, cache.key, key_com_r,
+                             add_new_item.first, add_new_item.second,
+                             add_var_com, add_var_com_r);
     };
     parallel::For(old_items.size(), new_items.size(), parallel_f);
     cache.key_com_r = parallel::Accumulate(key_com_rs.begin(), key_com_rs.end(),
@@ -416,8 +440,8 @@ inline void UpgradeCache(Cache& cache, int64_t count) {
     auto const& old_item = old_items[new_items.size() - 1];
     assert(old_item.first == new_item.first);
     auto& var_com = cache.var_coms[new_items.size() - 1];
-    UpgradeVarComs(cache.seed, cache.key, old_item.first, old_item.second,
-                   new_item.second, var_com);
+    UpgradeVarComs<Scheme>(cache.seed, cache.key, old_item.first,
+                           old_item.second, new_item.second, var_com);
     for (size_t i = new_items.size(); i < old_items.size(); ++i) {
       auto& add_var_com_r = cache.var_coms_r[i];
       auto const& key_com_r = add_var_com_r[kPrimaryInputSize];
@@ -429,9 +453,10 @@ inline void UpgradeCache(Cache& cache, int64_t count) {
 
   cache.count = count;
 
-  assert(CheckCache(cache));
+  assert(CheckCache<Scheme>(cache));
 }
 
+template <typename Scheme>
 class AutoCacheFile : boost::noncopyable {
  public:
   AutoCacheFile(std::string cache_dir, int64_t count)
@@ -446,15 +471,15 @@ class AutoCacheFile : boost::noncopyable {
   }
   CacheUPtr LoadAndUpgrade() {
     CacheUPtr cache;
-    cache_file_ = SelectCacheFile(cache_dir_, count_);
+    cache_file_ = SelectCacheFile<Scheme>(cache_dir_, count_);
     if (!cache_file_.empty()) {
       cache.reset(new vrs::Cache());
-      if (!LoadCache(cache_file_, *cache, false)) {
+      if (!LoadCache<Scheme>(cache_file_, *cache, false)) {
         std::cerr << "LoadCache failed\n";
         cache.reset();
         cache_file_.clear();
       } else {
-        UpgradeCache(*cache, count_);
+        UpgradeCache<Scheme>(*cache, count_);
         // CheckCache(*cache);
       }
     }
@@ -462,6 +487,7 @@ class AutoCacheFile : boost::noncopyable {
   }
 
   void SetLeaked() { leaked_ = true; }
+
  private:
   std::string cache_dir_;
   int64_t count_;
@@ -469,5 +495,6 @@ class AutoCacheFile : boost::noncopyable {
   bool leaked_{false};
 };
 
-typedef std::unique_ptr<AutoCacheFile> AutoCacheFileUPtr;
+template <typename Scheme>
+using AutoCacheFileUPtr = std::unique_ptr<AutoCacheFile<Scheme>>;
 }  // namespace vrs

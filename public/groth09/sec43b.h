@@ -28,7 +28,7 @@ struct CommitmentPub {
     int64_t old_m = a.size();
     int64_t new_m = (int64_t)misc::Pow2UB(old_m);
     if (new_m > old_m) {
-      static const G1 g0 = G1Zero();
+      G1 const& g0 = G1Zero();
       a.resize(new_m);
       std::fill(a.begin() + old_m, a.end(), g0);
       b.resize(new_m);
@@ -47,7 +47,7 @@ struct CommitmentSec {
     int64_t old_m = r.size();
     int64_t new_m = (int64_t)misc::Pow2UB(old_m);
     if (new_m > old_m) {
-      static const Fr f0 = FrZero();
+      Fr const& f0 = FrZero();
       r.resize(new_m);
       std::fill(r.begin() + old_m, r.end(), f0);
       s.resize(new_m);
@@ -89,12 +89,13 @@ void serialize(Ar& ar, RomProof& t) {
 }
 
 struct ProverInput {
+  int64_t const original_m;
   std::vector<std::vector<Fr>> x;  // m*n
   std::vector<std::vector<Fr>> y;
   std::vector<std::vector<Fr>> z;
   int64_t const x_g_offset;
   int64_t const y_g_offset;
-  int64_t const z_g_offset;
+  int64_t const z_g_offset;    
 
   int64_t m() const { return x.size(); }
   int64_t n() const { return x[0].size(); }
@@ -105,10 +106,12 @@ struct ProverInput {
     oz = std::move(z);
   }
 
-  ProverInput(std::vector<std::vector<Fr>> ix, std::vector<std::vector<Fr>> iy,
-              std::vector<std::vector<Fr>> iz, int64_t x_g_offset,
+  ProverInput(int64_t original_m, std::vector<std::vector<Fr>>&& ix,
+              std::vector<std::vector<Fr>>&& iy,
+              std::vector<std::vector<Fr>>&& iz, int64_t x_g_offset,
               int64_t y_g_offset, int64_t z_g_offset)
-      : x(std::move(ix)),
+      : original_m(original_m),
+        x(std::move(ix)),
         y(std::move(iy)),
         z(std::move(iz)),
         x_g_offset(x_g_offset),
@@ -197,7 +200,7 @@ inline void ComputeChallengeKT(h256_t const& seed, std::vector<Fr>& k,
 // pad some trivial value
 inline void AlignData(ProverInput& input, CommitmentPub& com_pub,
                       CommitmentSec& com_sec) {
-  // Tick tick(__FUNCTION__);
+  Tick tick(__FUNCTION__);
   input.Align();
   com_pub.Align();
   com_sec.Align();
@@ -205,9 +208,12 @@ inline void AlignData(ProverInput& input, CommitmentPub& com_pub,
 
 inline void RomProve(RomProof& rom_proof, h256_t seed, ProverInput input,
                      CommitmentPub com_pub, CommitmentSec com_sec) {
-  // Tick tick(__FUNCTION__);
+  Tick tick(__FUNCTION__);  
   auto m = input.m();
   auto n = input.n();
+  auto original_m = input.original_m;
+
+  std::cout << "m: " << m << ", n:" << n << "\n";
 
   UpdateSeed(seed, com_pub);
   std::vector<Fr> k(m);
@@ -224,21 +230,28 @@ inline void RomProve(RomProof& rom_proof, h256_t seed, ProverInput input,
   input.Take(input_x, input_y, input_z);
 
   {
-    // Tick tick53(" prepare for sec53b");
+    Tick tick53(" sec43b->sec53b");
 
     sec53b::CommitmentSec com_sec_53;
     sec53b::CommitmentPub com_pub_53;
-    std::vector<std::vector<Fr>> x_53(m);
 
     auto parallel_f = [&input_x, &k](int64_t i) { input_x[i] *= k[i]; };
-    parallel::For(m, parallel_f, m < 1024);
+    parallel::For(original_m, parallel_f, original_m < 1024);
 
     std::vector<std::vector<Fr>> input_yt(m);
     Fr z = FrZero();
-    // TODO: parallel
-    for (int64_t i = 0; i < m; ++i) {
-      input_yt[i] = details::HadamardProduct(input_y[i], t);
-      z += InnerProduct(input_x[i], input_yt[i]);
+
+    {
+      Tick tickz("sec53b compute z");
+      // 2*m*n fr mul
+      for (int64_t i = 0; i < original_m; ++i) {
+        input_yt[i] = details::HadamardProduct(input_y[i], t);
+        z += InnerProduct(input_x[i], input_yt[i]);
+      }
+      for (int64_t i = original_m; i < m; ++i) {
+        input_yt[i].resize(n);
+        std::fill(input_yt[i].begin(), input_yt[i].end(), FrZero());
+      }
     }
 
     auto input_53_z_g_offset = SelectSec53Zoffset(
@@ -246,33 +259,40 @@ inline void RomProve(RomProof& rom_proof, h256_t seed, ProverInput input,
     sec53b::ProverInput input_53(std::move(input_x), std::move(input_y), t,
                                  std::move(input_yt), z, input.x_g_offset,
                                  input.y_g_offset, input_53_z_g_offset);
-    input_53_z = input_53.z;
 
-    com_sec_53.r.resize(m);
-    com_pub_53.a.resize(m);
-    auto parallel_f2 = [&com_sec, &com_pub, &com_sec_53, &com_pub_53,
-                        &k](int64_t i) {
-      com_sec_53.r[i] = com_sec.r[i] * k[i];
-      com_pub_53.a[i] = com_pub.a[i] * k[i];
-    };
-    parallel::For(m, parallel_f2, m < 16 * 1024);
+    {
+      Tick tickz("sec53b compute com_sec_53 com_pub_53");
+      input_53_z = input_53.z;    
+      com_sec_53.r.resize(m);
+      com_pub_53.a.resize(m);
+      auto parallel_f2 = [&com_sec, &com_pub, &com_sec_53, &com_pub_53,
+                          &k](int64_t i) {
+        com_sec_53.r[i] = com_sec.r[i] * k[i];
+        com_pub_53.a[i] = com_pub.a[i] * k[i];
+      };
+      parallel::For(original_m, parallel_f2, original_m < 16 * 1024);
+      std::fill(com_sec_53.r.begin() + original_m, com_sec_53.r.end(),
+                FrZero());
+      std::fill(com_pub_53.a.begin() + original_m, com_pub_53.a.end(),
+                G1Zero());
 
-    com_sec_53.s = com_sec.s;
-    com_sec_53.t = FrRand();
-    com_sec_53_t = com_sec_53.t;
+      com_sec_53.s = com_sec.s;
+      com_sec_53.t = FrRand();
+      com_sec_53_t = com_sec_53.t;
 
-    com_pub_53.b = com_pub.b;
-    com_pub_53.c =
-        PcComputeCommitmentG(input_53.z_g_offset, input_53_z, com_sec_53.t);
-    rom_proof.c = com_pub_53.c;  // verifier can not compute c by com_pub.c
-    com_pub_53_c = com_pub_53.c;
+      com_pub_53.b = com_pub.b;
+      com_pub_53.c =
+          PcComputeCommitmentG(input_53.z_g_offset, input_53_z, com_sec_53.t);
+      rom_proof.c = com_pub_53.c;  // verifier can not compute c by com_pub.c
+      com_pub_53_c = com_pub_53.c;
+    }
 
     sec53b::RomProve(rom_proof.proof_53, seed, std::move(input_53),
                      std::move(com_pub_53), std::move(com_sec_53));
   }
 
   {
-    // Tick tick53("prepare for hyrax");
+    Tick tick53("sec43b->a2");
     hyrax::a2::CommitmentPub com_pub_hy;
     hyrax::a2::CommitmentSec com_sec_hy;
 
@@ -383,6 +403,7 @@ inline bool RomVerify(RomProof const& rom_proof, h256_t seed,
 }
 
 inline bool TestRom(int64_t m, int64_t n) {
+  Tick tick(__FUNCTION__);
   std::cout << "old_m=" << m << ", n=" << n << "\n";
 
   std::vector<std::vector<Fr>> x(m);
@@ -408,7 +429,10 @@ inline bool TestRom(int64_t m, int64_t n) {
   int64_t y_g_offset = 0;
   int64_t z_g_offset = 0;
 
-  ProverInput prover_input(x, y, z, x_g_offset, y_g_offset, z_g_offset);
+
+  ProverInput prover_input(m, std::move(x), std::move(y), 
+                           std::move(z), x_g_offset, y_g_offset,
+                           z_g_offset);
   CommitmentPub com_pub;
   CommitmentSec com_sec;
   ComputeCom(com_pub, com_sec, prover_input);

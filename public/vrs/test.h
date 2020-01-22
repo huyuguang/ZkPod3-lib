@@ -2,7 +2,11 @@
 
 namespace vrs {
 
-inline bool TestBasic(int64_t count) {
+template<typename Scheme>
+bool TestBasic(int64_t count) {
+  Tick tick(__FUNCTION__);
+  std::cout << "count = " << count << "\n";
+
   auto rom_seed = misc::RandH256();
 
   h256_t vrs_plain_seed = misc::RandH256();
@@ -15,7 +19,7 @@ inline bool TestBasic(int64_t count) {
 
   vrs::Proof proof;
   vrs::ProveOutput prove_output;
-  vrs::Prover prover(public_input, secret_input, std::vector<G1>(),
+  vrs::Prover<Scheme> prover(public_input, secret_input, std::vector<G1>(),
                      std::vector<Fr>());
   prover.Evaluate();
 
@@ -31,7 +35,7 @@ inline bool TestBasic(int64_t count) {
   assert(com_vw == proof.com_vw);
 
   vrs::VerifyOutput verify_output;
-  vrs::Verifier verifier(public_input);
+  vrs::Verifier<Scheme> verifier(public_input);
   bool ret = verifier.Verify(rom_seed, get_w, proof, verify_output);
   assert(ret);
 
@@ -45,7 +49,10 @@ inline bool TestBasic(int64_t count) {
   return ret;
 }
 
-inline bool TestLarge(int64_t count) {
+template<typename Scheme>
+bool TestLarge(int64_t count) {
+  Tick tick(__FUNCTION__);
+  std::cout << "count = " << count << "\n";
   auto rom_seed = misc::RandH256();
   h256_t vrs_plain_seed = misc::RandH256();
   auto get_p = [&vrs_plain_seed](int64_t i) {
@@ -57,7 +64,7 @@ inline bool TestLarge(int64_t count) {
 
   std::vector<vrs::Proof> proofs;
   vrs::ProveOutput prove_output;
-  vrs::LargeProver prover(public_input, secret_input,
+  vrs::LargeProver<Scheme> prover(public_input, secret_input,
                           std::vector<std::vector<G1>>(),
                           std::vector<std::vector<Fr>>());
   prover.Evaluate();
@@ -78,7 +85,7 @@ inline bool TestLarge(int64_t count) {
   assert(check_com_vw == com_vw);
 
   vrs::VerifyOutput verify_output;
-  vrs::LargeVerifier verifier(public_input);
+  vrs::LargeVerifier<Scheme> verifier(public_input);
   bool ret = verifier.Verify(rom_seed, get_w, proofs, verify_output);
   assert(ret);
 
@@ -94,6 +101,7 @@ inline bool TestLarge(int64_t count) {
   return ret;
 }
 
+template<typename Scheme>
 inline void TestCache() {
   std::vector<bool> rets;
   // std::string output_file;
@@ -117,17 +125,17 @@ inline void TestCache() {
   // assert(ret);
   // rets.push_back(ret);
 
-  auto pathname = vrs::SelectCacheFile("vrs_cache", 121);
+  auto pathname = vrs::SelectCacheFile<Scheme>("vrs_cache", 121);
   assert(!pathname.empty());
 
   Cache cache;
-  bool ret = vrs::LoadCache(pathname, cache, true);
+  bool ret = vrs::LoadCache<Scheme>(pathname, cache, true);
   assert(ret);
   rets.push_back(ret);
 
-  vrs::UpgradeCache(cache, 121);
+  vrs::UpgradeCache<Scheme>(cache, 121);
 
-  ret = CheckCache(cache);
+  ret = CheckCache<Scheme>(cache);
   assert(ret);
   rets.push_back(ret);
 
@@ -140,8 +148,11 @@ inline void TestCache() {
 inline void Test() {
   std::vector<bool> ret;
 
-  ret.push_back(TestBasic(10));
-  ret.push_back(TestLarge(164));
+  //ret.push_back(TestBasic<Mimc5Scheme>(10));
+  //ret.push_back(TestLarge<Mimc5Scheme>(164));
+
+  ret.push_back(TestBasic<Sha256cScheme>(3));
+  ret.push_back(TestLarge<Sha256cScheme>(10));
 
   std::cout << __FUNCTION__ << " summary:\n";
   for (auto i : ret) {
@@ -152,9 +163,10 @@ inline void Test() {
 inline void TestPerformance() {
   std::vector<bool> ret;
 
-  ret.push_back(TestBasic(1024*32));
-  ret.push_back(TestLarge(1024*128));
+  //ret.push_back(TestBasic<Mimc5Scheme>(1024*32));
+  ret.push_back(TestLarge<Mimc5Scheme>(1024*32*24));
 
+  ret.push_back(TestLarge<Sha256cScheme>(512*24));
   std::cout << __FUNCTION__ << " summary:\n";
   for (auto i : ret) {
     std::cout << (i ? "success" : "failed") << "\n";

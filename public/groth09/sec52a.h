@@ -312,6 +312,7 @@ inline bool RomVerify(RomProof const& rom_proof, h256_t const& common_seed,
 }
 
 inline bool TestRom(int64_t m, int64_t n) {
+  Tick tick(__FUNCTION__);
   std::cout << "m=" << m << ", n=" << n << "\n";
 
   std::vector<std::vector<Fr>> x(m);

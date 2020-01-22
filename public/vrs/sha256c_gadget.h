@@ -1,16 +1,21 @@
 #pragma once
 
-#include <libsnark/gadgetlib1/gadgets/hashes/sha256/sha256_gadget.hpp>
+#include <stdlib.h>
 
-#include "./base_gadget.h"
+#include <iostream>
+#include <libsnark/gadgetlib1/gadget.hpp>
+#include <libsnark/gadgetlib1/gadgets/basic_gadgets.hpp>
+#include <libsnark/gadgetlib1/gadgets/hashes/sha256/sha256_gadget.hpp>
+#include <libsnark/gadgetlib1/pb_variable.hpp>
+
 #include "./sha256c.h"
 
 namespace vrs {
-class Sha256cGadget : public BaseOnewayGadget {
+class Sha256cGadget : public libsnark::gadget<Fr> {
  public:
   Sha256cGadget(libsnark::protoboard<Fr>& pb,
                 const std::string& annotation_prefix)
-      : BaseOnewayGadget(pb, annotation_prefix) {
+      : libsnark::gadget<Fr>(pb, annotation_prefix) {
     plain_.allocate(pb, "plain");
     key_.allocate(pb, "key");
 
@@ -39,13 +44,13 @@ class Sha256cGadget : public BaseOnewayGadget {
     generate_r1cs_constraints();
   }
 
-  libsnark::pb_variable<Fr> plain() override { return plain_; }
+  libsnark::pb_variable<Fr> plain() { return plain_; }
 
-  libsnark::pb_variable<Fr> key() override { return key_; }
+  libsnark::pb_variable<Fr> key() { return key_; }
 
-  libsnark::pb_variable<Fr> result() override { return output_; }
+  libsnark::pb_variable<Fr> result() { return output_; }
 
-  void Assign(Fr const& plain, Fr const& key) override {
+  void Assign(Fr const& plain, Fr const& key) {
     this->pb.val(plain_) = plain;
     this->pb.val(key_) = key;
     generate_r1cs_witness();
@@ -54,7 +59,7 @@ class Sha256cGadget : public BaseOnewayGadget {
 
  private:
   void generate_r1cs_constraints() {
-    auto data = plain_;
+    //auto data = plain_;
     dual_plain_->generate_r1cs_constraints(true);
     dual_key_->generate_r1cs_constraints(true);
     dual_output_->generate_r1cs_constraints(true);
@@ -110,22 +115,34 @@ inline bool TestSha256cGadget() {
   return ret == output;
 }
 
+struct Sha256cScheme {
+  Sha256cScheme() : gadget(pb, "Sha256cGadget") {
+    pb.set_input_sizes(kPrimaryInputSize);
+    constraint_system = pb.get_constraint_system();
+  }
+  Fr Generate(Fr const& plain, Fr const& key) { return Sha256Enc(plain, key); }
 
-class Sha256cScheme : public BaseOnewayScheme {
- public:
-  Sha256cScheme() :BaseOnewayScheme(){
-    gadget_.reset(new Mimc5Gadget(pb_, "Sha256cGadget"));
-  }
-  int64_t MaxUnitPerZkp() override {
+  int64_t num_variables() const { return (int64_t)pb.num_variables(); }
+
+  int64_t num_constraints() const { return (int64_t)pb.num_constraints(); }
+
+  static const int64_t kPrimaryInputSize = 1;
 #ifdef _DEBUG
-    const int64_t kMaxUnitPerZkp = 32;
+  static const int64_t kMaxUnitPerZkp = 8;
 #else
-    const int64_t kMaxUnitPerZkp = 1024;
+  static const int64_t kMaxUnitPerZkp = 512;
 #endif
-    return kMaxUnitPerZkp;
-  }
-  Fr Generate(Fr const& plain, Fr const& key) override {
-    return Sha256Enc(plain, key);
-  }
+  static_assert(kMaxUnitPerZkp <= (int64_t)PcBase::kGSize,
+                "kMaxUnitPerZkp too large");
+
+  static std::string const& type() {
+    static const std::string a = "sha256c";
+    return a;
+  };
+
+  libsnark::protoboard<Fr> pb;
+  Sha256cGadget gadget;
+  libsnark::r1cs_constraint_system<Fr> constraint_system;
 };
+
 }  // namespace vrs

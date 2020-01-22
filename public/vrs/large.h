@@ -7,6 +7,7 @@
 
 namespace vrs {
 
+template<typename Scheme>
 class LargeProver {
  public:
   LargeProver(PublicInput const& public_input, SecretInput const& secret_input,
@@ -14,8 +15,8 @@ class LargeProver {
               std::vector<std::vector<Fr>> cached_var_coms_r)
       : public_input_(public_input), secret_input_(secret_input) {
     Tick tick(__FUNCTION__);
-    items_ = SplitLargeTask(public_input_.count);
-    std::cout << "items: " << items_.size() - 1 << "*" << kMaxUnitPerZkp << "+"
+    items_ = SplitLargeTask<Scheme>(public_input_.count);
+    std::cout << "items: " << items_.size() - 1 << "*" << Scheme::kMaxUnitPerZkp << "+"
               << items_.back().second - items_.back().first << "\n";
     assert(cached_var_coms.size() == cached_var_coms_r.size());
 
@@ -37,7 +38,7 @@ class LargeProver {
 
       auto& cached_var_com = cached_var_coms[i];
       auto& cached_var_com_r = cached_var_coms_r[i];
-      provers_[i].reset(new Prover(this_input, secret_inputs[i],
+      provers_[i].reset(new Prover<Scheme>(this_input, secret_inputs[i],
                                    std::move(cached_var_com),
                                    std::move(cached_var_com_r)));
     }
@@ -49,7 +50,7 @@ class LargeProver {
     auto parallel_f = [this](int64_t i) {
       provers_[i]->Evaluate();
       auto const& v = provers_[i]->v();
-      std::copy(v.begin(), v.end(), v_.begin() + i * kMaxUnitPerZkp);
+      std::copy(v.begin(), v.end(), v_.begin() + i * Scheme::kMaxUnitPerZkp);
     };
     parallel::For(provers_.size(), parallel_f);
   }
@@ -130,12 +131,13 @@ class LargeProver {
   int64_t const primary_input_size_ = 1;
   PublicInput public_input_;
   SecretInput secret_input_;
-  std::vector<std::unique_ptr<Prover>> provers_;
+  std::vector<std::unique_ptr<Prover<Scheme>>> provers_;
   std::vector<std::pair<int64_t, int64_t>> items_;
   Fr vw_;
   std::vector<Fr> v_;
 };
 
+template<typename Scheme>
 class LargeProverLowRam {
  public:
   LargeProverLowRam(PublicInput const& public_input,
@@ -147,8 +149,8 @@ class LargeProverLowRam {
         cached_var_coms_(std::move(cached_var_coms)),
         cached_var_coms_r_(std::move(cached_var_coms_r)) {
     Tick tick(__FUNCTION__);
-    items_ = SplitLargeTask(public_input_.count);
-    std::cout << "items: " << items_.size() - 1 << "*" << kMaxUnitPerZkp << "+"
+    items_ = SplitLargeTask<Scheme>(public_input_.count);
+    std::cout << "items: " << items_.size() - 1 << "*" << Scheme::kMaxUnitPerZkp << "+"
               << items_.back().second - items_.back().first << "\n";
     assert(cached_var_coms_.size() == cached_var_coms_r_.size());
 
@@ -183,12 +185,12 @@ class LargeProverLowRam {
 
       auto& cached_var_com = cached_var_coms_[i];
       auto& cached_var_com_r = cached_var_coms_r_[i];
-      Prover prover(this_input, secret_inputs_[i], std::move(cached_var_com),
+      Prover<Scheme> prover(this_input, secret_inputs_[i], std::move(cached_var_com),
                     std::move(cached_var_com_r));
 
       prover.Evaluate();
       auto const& v = prover.v();
-      std::copy(v.begin(), v.end(), v_.begin() + i * kMaxUnitPerZkp);
+      std::copy(v.begin(), v.end(), v_.begin() + i * Scheme::kMaxUnitPerZkp);
 
       auto this_get_w = [&item, &get_w](int64_t j) {
         return get_w(j + item.first);
@@ -258,9 +260,11 @@ class LargeProverLowRam {
   std::vector<Fr> v_;
 };
 
+template<typename Scheme>
 class LargeVerifier {
  public:
   LargeVerifier(PublicInput const& public_input) : public_input_(public_input) {
+    auto kMaxUnitPerZkp = Scheme::kMaxUnitPerZkp;
     auto count = public_input_.count;
     items_.resize((count + kMaxUnitPerZkp - 1) / kMaxUnitPerZkp);
     for (int64_t i = 0; i < (int64_t)items_.size(); ++i) {
@@ -281,7 +285,7 @@ class LargeVerifier {
       PublicInput this_input(pair_size(item), [&item, this](int64_t j) {
         return public_input_.get_p(item.first + j);
       });
-      verifiers_[i].reset(new Verifier(this_input));
+      verifiers_[i].reset(new Verifier<Scheme>(this_input));
     };
     parallel::For((int64_t)verifiers_.size(), parallel_f);
   }
@@ -323,7 +327,7 @@ class LargeVerifier {
 
  private:
   PublicInput public_input_;
-  std::vector<std::unique_ptr<Verifier>> verifiers_;
+  std::vector<std::unique_ptr<Verifier<Scheme>>> verifiers_;
   std::vector<std::pair<int64_t, int64_t>> items_;
   G1 com_vw_;
 };

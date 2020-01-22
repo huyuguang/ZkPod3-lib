@@ -10,6 +10,8 @@
 
 namespace vrs {
 struct Cache {
+  std::string type;
+  int64_t max_unit_per_zkp;
   int64_t count = 0;
   h256_t seed;  // plain seed
   Fr key;
@@ -20,7 +22,9 @@ struct Cache {
 typedef std::unique_ptr<Cache> CacheUPtr;
 
 inline bool operator==(Cache const& left, Cache const& right) {
-  return left.count == right.count && left.seed == right.seed &&
+  return left.type == right.type &&
+         left.max_unit_per_zkp == right.max_unit_per_zkp &&
+         left.count == right.count && left.seed == right.seed &&
          left.key == right.key && left.key_com_r == right.key_com_r &&
          left.var_coms == right.var_coms && left.var_coms_r == right.var_coms_r;
 }
@@ -32,7 +36,7 @@ inline bool operator!=(Cache const& left, Cache const& right) {
 // save to bin
 template <typename Ar>
 void serialize(Ar& ar, Cache const& t) {
-  ar& YAS_OBJECT_NVP("cache", ("c", t.count), ("s", t.seed), ("k", t.key),
+  ar& YAS_OBJECT_NVP("cache", ("type", t.type),("max", t.max_unit_per_zkp),("c", t.count), ("s", t.seed), ("k", t.key),
                      ("kcr", t.key_com_r), ("vc", t.var_coms),
                      ("vcr", t.var_coms_r));
 }
@@ -40,7 +44,7 @@ void serialize(Ar& ar, Cache const& t) {
 // load from bin
 template <typename Ar>
 void serialize(Ar& ar, Cache& t) {
-  ar& YAS_OBJECT_NVP("cache", ("c", t.count), ("s", t.seed), ("k", t.key),
+  ar& YAS_OBJECT_NVP("cache", ("type", t.type),("max", t.max_unit_per_zkp),("c", t.count), ("s", t.seed), ("k", t.key),
                      ("kcr", t.key_com_r), ("vc", t.var_coms),
                      ("vcr", t.var_coms_r));
 }

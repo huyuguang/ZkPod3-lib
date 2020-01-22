@@ -81,8 +81,8 @@ struct VerifierInput {
 struct ProverInput {
   std::vector<std::vector<Fr>> x;
   std::vector<std::vector<Fr>> y;
-  std::vector<std::vector<Fr>> yt;
   std::vector<Fr> const& t;
+  std::vector<std::vector<Fr>> yt;  
   Fr z;
   int64_t const x_g_offset;
   int64_t const y_g_offset;
@@ -406,7 +406,7 @@ inline void RomProveRecursive(RomProof& rom_proof, h256_t& seed,
 
 inline void RomProve(RomProof& rom_proof, h256_t seed, ProverInput input,
                      CommitmentPub com_pub, CommitmentSec com_sec) {
-  // Tick tick(__FUNCTION__);
+  Tick tick(__FUNCTION__);
   assert(PcBase::kGSize >= input.n());
 
   while (input.m() > 1) {
@@ -463,6 +463,7 @@ inline bool RomVerify(RomProof const& rom_proof, h256_t seed,
 }
 
 inline bool TestRom(int64_t m, int64_t n) {
+  Tick tick(__FUNCTION__);
   std::cout << "m=" << m << ", n=" << n << "\n";
 
   std::vector<std::vector<Fr>> x(m);

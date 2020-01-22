@@ -66,7 +66,7 @@
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>$(SolutionDir)/../thirdparty/csv;$(SolutionDir)/../thirdparty/yas/include;$(SolutionDir)/../thirdparty;$(SolutionDir)/../public</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
-      <AdditionalOptions>/utf-8 /Zc:twoPhase- %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/utf-8 /Zc:twoPhase- /bigobj %(AdditionalOptions)</AdditionalOptions>
       <OpenMPSupport>false</OpenMPSupport>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <LanguageStandard>stdcpp17</LanguageStandard>
@@ -186,6 +186,13 @@
     <ClInclude Include="..\public\pc_utils\substrpack.h" />
     <ClInclude Include="..\public\pc_utils\test.h" />
     <ClInclude Include="..\public\pc_utils\types.h" />
+    <ClInclude Include="..\public\pod\details.h" />
+    <ClInclude Include="..\public\pod\notary.h" />
+    <ClInclude Include="..\public\pod\pod.h" />
+    <ClInclude Include="..\public\pod\prover.h" />
+    <ClInclude Include="..\public\pod\test.h" />
+    <ClInclude Include="..\public\pod\types.h" />
+    <ClInclude Include="..\public\pod\verifier.h" />
     <ClInclude Include="..\public\public.h" />
     <ClInclude Include="..\public\scheme\bulletin_plain.h" />
     <ClInclude Include="..\public\scheme\bulletin_table.h" />
@@ -200,7 +207,6 @@
     <ClInclude Include="..\public\vrf\details.h" />
     <ClInclude Include="..\public\vrf\test.h" />
     <ClInclude Include="..\public\vrf\vrf.h" />
-    <ClInclude Include="..\public\vrs\base_gadget.h" />
     <ClInclude Include="..\public\vrs\cache.h" />
     <ClInclude Include="..\public\vrs\large.h" />
     <ClInclude Include="..\public\vrs\mimc5.h" />
@@ -208,9 +214,9 @@
     <ClInclude Include="..\public\vrs\misc.h" />
     <ClInclude Include="..\public\vrs\notary.h" />
     <ClInclude Include="..\public\vrs\prover.h" />
-    <ClInclude Include="..\public\vrs\serialize.h" />
     <ClInclude Include="..\public\vrs\sha256c.h" />
     <ClInclude Include="..\public\vrs\sha256c_gadget.h" />
+    <ClInclude Include="..\public\vrs\split_task.h" />
     <ClInclude Include="..\public\vrs\test.h" />
     <ClInclude Include="..\public\vrs\types.h" />
     <ClInclude Include="..\public\vrs\verifier.h" />

@@ -31,7 +31,7 @@ void serialize(Ar& ar, Proof& t) {
 }
 
 struct ProveOutput {
-  pod::ProveOutput pod_output;
+  pod::ProveOutput<vrs::Mimc5Scheme> pod_output;
   std::vector<pc_utils::substrpack::ProveOutput> sp_outputs;
 
   Proof BuildProof() const {
@@ -126,7 +126,7 @@ inline void Prove(ProveOutput& output, h256_t seed, ProverInput const& input) {
     return output.sp_outputs[i].com_pack_y_r;
   };
 
-  pod::EncryptAndProve(output.pod_output, seed, data_y, input.vrs_cache_dir);
+  pod::EncryptAndProve<vrs::Mimc5Scheme>(output.pod_output, seed, data_y, input.vrs_cache_dir);
 }
 
 struct VerifierInput {
@@ -184,7 +184,7 @@ inline bool Verify(Proof const& proof, h256_t seed, VerifierInput const& input,
   };
   auto pod_n = n;
   auto pod_s = (s + 252) / 253;
-  if (!pod::VerifyAndSign(output, seed, pod_n, pod_s, get_com,
+  if (!pod::VerifyAndSign<vrs::Mimc5Scheme>(output, seed, pod_n, pod_s, get_com,
                           proof.pod_proved_data)) {
     assert(false);
     return false;

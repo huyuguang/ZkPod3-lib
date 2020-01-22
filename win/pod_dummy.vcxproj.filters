@@ -109,9 +109,6 @@
     <ClInclude Include="..\public\groth09\groth09.h">
       <Filter>public\groth09</Filter>
     </ClInclude>
-    <ClInclude Include="..\public\vrs\serialize.h">
-      <Filter>public\vrs</Filter>
-    </ClInclude>
     <ClInclude Include="..\public\vrs\test.h">
       <Filter>public\vrs</Filter>
     </ClInclude>
@@ -355,8 +352,29 @@
     <ClInclude Include="..\public\vrs\sha256c_gadget.h">
       <Filter>public\vrs</Filter>
     </ClInclude>
-    <ClInclude Include="..\public\vrs\base_gadget.h">
+    <ClInclude Include="..\public\vrs\split_task.h">
       <Filter>public\vrs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\pod\details.h">
+      <Filter>public\pod</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\pod\notary.h">
+      <Filter>public\pod</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\pod\pod.h">
+      <Filter>public\pod</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\pod\prover.h">
+      <Filter>public\pod</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\pod\test.h">
+      <Filter>public\pod</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\pod\types.h">
+      <Filter>public\pod</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\pod\verifier.h">
+      <Filter>public\pod</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

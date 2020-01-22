@@ -9,11 +9,12 @@
 
 namespace vrs {
 
+template<typename Scheme>
 class Verifier {
  public:
   Verifier(PublicInput const& public_input) : public_input_(public_input) {
     pds_sigma_g_ = PcComputeSigmaG(g_offset_, public_input_.count);
-    Evaluate();
+    scheme_.reset(new Scheme);
   }
 
   bool Verify(h256_t seed, std::function<Fr(int64_t)> get_w,
@@ -75,7 +76,7 @@ class Verifier {
 
     if (!ret_com_plain || !ret_hp || !ret_ip) {
       std::cout << "ret_com_plain: " << ret_com_plain << ", ret_hp: " << ret_hp
-                << ", ret_ip" << ret_ip << "\n";
+                << ", ret_ip: " << ret_ip << "\n";
       assert(false);
       return false;
     }
@@ -87,15 +88,9 @@ class Verifier {
   }
 
  private:
-  int64_t num_variables() const { return (int64_t)pb_.num_variables(); }
+  int64_t num_variables() const { return scheme_->num_variables(); }
 
-  int64_t num_constraints() const { return (int64_t)pb_.num_constraints(); }
-
-  void Evaluate() {
-    // Tick tick(__FUNCTION__);
-    gadget_.reset(new Mimc5Gadget(pb_, "Mimc5Gadget"));
-    pb_.set_input_sizes(primary_input_size_);  // var_plain is public statement
-  }
+  int64_t num_constraints() const { return scheme_->num_constraints(); }
 
   void BuildIpCom(Proof const& proof, hyrax::a2::CommitmentPub& com_pub) {
     com_pub.xi = proof.var_coms.back();
@@ -112,7 +107,7 @@ class Verifier {
     com_pub.c.resize(m);
     G1Zero(com_pub.c);
 
-    auto constraint_system = pb_.get_constraint_system();
+    auto const& constraint_system = scheme_->constraint_system;
     auto const& constraints = constraint_system.constraints;
 
     auto parallel_f = [this, &com_pub, &constraints,
@@ -142,10 +137,8 @@ class Verifier {
   }
 
  private:
-  int64_t const primary_input_size_ = 1;
   PublicInput public_input_;
-  libsnark::protoboard<Fr> pb_;
-  std::shared_ptr<Mimc5Gadget> gadget_;
+  std::unique_ptr<Scheme> scheme_;
   G1 pds_sigma_g_;
   int64_t const g_offset_ = 0;
 };
