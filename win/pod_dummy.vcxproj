@@ -126,8 +126,12 @@
     <ClInclude Include="..\public\bp\details.h" />
     <ClInclude Include="..\public\bp\p1.h" />
     <ClInclude Include="..\public\bp\p2.h" />
+    <ClInclude Include="..\public\bp\protocol1.h" />
+    <ClInclude Include="..\public\bp\protocol2.h" />
+    <ClInclude Include="..\public\bp\protocol3.h" />
     <ClInclude Include="..\public\bp\test.h" />
     <ClInclude Include="..\public\bp\types.h" />
+    <ClInclude Include="..\public\bp\zkip.h" />
     <ClInclude Include="..\public\cmd\cmd.h" />
     <ClInclude Include="..\public\cmd\details.h" />
     <ClInclude Include="..\public\cmd\match_query.h" />

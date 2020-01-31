@@ -31,6 +31,6 @@ inline G1 MultiExpGH(G1 const* g, Fr const* a, G1 const* h, Fr const* b,
   auto get_f = [a, b, n](size_t i) -> Fr const& {
     return i < n ? a[i] : b[i - n];
   };
-  return MultiExpBdlo12<G1>(get_g, get_f, n * 2);
+  return MultiExpBdlo12<G1>(get_g, get_f, n * 2, true);
 }
 }  // namespace bp::details

@@ -3,6 +3,10 @@
 #include "./details.h"
 #include "./types.h"
 
+// protocol 2
+// for a given P, the prover proves that it has vectors a, b for which
+// q = g*a + h*b + u*<a,b>
+
 namespace bp {
 template <typename GET_G, typename GET_F>
 P2Proof P2Prove(P1Committment const& p1_committment, GET_G const& get_g,
@@ -108,6 +112,7 @@ P2Proof P2Prove(P1Committment const& p1_committment, GET_G const& get_g,
 
   p2_proof.a = a[0];
   p2_proof.b = b[0];
+
   return p2_proof;
 }
 
@@ -177,12 +182,12 @@ bool P2Verify(P1Committment const& p1_committment, GET_G const& get_g,
     last_h = MultiExpBdlo12(&h[0], &ss_inverse[0], g_count);
   };
   parallel::Invoke(tasks);
-
+  
   G1 out = MultiExp(last_g, p2_proof.a, last_h, p2_proof.b);
 
   out += u * (p2_proof.a * p2_proof.b);
 
-  if (x_count) {
+  if (x_count) {    
     p += MultiExpGH(&p2_proof.left[0], &x_square[0], &p2_proof.right[0],
                     &x_square_inverse[0], x_count);
   }
@@ -193,4 +198,5 @@ bool P2Verify(P1Committment const& p1_committment, GET_G const& get_g,
   assert(ret);
   return ret;
 }
+
 }  // namespace bp

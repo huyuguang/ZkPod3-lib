@@ -7,11 +7,12 @@
 // t: public vector<Fr>, size = n
 // X, Y: secret vector<Fr>, size = n
 // z: secret Fr
-// open: com(gx, X), com(gy, Y), com(gz, z)
+// open: com(gx, X), com(gy, Y), com(gz, z). gx == gy or gx != gy
 // prove: z = <X, Y o t>
 // proof size: 2log(n) Fr and 4 G1
 // prove cost: 2*mulexp(n)
 // verify cost: mulexp(n)
+
 namespace groth09::sec51c {
 
 class ProverInput {
@@ -64,6 +65,8 @@ struct CommitmentSec {
 
 struct RomProof {
   G1 com_v;
-  hyrax::a3::RomProof proof_a3;
+  G1 com_w;
+  hyrax::a3::RomProof proof_a3_v_e;
+  hyrax::a3::RomProof proof_a3_y_eot;
 };
 }  // namespace groth09::sec51c

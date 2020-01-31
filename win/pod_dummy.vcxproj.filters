@@ -376,6 +376,18 @@
     <ClInclude Include="..\public\pod\verifier.h">
       <Filter>public\pod</Filter>
     </ClInclude>
+    <ClInclude Include="..\public\bp\protocol2.h">
+      <Filter>public\bp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\bp\protocol1.h">
+      <Filter>public\bp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\bp\zkip.h">
+      <Filter>public\bp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\bp\protocol3.h">
+      <Filter>public\bp</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="..\public\vrf\readme.md">

@@ -16,6 +16,9 @@
 #include "public.h"
 #include "vrs/sha256c_gadget.h"
 #include "vrs/test.h"
+#include "bp/protocol1.h"
+#include "bp/protocol2.h"
+#include "bp/p2.h"
 
 bool InitAll(std::string const& data_dir) {
   InitEcc();
@@ -54,14 +57,6 @@ inline std::istream& operator>>(std::istream& in, ParamIntPair& t) {
   }
   return in;
 }
-//
-// inline std::ostream& operator<<(std::ostream& os, ParamIntPair const& t) {
-//  char sperator = '*';
-//  os << t.x;
-//  os << sperator;
-//  os << t.y;
-//  return os;
-//}
 
 int main(int argc, char** argv) {
   setlocale(LC_ALL, "");
@@ -92,6 +87,7 @@ int main(int argc, char** argv) {
   bool matchpack = false;
   bool match_query = false;
   bool substr_query = false;
+  int64_t bp_p2_n = 0;
 
   try {
     po::options_description options("command line options");
@@ -125,7 +121,8 @@ int main(int argc, char** argv) {
         "substrpack", "")(
         "matchpack", "")(
         "match_query", "")(
-        "substr_query", "");
+        "substr_query", "")(
+        "bp_p2", po::value<int64_t>(&bp_p2_n), "");
 
     boost::program_options::variables_map vmap;
 
@@ -287,6 +284,11 @@ int main(int argc, char** argv) {
     if (pod.valid()) {
       rets["pod"] = pod::TestBasic<vrs::Sha256cScheme>(pod.x, pod.y);
     }
+  }
+
+  if (bp_p2_n) {
+    rets["bp::p2"] = bp::TestProtocol2(bp_p2_n);    
+    rets["bp::p1"] = bp::TestProtocol1(bp_p2_n);    
   }
 
   std::cout << "\n=============================\n";
