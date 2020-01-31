@@ -90,6 +90,7 @@ Protocol2Proof Protocol2Prove(h256_t seed, G1 p, G1 const& u,
                               std::vector<Fr>&& a, std::vector<Fr>&& b,
                               Fr const& c) {
   Tick tick(__FUNCTION__);
+  (void)c;
 
   assert(g.size() == h.size());
   assert(g.size() == a.size());

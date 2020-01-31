@@ -18,7 +18,6 @@
 #include "vrs/test.h"
 #include "bp/protocol1.h"
 #include "bp/protocol2.h"
-#include "bp/p2.h"
 
 bool InitAll(std::string const& data_dir) {
   InitEcc();

@@ -53,10 +53,10 @@ P2Proof P2Prove(P1Committment const& p1_committment, GET_G const& get_g,
     // R = MultiExpGH(&g[0], &a[nn], &h[nn], &b[0], nn);
     std::array<parallel::Task, 2> tasks;
     tasks[0] = [&L, &g, &a, &h, &b, nn]() {
-      L = MultiExpGH(&g[nn], &a[0], &h[0], &b[nn], nn);
+      L = details::MultiExpGH(&g[nn], &a[0], &h[0], &b[nn], nn);
     };
     tasks[1] = [&R, &g, &a, &h, &b, nn]() {
-      R = MultiExpGH(&g[0], &a[nn], &h[nn], &b[0], nn);
+      R = details::MultiExpGH(&g[0], &a[nn], &h[nn], &b[0], nn);
     };
     parallel::Invoke(tasks);
 
@@ -188,7 +188,7 @@ bool P2Verify(P1Committment const& p1_committment, GET_G const& get_g,
   out += u * (p2_proof.a * p2_proof.b);
 
   if (x_count) {    
-    p += MultiExpGH(&p2_proof.left[0], &x_square[0], &p2_proof.right[0],
+    p += details::MultiExpGH(&p2_proof.left[0], &x_square[0], &p2_proof.right[0],
                     &x_square_inverse[0], x_count);
   }
 
