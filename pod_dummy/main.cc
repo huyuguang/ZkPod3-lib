@@ -268,7 +268,7 @@ int main(int argc, char** argv) {
       rets["vrs::basic"] = vrs::TestBasic<vrs::Mimc5Scheme>(vrs_basic_n);
     }
     if (vrs_large_n) {
-      rets["vrs::large"] = vrs::TestLarge<vrs::Mimc5Scheme>(vrs_basic_n);
+      rets["vrs::large"] = vrs::TestLarge<vrs::Mimc5Scheme>(vrs_large_n);
     }
     if (pod.valid()) {
       rets["pod"] = pod::TestBasic<vrs::Mimc5Scheme>(pod.x, pod.y);
@@ -278,7 +278,7 @@ int main(int argc, char** argv) {
       rets["vrs::basic"] = vrs::TestBasic<vrs::Sha256cScheme>(vrs_basic_n);
     }
     if (vrs_large_n) {
-      rets["vrs::large"] = vrs::TestLarge<vrs::Sha256cScheme>(vrs_basic_n);
+      rets["vrs::large"] = vrs::TestLarge<vrs::Sha256cScheme>(vrs_large_n);
     }
     if (pod.valid()) {
       rets["pod"] = pod::TestBasic<vrs::Sha256cScheme>(pod.x, pod.y);

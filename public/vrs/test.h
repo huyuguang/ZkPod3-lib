@@ -53,6 +53,8 @@ template<typename Scheme>
 bool TestLarge(int64_t count) {
   Tick tick(__FUNCTION__);
   std::cout << "count = " << count << "\n";
+  if (!count) return false;
+
   auto rom_seed = misc::RandH256();
   h256_t vrs_plain_seed = misc::RandH256();
   auto get_p = [&vrs_plain_seed](int64_t i) {
