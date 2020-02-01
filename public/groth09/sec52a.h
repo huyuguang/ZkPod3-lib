@@ -192,7 +192,7 @@ inline void UpdateSeed(h256_t& seed, CommitmentPub const& com_pub,
   hash.Final(seed.data());
 }
 
-inline void RomProve(RomProof& rom_proof, h256_t const& common_seed,
+inline void RomProve(RomProof& rom_proof, h256_t seed,
                      ProverInput const& input, CommitmentPub const& com_pub,
                      CommitmentSec const& com_sec) {
   Tick tick(__FUNCTION__);
@@ -203,7 +203,6 @@ inline void RomProve(RomProof& rom_proof, h256_t const& common_seed,
   CommitmentExtSec com_ext_sec;
   ComputeComExt(rom_proof.com_ext_pub, com_ext_sec, input, com_pub, com_sec);
 
-  auto seed = common_seed;
   UpdateSeed(seed, com_pub, rom_proof.com_ext_pub);
   Fr e = H256ToFr(seed);
 

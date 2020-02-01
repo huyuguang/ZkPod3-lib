@@ -18,6 +18,7 @@
 #include "vrs/test.h"
 #include "bp/protocol1.h"
 #include "bp/protocol2.h"
+#include "bp/protocol3.h"
 
 bool InitAll(std::string const& data_dir) {
   InitEcc();
@@ -86,7 +87,9 @@ int main(int argc, char** argv) {
   bool matchpack = false;
   bool match_query = false;
   bool substr_query = false;
+  int64_t bp_p1_n = 0;
   int64_t bp_p2_n = 0;
+  int64_t bp_p3_n = 0;
 
   try {
     po::options_description options("command line options");
@@ -121,7 +124,9 @@ int main(int argc, char** argv) {
         "matchpack", "")(
         "match_query", "")(
         "substr_query", "")(
-        "bp_p2", po::value<int64_t>(&bp_p2_n), "");
+        "bp_p1", po::value<int64_t>(&bp_p1_n), "")(
+        "bp_p2", po::value<int64_t>(&bp_p2_n), "")(
+        "bp_p3", po::value<int64_t>(&bp_p3_n), "");
 
     boost::program_options::variables_map vmap;
 
@@ -285,9 +290,16 @@ int main(int argc, char** argv) {
     }
   }
 
+  if (bp_p1_n) {
+    rets["bp::p1"] = bp::p1::Test(bp_p1_n);
+  }
+
   if (bp_p2_n) {
-    rets["bp::p2"] = bp::TestProtocol2(bp_p2_n);    
-    rets["bp::p1"] = bp::TestProtocol1(bp_p2_n);    
+    rets["bp::p2"] = bp::p2::Test(bp_p2_n);
+  }
+
+  if (bp_p3_n) {
+    rets["bp::p3"] = bp::p3::Test(bp_p3_n);
   }
 
   std::cout << "\n=============================\n";

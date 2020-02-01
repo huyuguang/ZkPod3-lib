@@ -163,21 +163,6 @@
     <ClInclude Include="..\public\bp\bp.h">
       <Filter>public\bp</Filter>
     </ClInclude>
-    <ClInclude Include="..\public\bp\details.h">
-      <Filter>public\bp</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\bp\test.h">
-      <Filter>public\bp</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\bp\p1.h">
-      <Filter>public\bp</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\bp\p2.h">
-      <Filter>public\bp</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\bp\types.h">
-      <Filter>public\bp</Filter>
-    </ClInclude>
     <ClInclude Include="..\public\misc\rng.h">
       <Filter>public\misc</Filter>
     </ClInclude>
@@ -380,9 +365,6 @@
       <Filter>public\bp</Filter>
     </ClInclude>
     <ClInclude Include="..\public\bp\protocol1.h">
-      <Filter>public\bp</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\bp\zkip.h">
       <Filter>public\bp</Filter>
     </ClInclude>
     <ClInclude Include="..\public\bp\protocol3.h">
