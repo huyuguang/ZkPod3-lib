@@ -67,7 +67,7 @@ struct CommitmentExtSec {
   Fr b5;
 };
 
-struct Proof {
+struct SubProof {
   Fr z1;
   Fr z2;
   Fr z3;
@@ -75,25 +75,26 @@ struct Proof {
   Fr z5;
 };
 
-inline bool operator==(Proof const& left, Proof const& right) {
+inline bool operator==(SubProof const& left, SubProof const& right) {
   return left.z1 == right.z1 && left.z2 == right.z2 && left.z3 == right.z3 &&
          left.z4 == right.z4 && left.z5 == right.z5;
 }
 
-inline bool operator!=(Proof const& left, Proof const& right) {
+inline bool operator!=(SubProof const& left, SubProof const& right) {
   return !(left == right);
 }
 
-struct RomProof {
+struct Proof {
   CommitmentExtPub com_ext_pub;  // 3 G1
-  Proof proof;                   // 5 Fr
+  SubProof sub_proof;            // 5 Fr
 };
 
-inline bool operator==(RomProof const& left, RomProof const& right) {
-  return left.com_ext_pub == right.com_ext_pub && left.proof == right.proof;
+inline bool operator==(Proof const& left, Proof const& right) {
+  return left.com_ext_pub == right.com_ext_pub &&
+         left.sub_proof == right.sub_proof;
 }
 
-inline bool operator!=(RomProof const& left, RomProof const& right) {
+inline bool operator!=(Proof const& left, Proof const& right) {
   return !(left == right);
 }
 
@@ -108,7 +109,7 @@ struct VerifierInput {
 
 inline bool VerifyInternal(VerifierInput const& input, Fr const& c,
                            CommitmentExtPub const& com_ext_pub,
-                           Proof const& proof) {
+                           SubProof const& sub_proof) {
   // Tick tick(__FUNCTION__);
   auto const& gx = PcG(input.x_g_offset);
   auto const& gy = PcG(input.y_g_offset);
@@ -117,23 +118,23 @@ inline bool VerifyInternal(VerifierInput const& input, Fr const& c,
 
   std::array<parallel::Task, 3> tasks;
   bool ret0 = false;
-  tasks[0] = [&ret0, &com_pub, &com_ext_pub, &c, &proof, &gx, &h]() {
+  tasks[0] = [&ret0, &com_pub, &com_ext_pub, &c, &sub_proof, &gx, &h]() {
     G1 left = com_ext_pub.alpha + com_pub.x * c;
-    G1 right = gx * proof.z1 + h * proof.z2;
+    G1 right = gx * sub_proof.z1 + h * sub_proof.z2;
     ret0 = left == right;
   };
 
   bool ret1 = false;
-  tasks[1] = [&ret1, &com_pub, &com_ext_pub, &c, &proof, &gy, &h]() {
+  tasks[1] = [&ret1, &com_pub, &com_ext_pub, &c, &sub_proof, &gy, &h]() {
     G1 left = com_ext_pub.beta + com_pub.y * c;
-    G1 right = gy * proof.z3 + h * proof.z4;
+    G1 right = gy * sub_proof.z3 + h * sub_proof.z4;
     ret1 = left == right;
   };
 
   bool ret2 = false;
-  tasks[2] = [&ret2, &com_pub, &com_ext_pub, &c, &proof, &h]() {
+  tasks[2] = [&ret2, &com_pub, &com_ext_pub, &c, &sub_proof, &h]() {
     G1 left = com_ext_pub.delta + com_pub.z * c;
-    G1 right = com_pub.x * proof.z3 + h * proof.z5;
+    G1 right = com_pub.x * sub_proof.z3 + h * sub_proof.z5;
     ret2 = left == right;
   };
 
@@ -210,42 +211,38 @@ inline void UpdateSeed(h256_t& seed, CommitmentPub const& com_pub,
   hash.Final(seed.data());
 }
 
-inline void ComputeProof(Proof& proof, ProverInput const& input,
-                         CommitmentSec const& com_sec,
-                         CommitmentExtSec const& com_ext_sec, Fr const& c) {
-  proof.z1 = com_ext_sec.b1 + c * input.x;
-  proof.z2 = com_ext_sec.b2 + c * com_sec.r_x;
-  proof.z3 = com_ext_sec.b3 + c * input.y;
-  proof.z4 = com_ext_sec.b4 + c * com_sec.r_y;
-  proof.z5 = com_ext_sec.b5 + c * (com_sec.r_z - com_sec.r_x * input.y);
+inline void ComputeSubProof(SubProof& sub_proof, ProverInput const& input,
+                            CommitmentSec const& com_sec,
+                            CommitmentExtSec const& com_ext_sec, Fr const& c) {
+  sub_proof.z1 = com_ext_sec.b1 + c * input.x;
+  sub_proof.z2 = com_ext_sec.b2 + c * com_sec.r_x;
+  sub_proof.z3 = com_ext_sec.b3 + c * input.y;
+  sub_proof.z4 = com_ext_sec.b4 + c * com_sec.r_y;
+  sub_proof.z5 = com_ext_sec.b5 + c * (com_sec.r_z - com_sec.r_x * input.y);
 }
 
-inline void RomProve(RomProof& rom_proof, h256_t const& common_seed,
-                     ProverInput input, CommitmentPub com_pub,
-                     CommitmentSec com_sec) {
+inline void Prove(Proof& proof, h256_t seed, ProverInput input,
+                  CommitmentPub com_pub, CommitmentSec com_sec) {
   // Tick tick(__FUNCTION__);
 
   CommitmentExtSec com_ext_sec;
-  ComputeCommitmentExt(rom_proof.com_ext_pub, com_ext_sec, input, com_pub);
+  ComputeCommitmentExt(proof.com_ext_pub, com_ext_sec, input, com_pub);
 
-  auto seed = common_seed;
-  UpdateSeed(seed, com_pub, rom_proof.com_ext_pub);
+  UpdateSeed(seed, com_pub, proof.com_ext_pub);
   Fr c = H256ToFr(seed);
 
-  ComputeProof(rom_proof.proof, input, com_sec, com_ext_sec, c);
+  ComputeSubProof(proof.sub_proof, input, com_sec, com_ext_sec, c);
 }
 
-inline bool RomVerify(RomProof const& rom_proof, h256_t const& common_seed,
-                      VerifierInput const& input) {
+inline bool Verify(Proof const& proof, h256_t seed,
+                   VerifierInput const& input) {
   // Tick tick(__FUNCTION__);
-  auto seed = common_seed;
-  UpdateSeed(seed, input.com_pub, rom_proof.com_ext_pub);
+  UpdateSeed(seed, input.com_pub, proof.com_ext_pub);
   Fr challenge = H256ToFr(seed);
-  return VerifyInternal(input, challenge, rom_proof.com_ext_pub,
-                        rom_proof.proof);
+  return VerifyInternal(input, challenge, proof.com_ext_pub, proof.sub_proof);
 }
 
-inline bool TestRom() {
+inline bool Test() {
   Tick tick(__FUNCTION__);
   h256_t UpdateSeed = misc::RandH256();
 
@@ -260,11 +257,11 @@ inline bool TestRom() {
   CommitmentSec com_sec;
   ComputeCom(com_pub, com_sec, prover_input);
 
-  RomProof rom_proof;
-  RomProve(rom_proof, UpdateSeed, prover_input, com_pub, com_sec);
+  Proof proof;
+  Prove(proof, UpdateSeed, prover_input, com_pub, com_sec);
 
   VerifierInput verifier_input(com_pub, x_g_offset, y_g_offset);
-  bool success = RomVerify(rom_proof, UpdateSeed, verifier_input);
+  bool success = Verify(proof, UpdateSeed, verifier_input);
   std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success << "\n";
   return success;
 }

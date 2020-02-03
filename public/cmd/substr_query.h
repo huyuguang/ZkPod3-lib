@@ -325,7 +325,7 @@ inline bool Test() {
 
   bool success = check_rets == rets;  
   std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success << "\n";
-  std::cout << "proof size: " << proof_size << "\n";
+  std::cout << "sub_proof size: " << proof_size << "\n";
 
   return success;
 }

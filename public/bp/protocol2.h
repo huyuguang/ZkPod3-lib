@@ -72,14 +72,14 @@ inline bool operator!=(Proof const& left, Proof const& right) {
 // save to bin
 template <typename Ar>
 void serialize(Ar& ar, Proof const& t) {
-  ar& YAS_OBJECT_NVP("bp.p2.proof", ("l", t.left), ("r", t.right), ("a", t.a),
+  ar& YAS_OBJECT_NVP("bp.p2.sub_proof", ("l", t.left), ("r", t.right), ("a", t.a),
                      ("b", t.b));
 }
 
 // load from bin
 template <typename Ar>
 void serialize(Ar& ar, Proof& t) {
-  ar& YAS_OBJECT_NVP("bp.p2.proof", ("l", t.left), ("r", t.right), ("a", t.a),
+  ar& YAS_OBJECT_NVP("bp.p2.sub_proof", ("l", t.left), ("r", t.right), ("a", t.a),
                      ("b", t.b));
 }
 

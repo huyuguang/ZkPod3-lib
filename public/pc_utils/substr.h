@@ -166,7 +166,7 @@ class SubstrGadget : public libsnark::gadget<Fr> {
 };
 
 struct Proof {
-  groth09::sec43b::RomProof hp_proof;
+  groth09::sec43b::Proof hp_proof;
   std::vector<G1> com_w;
   G1 const& com_x() const { return com_w.front(); }
   G1 const& com_y() const { return com_w.back(); }
@@ -295,10 +295,10 @@ inline bool Verify(Proof const& proof, h256_t seed,
     return false;
   }
   
-  if (proof.hp_proof.m() != (int64_t)misc::Pow2UB(input.m)) {
-    assert(false);
-    return false;
-  }
+  //if (proof.hp_proof.m() != (int64_t)misc::Pow2UB(input.m)) {
+  //  assert(false);
+  //  return false;
+  //}
 
   parallel_r1cs::VerifierInput pr_input(input.n, input.pb, proof.com_w,
                                         input.public_w, input.g_offset);

@@ -135,7 +135,7 @@
     <ClInclude Include="..\public\ecc\ecc_pub.h" />
     <ClInclude Include="..\public\ecc\funcs.h" />
     <ClInclude Include="..\public\ecc\multiexp.h" />
-    <ClInclude Include="..\public\ecc\pds_pub.h" />
+    <ClInclude Include="..\public\ecc\pc_base.h" />
     <ClInclude Include="..\public\ecc\serialize.h" />
     <ClInclude Include="..\public\ecc\types.h" />
     <ClInclude Include="..\public\groth09\details.h" />
@@ -156,7 +156,6 @@
     <ClInclude Include="..\public\hyrax\a3.h" />
     <ClInclude Include="..\public\hyrax\details.h" />
     <ClInclude Include="..\public\hyrax\hyrax.h" />
-    <ClInclude Include="..\public\hyrax\serialize.h" />
     <ClInclude Include="..\public\hyrax\test.h" />
     <ClInclude Include="..\public\log\log.h" />
     <ClInclude Include="..\public\misc\funcs.h" />

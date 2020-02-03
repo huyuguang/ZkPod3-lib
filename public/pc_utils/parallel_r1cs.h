@@ -218,7 +218,7 @@ struct ProverInput {
 };
 
 // w: s*n
-inline void Prove(groth09::sec43b::RomProof& proof, h256_t seed,
+inline void Prove(groth09::sec43b::Proof& proof, h256_t seed,
                   ProverInput&& input) {
   Tick tick(__FUNCTION__);
   int64_t m = input.m;
@@ -238,8 +238,8 @@ inline void Prove(groth09::sec43b::RomProof& proof, h256_t seed,
   details::DebugCheckHpCom(m, input_43, com_pub, com_sec);
 
   groth09::sec43b::AlignData(input_43, com_pub, com_sec);
-  groth09::sec43b::RomProve(proof, seed, std::move(input_43),
-                            std::move(com_pub), std::move(com_sec));
+  groth09::sec43b::Prove(proof, seed, std::move(input_43), std::move(com_pub),
+                         std::move(com_sec));
 }
 
 struct VerifierInput {
@@ -297,13 +297,9 @@ struct VerifierInput {
   std::vector<libsnark::r1cs_constraint<Fr>> const& constraints;
 };
 
-inline bool Verify(groth09::sec43b::RomProof const& proof, h256_t seed,
+inline bool Verify(groth09::sec43b::Proof const& proof, h256_t seed,
                    VerifierInput const& input) {
   Tick tick(__FUNCTION__);
-  if ((int64_t)misc::Pow2UB(input.m) != proof.m()) {
-    assert(false);
-    return false;
-  }
 
   if (!input.Check()) {
     assert(false);
@@ -316,9 +312,10 @@ inline bool Verify(groth09::sec43b::RomProof const& proof, h256_t seed,
   details::BuildHpCom(input.m, input.n, input.com_w, input.constraints,
                       input.g_offset, com_pub);
   com_pub.Align();
-  groth09::sec43b::VerifierInput input_43(com_pub, input.g_offset,
-                                          input.g_offset, input.g_offset);
-  return groth09::sec43b::RomVerify(proof, seed, input_43);
+  groth09::sec43b::VerifierInput input_43(input.m, input.n, com_pub,
+                                          input.g_offset, input.g_offset,
+                                          input.g_offset);
+  return groth09::sec43b::Verify(proof, seed, input_43);
 }
 
 // see match.h

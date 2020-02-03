@@ -177,37 +177,37 @@ void serialize(Ar& ar, CommitmentExtPub& t) {
   ar& YAS_OBJECT_NVP("53.cep", ("cl", t.cl), ("cu", t.cu));
 }
 
-struct RomProof {
+struct Proof {
   CommitmentExtPub com_ext_pub;   // 2*log(m) G1
-  sec51a::RomProof rom_proof_51;  // 4 G1, 2n+3 Fr
+  sec51a::Proof proof_51;  // 4 G1, 2n+3 Fr
 
-  int64_t n() const { return rom_proof_51.n(); }
+  int64_t n() const { return proof_51.n(); }
   int64_t m() const { return com_ext_pub.m(); }
 
   bool CheckFormat(int64_t check_m) const {
-    return com_ext_pub.CheckFormat(check_m) && rom_proof_51.CheckFormat();
+    return com_ext_pub.CheckFormat(check_m) && proof_51.CheckFormat();
   }
 };
 
-inline bool operator==(RomProof const& left, RomProof const& right) {
+inline bool operator==(Proof const& left, Proof const& right) {
   return left.com_ext_pub == right.com_ext_pub &&
-         left.rom_proof_51 == right.rom_proof_51;
+         left.proof_51 == right.proof_51;
 }
 
-inline bool operator!=(RomProof const& left, RomProof const& right) {
+inline bool operator!=(Proof const& left, Proof const& right) {
   return !(left == right);
 }
 
 // save to bin
 template <typename Ar>
-void serialize(Ar& ar, RomProof const& t) {
-  ar& YAS_OBJECT_NVP("53.rp", ("c", t.com_ext_pub), ("r", t.rom_proof_51));
+void serialize(Ar& ar, Proof const& t) {
+  ar& YAS_OBJECT_NVP("53.pf", ("c", t.com_ext_pub), ("r", t.proof_51));
 }
 
 // load from bin
 template <typename Ar>
-void serialize(Ar& ar, RomProof& t) {
-  ar& YAS_OBJECT_NVP("53.rp", ("c", t.com_ext_pub), ("r", t.rom_proof_51));
+void serialize(Ar& ar, Proof& t) {
+  ar& YAS_OBJECT_NVP("53.pf", ("c", t.com_ext_pub), ("r", t.proof_51));
 }
 
 inline void ComputeCom(ProverInput const& input, CommitmentPub* com_pub,
@@ -245,7 +245,7 @@ inline void ComputeCom(ProverInput const& input, CommitmentPub* com_pub,
   ComputeCom(input, com_pub, *com_sec);
 }
 
-inline void RomProveFinal(RomProof& rom_proof, h256_t const& seed,
+inline void ProveFinal(Proof& proof, h256_t const& seed,
                           ProverInput const& input,
                           CommitmentPub const& com_pub,
                           CommitmentSec const& com_sec) {
@@ -256,7 +256,7 @@ inline void RomProveFinal(RomProof& rom_proof, h256_t const& seed,
                                input.y_g_offset,input.z_g_offset);
   sec51a::CommitmentPub com_pub_51(com_pub.a[0], com_pub.b[0], com_pub.c);
   sec51a::CommitmentSec com_sec_51(com_sec.r[0], com_sec.s[0], com_sec.t);
-  sec51a::RomProve(rom_proof.rom_proof_51, seed, input_51, com_pub_51,
+  sec51a::Prove(proof.proof_51, seed, input_51, com_pub_51,
                    com_sec_51);
 }
 
@@ -343,7 +343,7 @@ inline void AlignData(ProverInput& input, CommitmentPub& com_pub,
   com_pub.Align();
 }
 
-inline void RomProveRecursive(RomProof& rom_proof, h256_t& seed,
+inline void ProveRecursive(Proof& proof, h256_t& seed,
                               ProverInput& input, CommitmentPub& com_pub,
                               CommitmentSec& com_sec) {
   // Tick tick(__FUNCTION__);
@@ -357,10 +357,10 @@ inline void RomProveRecursive(RomProof& rom_proof, h256_t& seed,
   Fr tu = FrRand();
   G1 cl = PcComputeCommitmentG(input.z_g_offset,sigma_xy1, tl);
   G1 cu = PcComputeCommitmentG(input.z_g_offset,sigma_xy2, tu);
-  rom_proof.com_ext_pub.cl.push_back(cl);
-  rom_proof.com_ext_pub.cu.push_back(cu);
+  proof.com_ext_pub.cl.push_back(cl);
+  proof.com_ext_pub.cu.push_back(cu);
 
-  // rom challenge
+  // challenge
   Fr e = ComputeChallenge(seed, com_pub, cl, cu);
   Fr ee = e * e;
   seed = FrToBin(e);
@@ -378,31 +378,31 @@ inline void RomProveRecursive(RomProof& rom_proof, h256_t& seed,
 #endif
 }
 
-inline void RomProve(RomProof& rom_proof, h256_t seed, ProverInput input,
+inline void Prove(Proof& proof, h256_t seed, ProverInput input,
                      CommitmentPub com_pub, CommitmentSec com_sec) {
   // Tick tick(__FUNCTION__);
   assert(PcBase::kGSize >= input.n());
 
   while (input.m() > 1) {
-    RomProveRecursive(rom_proof, seed, input, com_pub, com_sec);
+    ProveRecursive(proof, seed, input, com_pub, com_sec);
   }
-  return RomProveFinal(rom_proof, seed, input, com_pub, com_sec);
+  return ProveFinal(proof, seed, input, com_pub, com_sec);
 }
 
-inline bool RomVerify(RomProof const& rom_proof, h256_t seed,
+inline bool Verify(Proof const& proof, h256_t seed,
                       VerifierInput const& input) {
   // Tick tick(__FUNCTION__);
-  if (!rom_proof.CheckFormat(input.m())) {
+  if (!proof.CheckFormat(input.m())) {
     assert(false);
     return false;
   }
 
   CommitmentPub com_pub = input.com_pub;
 
-  for (size_t loop = 0; loop < rom_proof.com_ext_pub.cl.size(); ++loop) {
-    // rom challenge
-    auto const& cl = rom_proof.com_ext_pub.cl[loop];
-    auto const& cu = rom_proof.com_ext_pub.cu[loop];
+  for (size_t loop = 0; loop < proof.com_ext_pub.cl.size(); ++loop) {
+    // challenge
+    auto const& cl = proof.com_ext_pub.cl[loop];
+    auto const& cu = proof.com_ext_pub.cu[loop];
     Fr e = ComputeChallenge(seed, com_pub, cl, cu);
     Fr ee = e * e;
     seed = FrToBin(e);
@@ -433,10 +433,10 @@ inline bool RomVerify(RomProof const& rom_proof, h256_t seed,
   sec51a::CommitmentPub com_pub_51(com_pub.a[0], com_pub.b[0], com_pub.c);
   sec51a::VerifierInput verifier_input_51(com_pub_51, input.x_g_offset,
                                           input.y_g_offset, input.z_g_offset);
-  return sec51a::RomVerify(rom_proof.rom_proof_51, seed, verifier_input_51);
+  return sec51a::Verify(proof.proof_51, seed, verifier_input_51);
 }
 
-inline bool TestRom(int64_t m, int64_t n) {
+inline bool Test(int64_t m, int64_t n) {
   Tick tick(__FUNCTION__);
   std::cout << "m=" << m << ", n=" << n << "\n";
 
@@ -470,11 +470,11 @@ inline bool TestRom(int64_t m, int64_t n) {
 
   AlignData(prover_input, com_pub, com_sec);
 
-  RomProof rom_proof;
-  RomProve(rom_proof, seed, prover_input, com_pub, com_sec);
+  Proof proof;
+  Prove(proof, seed, prover_input, com_pub, com_sec);
 
   VerifierInput verifier_input(com_pub, x_g_offset, y_g_offset, z_g_offset);
-  bool success = RomVerify(rom_proof, seed, verifier_input);
+  bool success = Verify(proof, seed, verifier_input);
   std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success << "\n";
   return success;
 }

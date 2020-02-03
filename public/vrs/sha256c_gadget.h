@@ -132,7 +132,7 @@ struct Sha256cScheme {
 #else
   static const int64_t kMaxUnitPerZkp = 512;
 #endif
-  static_assert(kMaxUnitPerZkp <= (int64_t)PcBase::kGSize,
+  static_assert(kMaxUnitPerZkp <= (int64_t)PcBase::kGSize/3,
                 "kMaxUnitPerZkp too large");
 
   static std::string const& type() {

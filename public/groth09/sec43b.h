@@ -5,8 +5,8 @@
 
 // x, y, z: secret matrix<Fr>, size =m*n
 // open: a1=com(gx, x1)...am=com(gx, xm)
-// open b1=com(gy, y1)...bm=com(gy, ym)
-// open c1=com(gz, z1)...cm=com(gz, zm)
+// open: b1=com(gy, y1)...bm=com(gy, ym)
+// open: c1=com(gz, z1)...cm=com(gz, zm)
 // prove: z=x o y (o is hadamard product)
 // proof size: 2*log(m)+6 G1, 3n+5 Fr
 // prove cost: 2*log(m)*mulexp(n)
@@ -58,33 +58,31 @@ struct CommitmentSec {
   }
 };
 
-struct RomProof {
+struct Proof {
   G1 c;
-  sec53b::RomProof proof_53;     // 2*log(m)+4 G1, 2n+3 Fr
-  hyrax::a2::RomProof proof_a2;  // 2 G1, n+2 Fr
-  int64_t n() const { return proof_53.n(); }
-  int64_t m() const { return proof_53.m(); }
+  sec53b::Proof proof_53;     // 2*log(m)+4 G1, 2n+3 Fr
+  hyrax::a2::Proof proof_a2;  // 2 G1, n+2 Fr
 };
 
-inline bool operator==(RomProof const& left, RomProof const& right) {
+inline bool operator==(Proof const& left, Proof const& right) {
   return left.c == right.c && left.proof_53 == right.proof_53 &&
          left.proof_a2 == right.proof_a2;
 }
-inline bool operator!=(RomProof const& left, RomProof const& right) {
+inline bool operator!=(Proof const& left, Proof const& right) {
   return !(left == right);
 }
 
 // save to bin
 template <typename Ar>
-void serialize(Ar& ar, RomProof const& t) {
-  ar& YAS_OBJECT_NVP("43.rp", ("c", t.c), ("53p", t.proof_53),
+void serialize(Ar& ar, Proof const& t) {
+  ar& YAS_OBJECT_NVP("43b.pf", ("c", t.c), ("53p", t.proof_53),
                      ("a2p", t.proof_a2));
 }
 
 // load from bin
 template <typename Ar>
-void serialize(Ar& ar, RomProof& t) {
-  ar& YAS_OBJECT_NVP("43.rp", ("c", t.c), ("53p", t.proof_53),
+void serialize(Ar& ar, Proof& t) {
+  ar& YAS_OBJECT_NVP("43b.pf", ("c", t.c), ("53p", t.proof_53),
                      ("a2p", t.proof_a2));
 }
 
@@ -95,7 +93,7 @@ struct ProverInput {
   std::vector<std::vector<Fr>> z;
   int64_t const x_g_offset;
   int64_t const y_g_offset;
-  int64_t const z_g_offset;    
+  int64_t const z_g_offset;
 
   int64_t m() const { return x.size(); }
   int64_t n() const { return x[0].size(); }
@@ -181,13 +179,16 @@ inline void ComputeCom(CommitmentPub& com_pub, CommitmentSec& com_sec,
   parallel::For(m, parallel_f);
 }
 
-inline void UpdateSeed(h256_t& seed, CommitmentPub const& com_pub) {
+inline void UpdateSeed(h256_t& seed, CommitmentPub const& com_pub, int64_t m,
+                       int64_t n) {
   // Tick tick(__FUNCTION__);
   CryptoPP::Keccak_256 hash;
   HashUpdate(hash, seed);
   HashUpdate(hash, com_pub.a);
   HashUpdate(hash, com_pub.b);
   HashUpdate(hash, com_pub.c);
+  HashUpdate(hash, m);
+  HashUpdate(hash, n);
   hash.Final(seed.data());
 }
 
@@ -206,16 +207,16 @@ inline void AlignData(ProverInput& input, CommitmentPub& com_pub,
   com_sec.Align();
 }
 
-inline void RomProve(RomProof& rom_proof, h256_t seed, ProverInput input,
-                     CommitmentPub com_pub, CommitmentSec com_sec) {
-  Tick tick(__FUNCTION__);  
+inline void Prove(Proof& proof, h256_t seed, ProverInput input,
+                  CommitmentPub com_pub, CommitmentSec com_sec) {
+  Tick tick(__FUNCTION__);
   auto m = input.m();
   auto n = input.n();
   auto original_m = input.original_m;
 
   std::cout << "m: " << m << ", n:" << n << "\n";
 
-  UpdateSeed(seed, com_pub);
+  UpdateSeed(seed, com_pub, m, n);
   std::vector<Fr> k(m);
   std::vector<Fr> t(n);
   ComputeChallengeKT(seed, k, t);
@@ -245,7 +246,7 @@ inline void RomProve(RomProof& rom_proof, h256_t seed, ProverInput input,
       Tick tickz("sec53b compute z");
       // 2*m*n fr mul
       for (int64_t i = 0; i < original_m; ++i) {
-        input_yt[i] = details::HadamardProduct(input_y[i], t);
+        input_yt[i] = HadamardProduct(input_y[i], t);
         z += InnerProduct(input_x[i], input_yt[i]);
       }
       for (int64_t i = original_m; i < m; ++i) {
@@ -262,7 +263,7 @@ inline void RomProve(RomProof& rom_proof, h256_t seed, ProverInput input,
 
     {
       Tick tickz("sec53b compute com_sec_53 com_pub_53");
-      input_53_z = input_53.z;    
+      input_53_z = input_53.z;
       com_sec_53.r.resize(m);
       com_pub_53.a.resize(m);
       auto parallel_f2 = [&com_sec, &com_pub, &com_sec_53, &com_pub_53,
@@ -283,12 +284,12 @@ inline void RomProve(RomProof& rom_proof, h256_t seed, ProverInput input,
       com_pub_53.b = com_pub.b;
       com_pub_53.c =
           PcComputeCommitmentG(input_53.z_g_offset, input_53_z, com_sec_53.t);
-      rom_proof.c = com_pub_53.c;  // verifier can not compute c by com_pub.c
+      proof.c = com_pub_53.c;  // verifier can not compute c by com_pub.c
       com_pub_53_c = com_pub_53.c;
     }
 
-    sec53b::RomProve(rom_proof.proof_53, seed, std::move(input_53),
-                     std::move(com_pub_53), std::move(com_sec_53));
+    sec53b::Prove(proof.proof_53, seed, std::move(input_53),
+                  std::move(com_pub_53), std::move(com_sec_53));
   }
 
   {
@@ -329,41 +330,45 @@ inline void RomProve(RomProof& rom_proof, h256_t seed, ProverInput input,
     assert(check_xi == com_pub_hy.xi);
 #endif
 
-    hyrax::a2::RomProve(rom_proof.proof_a2, seed, std::move(input_hy),
-                        std::move(com_pub_hy), std::move(com_sec_hy));
+    hyrax::a2::Prove(proof.proof_a2, seed, std::move(input_hy),
+                     std::move(com_pub_hy), std::move(com_sec_hy));
   }
 }
 
 struct VerifierInput {
-  VerifierInput(CommitmentPub const& com_pub, int64_t x_g_offset,
-                int64_t y_g_offset, int64_t z_g_offset)
-      : com_pub(com_pub),
+  VerifierInput(int64_t m, int64_t n, CommitmentPub const& com_pub,
+                int64_t x_g_offset, int64_t y_g_offset, int64_t z_g_offset)
+      : m(misc::Pow2UB(m)),
+        n(n),
+        com_pub(com_pub),
         x_g_offset(x_g_offset),
         y_g_offset(y_g_offset),
         z_g_offset(z_g_offset) {}
+  int64_t const m;
+  int64_t const n;
   CommitmentPub const& com_pub;
   int64_t const x_g_offset;
   int64_t const y_g_offset;
   int64_t const z_g_offset;
 };
 
-inline bool RomVerify(RomProof const& rom_proof, h256_t seed,
-                      VerifierInput const& input) {
+inline bool Verify(Proof const& proof, h256_t seed,
+                   VerifierInput const& input) {
   // Tick tick(__FUNCTION__);
-  auto m = rom_proof.m();
-  auto n = rom_proof.n();
+  auto m = input.m;
+  auto n = input.n;
 
   auto const& com_pub = input.com_pub;
-  UpdateSeed(seed, com_pub);
+  UpdateSeed(seed, com_pub, m, n);
   std::vector<Fr> k(m);
   std::vector<Fr> t(n);
   ComputeChallengeKT(seed, k, t);
 
   std::array<parallel::Task, 2> tasks;
   bool ret_53 = false;
-  tasks[0] = [&ret_53, &rom_proof, &input, m, &com_pub, &k, &t, &seed]() {
+  tasks[0] = [&ret_53, &proof, &input, m, &com_pub, &k, &t, &seed]() {
     sec53b::CommitmentPub com_pub_53;
-    com_pub_53.c = rom_proof.c;
+    com_pub_53.c = proof.c;
     com_pub_53.b = input.com_pub.b;
     com_pub_53.a.resize(m);
     auto parallel_f = [&com_pub_53, &com_pub, &k](int64_t i) {
@@ -376,20 +381,19 @@ inline bool RomVerify(RomProof const& rom_proof, h256_t seed,
 
     sec53b::VerifierInput input_53(t, com_pub_53, input.x_g_offset,
                                    input.y_g_offset, intput_53_z_g_offset);
-    ret_53 = sec53b::RomVerify(rom_proof.proof_53, seed, input_53);
+    ret_53 = sec53b::Verify(proof.proof_53, seed, input_53);
     assert(ret_53);
   };
 
   bool ret_a2 = false;
-  tasks[1] = [&ret_a2, &com_pub, &rom_proof, &t, &k, &seed, &input]() {
-    hyrax::a2::CommitmentPub com_pub_hy(MultiExpBdlo12(com_pub.c, k),
-                                        rom_proof.c);
+  tasks[1] = [&ret_a2, &com_pub, &proof, &t, &k, &seed, &input]() {
+    hyrax::a2::CommitmentPub com_pub_hy(MultiExpBdlo12(com_pub.c, k), proof.c);
     auto input_a2_x_g_offset = input.z_g_offset;
     auto input_a2_y_g_offset = SelectSec53Zoffset(
         input.x_g_offset, input.y_g_offset, input.z_g_offset);
     hyrax::a2::VerifierInput input_hy(t, com_pub_hy, input_a2_x_g_offset,
                                       input_a2_y_g_offset);
-    ret_a2 = hyrax::a2::RomVerify(rom_proof.proof_a2, seed, input_hy);
+    ret_a2 = hyrax::a2::Verify(proof.proof_a2, seed, input_hy);
     assert(ret_a2);
   };
 
@@ -402,7 +406,7 @@ inline bool RomVerify(RomProof const& rom_proof, h256_t seed,
   return ret_53 && ret_a2;
 }
 
-inline bool TestRom(int64_t m, int64_t n) {
+inline bool Test(int64_t m, int64_t n) {
   Tick tick(__FUNCTION__);
   std::cout << "old_m=" << m << ", n=" << n << "\n";
 
@@ -420,7 +424,7 @@ inline bool TestRom(int64_t m, int64_t n) {
 
   std::vector<std::vector<Fr>> z(m);
   for (int64_t i = 0; i < m; ++i) {
-    z[i] = details::HadamardProduct(x[i], y[i]);
+    z[i] = HadamardProduct(x[i], y[i]);
   }
 
   h256_t seed = misc::RandH256();
@@ -429,21 +433,20 @@ inline bool TestRom(int64_t m, int64_t n) {
   int64_t y_g_offset = 0;
   int64_t z_g_offset = 0;
 
-
-  ProverInput prover_input(m, std::move(x), std::move(y), 
-                           std::move(z), x_g_offset, y_g_offset,
-                           z_g_offset);
+  ProverInput prover_input(m, std::move(x), std::move(y), std::move(z),
+                           x_g_offset, y_g_offset, z_g_offset);
   CommitmentPub com_pub;
   CommitmentSec com_sec;
   ComputeCom(com_pub, com_sec, prover_input);
 
   AlignData(prover_input, com_pub, com_sec);
 
-  RomProof rom_proof;
-  RomProve(rom_proof, seed, prover_input, com_pub, com_sec);
+  Proof proof;
+  Prove(proof, seed, prover_input, com_pub, com_sec);
 
-  VerifierInput verifier_input(com_pub, x_g_offset, y_g_offset, z_g_offset);
-  bool success = RomVerify(rom_proof, seed, verifier_input);
+  VerifierInput verifier_input(m, n, com_pub, x_g_offset, y_g_offset,
+                               z_g_offset);
+  bool success = Verify(proof, seed, verifier_input);
   std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success << "\n";
   return success;
 }

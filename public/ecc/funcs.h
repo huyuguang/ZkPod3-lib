@@ -378,6 +378,22 @@ inline Fr InnerProduct(std::function<Fr(size_t)> const& get_a,
   return parallel::Accumulate(rets.begin(), rets.end(), FrZero());
 }
 
+inline void HadamardProduct(std::vector<Fr>& c, std::vector<Fr> const& a,
+                            std::vector<Fr> const& b) {
+  assert(a.size() == b.size());
+  c.resize(a.size());
+  auto parallel_f = [&c, &a, &b](size_t i) { c[i] = a[i] * b[i]; };
+  parallel::For(a.size(), parallel_f, true);//a.size() < 16 * 1024);
+}
+
+inline std::vector<Fr> HadamardProduct(std::vector<Fr> const& a,
+                                       std::vector<Fr> const& b) {
+  assert(a.size() == b.size());
+  std::vector<Fr> c(a.size());
+  HadamardProduct(c, a, b);
+  return c;
+}
+
 inline Fr StrHashToFr(std::string const& s) {
   Fr f;
   f.setHashOf(s.data(), s.size());

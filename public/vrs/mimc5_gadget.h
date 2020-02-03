@@ -115,7 +115,7 @@ struct Mimc5Scheme {
 #else
   static const int64_t kMaxUnitPerZkp = 1024 * 32;
 #endif
-  static_assert(kMaxUnitPerZkp <= (int64_t)PcBase::kGSize,
+  static_assert(kMaxUnitPerZkp <= (int64_t)PcBase::kGSize/3,
                 "kMaxUnitPerZkp too large");
   
   static std::string const& type() {

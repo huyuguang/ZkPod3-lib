@@ -76,6 +76,28 @@ struct CommitmentExtPub {
   G1 t2;
 };
 
+inline bool operator==(CommitmentExtPub const& left,
+                       CommitmentExtPub const& right) {
+  return left.r == right.r && left.t1 == right.t1 && left.t2 == right.t2;
+}
+
+inline bool operator!=(CommitmentExtPub const& left,
+                       CommitmentExtPub const& right) {
+  return !(left == right);
+}
+
+// save to bin
+template <typename Ar>
+void serialize(Ar& ar, CommitmentExtPub const& t) {
+  ar& YAS_OBJECT_NVP("bp3.cep", ("r", t.r), ("t1", t.t1), ("t2", t.t2));
+}
+
+// load from bin
+template <typename Ar>
+void serialize(Ar& ar, CommitmentExtPub& t) {
+  ar& YAS_OBJECT_NVP("bp3.cep", ("r", t.r), ("t1", t.t1), ("t2", t.t2));
+}
+
 struct CommitmentExtSec {
   CommitmentExtSec(int64_t n) : da(n), db(n) {
     FrRand(da);
@@ -133,6 +155,29 @@ struct Proof {
   p1::Proof p1;
 };
 
+inline bool operator==(Proof const& left, Proof const& right) {
+  return left.c == right.c && left.miu == right.miu && left.tau == right.tau &&
+         left.com_ext_pub == right.com_ext_pub && left.p1 == right.p1;
+}
+
+inline bool operator!=(Proof const& left, Proof const& right) {
+  return !(left == right);
+}
+
+// save to bin
+template <typename Ar>
+void serialize(Ar& ar, Proof const& t) {
+  ar& YAS_OBJECT_NVP("bp3.pf", ("c", t.c), ("m", t.miu), ("t", t.tau),
+                     ("cep", t.com_ext_pub), ("p1", t.p1));
+}
+
+// load from bin
+template <typename Ar>
+void serialize(Ar& ar, Proof& t) {
+  ar& YAS_OBJECT_NVP("bp3.pf", ("c", t.c), ("m", t.miu), ("t", t.tau),
+                     ("cep", t.com_ext_pub), ("p1", t.p1));
+}
+
 inline void Prove(Proof& proof, h256_t seed, ProverInput&& input,
                   CommitmentPub const& com_pub, CommitmentSec const& com_sec) {
   CommitmentExtSec com_ext_sec(input.n);
@@ -185,10 +230,7 @@ inline bool Verify(Proof const& proof, h256_t seed, VerifierInput&& input) {
     return false;
   }
   G1 p = input.com_pub.p + proof.com_ext_pub.r * x + input.h * (-proof.miu);
-  bool success =
-      p1::Verify(seed, std::move(input.g1), std::move(input.g2), proof.p1);
-  std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success << "\n";
-  return success;
+  return p1::Verify(seed, std::move(input.g1), std::move(input.g2), proof.p1);
 }
 
 inline bool Test(int64_t n) {

@@ -32,46 +32,12 @@ inline void ComputePowOfE(Fr const& e, int64_t m, std::vector<Fr>& vec,
   }
 }
 
-inline void HadamardProduct(std::vector<Fr>& c, std::vector<Fr> const& a,
-                            std::vector<Fr> const& b) {
-  assert(a.size() == b.size());
-  c.resize(a.size());
-  auto parallel_f = [&c, &a, &b](size_t i) { c[i] = a[i] * b[i]; };
-  parallel::For(a.size(), parallel_f, true);//a.size() < 16 * 1024);
-}
-
-inline std::vector<Fr> HadamardProduct(std::vector<Fr> const& a,
-                                       std::vector<Fr> const& b) {
-  assert(a.size() == b.size());
-  std::vector<Fr> c(a.size());
-  HadamardProduct(c, a, b);
-  return c;
-}
-
 inline void PrintVector(std::vector<Fr> const& a) {
   std::cout << "\n";
   for (auto const& i : a) {
     std::cout << i << "\n";
   }
   std::cout << "\n";
-}
-
-inline void BuildChallengeVector(std::vector<Fr>& challenge, h256_t const& seed,
-                                 std::string const& suffix, int64_t count) {
-  auto hash = [&suffix, &seed](int64_t i) {
-    CryptoPP::Keccak_256 hash;
-    HashUpdate(hash, seed);
-    hash.Update((uint8_t const*)&i, sizeof(i));
-    HashUpdate(hash, suffix);
-    h256_t digest;
-    hash.Final(digest.data());
-    return H256ToFr(digest);
-  };
-
-  challenge.resize(count);
-  for (int64_t i = 0; i < count; ++i) {
-    challenge[i] = hash(i);
-  }
 }
 
 }  // namespace groth09::details

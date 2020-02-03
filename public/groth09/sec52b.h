@@ -84,7 +84,7 @@ struct ProverInput {
       assert(x[i].size() == (size_t)n());
       assert(y[i].size() == (size_t)n());
       assert(yt[i].size() == (size_t)n());
-      assert(yt[i] == details::HadamardProduct(y[i], t));
+      assert(yt[i] == HadamardProduct(y[i], t));
       check_z += InnerProduct(x[i], yt[i]);
     }
     assert(z == check_z);
@@ -129,14 +129,14 @@ struct CommitmentExtSec {
   std::vector<Fr> tl;  // tl.size = 2m
 };
 
-struct RomProof {
+struct Proof {
   CommitmentExtPub com_ext_pub;
-  sec51b::RomProof rom_proof_51;
-  int64_t n() const { return rom_proof_51.n(); }
+  sec51b::Proof proof_51;
+  int64_t n() const { return proof_51.n(); }
   int64_t m() const { return com_ext_pub.m(); }
 
   bool CheckFormat(int64_t check_m) const {
-    return com_ext_pub.CheckFormat(check_m) && rom_proof_51.CheckFormat();
+    return com_ext_pub.CheckFormat(check_m) && proof_51.CheckFormat();
   }
 };
 
@@ -205,7 +205,7 @@ inline void UpdateSeed(h256_t& seed, CommitmentPub const& com_pub,
   hash.Final(seed.data());
 }
 
-inline void RomProve(RomProof& rom_proof, h256_t const& common_seed,
+inline void Prove(Proof& proof, h256_t seed,
                      ProverInput const& input, CommitmentPub const& com_pub,
                      CommitmentSec const& com_sec) {
   Tick tick(__FUNCTION__);
@@ -214,10 +214,9 @@ inline void RomProve(RomProof& rom_proof, h256_t const& common_seed,
   assert(PcBase::kGSize >= input.n());
 
   CommitmentExtSec com_ext_sec;
-  ComputeComExt(rom_proof.com_ext_pub, com_ext_sec, input, com_pub, com_sec);
+  ComputeComExt(proof.com_ext_pub, com_ext_sec, input, com_pub, com_sec);
 
-  auto seed = common_seed;
-  UpdateSeed(seed, com_pub, rom_proof.com_ext_pub);
+  UpdateSeed(seed, com_pub, proof.com_ext_pub);
   Fr e = H256ToFr(seed);
 
   std::vector<Fr> e_pow;
@@ -245,7 +244,7 @@ inline void RomProve(RomProof& rom_proof, h256_t const& common_seed,
   parallel::For(n, parallel_fy);
 
   auto const& t = input.t;
-  std::vector<Fr> yt = details::HadamardProduct(y, t);
+  std::vector<Fr> yt = HadamardProduct(y, t);
   auto z = InnerProduct(x, yt);
   sec51b::ProverInput input_51(x, y, t, yt, z, input.x_g_offset,
                                input.y_g_offset, input.z_g_offset);
@@ -256,7 +255,7 @@ inline void RomProve(RomProof& rom_proof, h256_t const& common_seed,
   sec51b::CommitmentSec com_sec_51;
   com_pub_51.a = MultiExpBdlo12(com_pub.a, e_pow);
   com_pub_51.b = MultiExpBdlo12(com_pub.b, e_pow_reverse);
-  com_pub_51.c = MultiExpBdlo12(rom_proof.com_ext_pub.cl, e_pow);
+  com_pub_51.c = MultiExpBdlo12(proof.com_ext_pub.cl, e_pow);
 
   com_sec_51.r = FrZero();
   for (int64_t i = 0; i < m; ++i) {
@@ -285,19 +284,18 @@ inline void RomProve(RomProof& rom_proof, h256_t const& common_seed,
   assert(check_c == com_pub_51.c);
 #endif
 
-  sec51b::RomProve(rom_proof.rom_proof_51, seed, input_51, com_pub_51,
+  sec51b::Prove(proof.proof_51, seed, input_51, com_pub_51,
                    com_sec_51);
 }
 
-inline bool RomVerify(RomProof const& rom_proof, h256_t const& common_seed,
+inline bool Verify(Proof const& proof, h256_t seed,
                       VerifierInput const& input) {
-  auto m = rom_proof.m();
-  assert(PcBase::kGSize >= rom_proof.n());
+  auto m = proof.m();
+  assert(PcBase::kGSize >= proof.n());
 
   auto const& com_pub = input.com_pub;
-  auto const& com_ext_pub = rom_proof.com_ext_pub;
+  auto const& com_ext_pub = proof.com_ext_pub;
 
-  auto seed = common_seed;
   UpdateSeed(seed, com_pub, com_ext_pub);
   Fr e = H256ToFr(seed);
 
@@ -323,10 +321,10 @@ inline bool RomVerify(RomProof const& rom_proof, h256_t const& common_seed,
 
   sec51b::VerifierInput input_51(input.t, com_pub_51, input.x_g_offset,
                                  input.y_g_offset, input.z_g_offset);
-  return sec51b::RomVerify(rom_proof.rom_proof_51, seed, input_51);
+  return sec51b::Verify(proof.proof_51, seed, input_51);
 }
 
-inline bool TestRom(int64_t m, int64_t n) {
+inline bool Test(int64_t m, int64_t n) {
   Tick tick(__FUNCTION__);
   std::cout << "m=" << m << ", n=" << n << "\n";
 
@@ -345,7 +343,7 @@ inline bool TestRom(int64_t m, int64_t n) {
   std::vector<Fr> t(n);
   FrRand(t.data(), t.size());
 
-  h256_t common_seed = misc::RandH256();
+  h256_t seed = misc::RandH256();
 
   int64_t x_g_offset = 10;
   int64_t y_g_offset = 550;
@@ -354,7 +352,7 @@ inline bool TestRom(int64_t m, int64_t n) {
   std::vector<std::vector<Fr>> yt(m);
   Fr z = FrZero();
   for (int64_t i = 0; i < m; ++i) {
-    yt[i] = details::HadamardProduct(y[i], t);
+    yt[i] = HadamardProduct(y[i], t);
     z += InnerProduct(x[i], yt[i]);
   }
 
@@ -363,11 +361,11 @@ inline bool TestRom(int64_t m, int64_t n) {
   CommitmentSec com_sec;
   ComputeCom(com_pub, com_sec, prover_input);
 
-  RomProof rom_proof;
-  RomProve(rom_proof, common_seed, prover_input, com_pub, com_sec);
+  Proof proof;
+  Prove(proof, seed, prover_input, com_pub, com_sec);
 
   VerifierInput verifier_input(t, com_pub, x_g_offset, y_g_offset, z_g_offset);
-  bool success = RomVerify(rom_proof, common_seed, verifier_input);
+  bool success = Verify(proof, seed, verifier_input);
   std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success << "\n";
   return success;
 }

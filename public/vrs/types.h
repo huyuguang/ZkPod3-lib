@@ -74,8 +74,8 @@ struct CheckInput {
 struct Proof {
   std::vector<G1> var_coms;
   G1 com_vw;
-  groth09::sec43b::RomProof proof_hp;
-  hyrax::a2::RomProof proof_ip;
+  groth09::sec43b::Proof proof_hp;
+  hyrax::a2::Proof proof_ip;
 };
 
 inline bool operator==(Proof const& left, Proof const& right) {

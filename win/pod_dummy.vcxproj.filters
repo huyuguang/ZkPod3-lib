@@ -88,9 +88,6 @@
     <ClInclude Include="..\public\hyrax\a3.h">
       <Filter>public\hyrax</Filter>
     </ClInclude>
-    <ClInclude Include="..\public\hyrax\serialize.h">
-      <Filter>public\hyrax</Filter>
-    </ClInclude>
     <ClInclude Include="..\public\hyrax\a2.h">
       <Filter>public\hyrax</Filter>
     </ClInclude>
@@ -146,9 +143,6 @@
       <Filter>public\ecc</Filter>
     </ClInclude>
     <ClInclude Include="..\public\ecc\multiexp.h">
-      <Filter>public\ecc</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\ecc\pds_pub.h">
       <Filter>public\ecc</Filter>
     </ClInclude>
     <ClInclude Include="..\public\ecc\serialize.h">
@@ -369,6 +363,9 @@
     </ClInclude>
     <ClInclude Include="..\public\bp\protocol3.h">
       <Filter>public\bp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\ecc\pc_base.h">
+      <Filter>public\ecc</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -68,11 +68,13 @@ int main(int argc, char** argv) {
   int64_t hyrax_a3_n = 0;
   int64_t gro09_51a_n = 0;
   int64_t gro09_51b_n = 0;
+  int64_t gro09_51c_n = 0;
   ParamIntPair gro09_52a;
   ParamIntPair gro09_52b;
   ParamIntPair gro09_53a;
   ParamIntPair gro09_53b;
   ParamIntPair gro09_43b;
+  ParamIntPair gro09_43c;
   int64_t vrs_basic_n = 0;
   int64_t vrs_large_n = 0;
   ParamIntPair pod;
@@ -105,11 +107,13 @@ int main(int argc, char** argv) {
         "hyrax_a3", po::value<int64_t>(&hyrax_a3_n), "")(
         "gro09_51a", po::value<int64_t>(&gro09_51a_n), "")(
         "gro09_51b", po::value<int64_t>(&gro09_51b_n), "")(
+        "gro09_51c", po::value<int64_t>(&gro09_51c_n), "")(
         "gro09_52a", po::value<ParamIntPair>(&gro09_52a), "m*n, ex: 10*20")(
         "gro09_52b", po::value<ParamIntPair>(&gro09_52b), "m*n, ex: 10*20")(
         "gro09_53a", po::value<ParamIntPair>(&gro09_53a), "m*n, ex: 10*20")(
         "gro09_53b", po::value<ParamIntPair>(&gro09_53b), "m*n, ex: 10*20")(
         "gro09_43b", po::value<ParamIntPair>(&gro09_43b), "m*n, ex: 10*20")(
+        "gro09_43c", po::value<ParamIntPair>(&gro09_43c), "m*n, ex: 10*20")(
         "vrs_basic", po::value<int64_t>(&vrs_basic_n), "")(
         "vrs_large", po::value<int64_t>(&vrs_large_n), "")(
         "pod", po::value<ParamIntPair>(&pod), "n*s, ex: 100*1023")(
@@ -200,39 +204,46 @@ int main(int argc, char** argv) {
   std::map<std::string, bool> rets;
 
   if (hyrax_a1_n) {
-    rets["hyrax::a1"] = hyrax::a1::TestRom();
+    rets["hyrax::a1"] = hyrax::a1::Test();
   }
   if (hyrax_a2_n) {
-    rets["hyrax::a2"] = hyrax::a2::TestRom(hyrax_a2_n);
+    rets["hyrax::a2"] = hyrax::a2::Test(hyrax_a2_n);
   }
   if (hyrax_a3_n) {
-    rets["hyrax::a3"] = hyrax::a3::TestRom(hyrax_a3_n);
+    rets["hyrax::a3"] = hyrax::a3::Test(hyrax_a3_n);
   }
   if (gro09_51a_n) {
-    rets["groth09::sec51a"] = groth09::sec51a::TestRom(gro09_51a_n);
+    rets["groth09::sec51a"] = groth09::sec51a::Test(gro09_51a_n);
   }
   if (gro09_51b_n) {
-    rets["groth09::sec51b"] = groth09::sec51b::TestRom(gro09_51b_n);
+    rets["groth09::sec51b"] = groth09::sec51b::Test(gro09_51b_n);
+  }
+  if (gro09_51c_n) {
+    rets["groth09::sec51c"] = groth09::sec51c::Test(gro09_51c_n);
   }
   if (gro09_52a.valid()) {
     rets["groth09::sec52a"] =
-        groth09::sec52a::TestRom(gro09_52a.x, gro09_52a.y);
+        groth09::sec52a::Test(gro09_52a.x, gro09_52a.y);
   }
   if (gro09_52b.valid()) {
     rets["groth09::sec52b"] =
-        groth09::sec52b::TestRom(gro09_52b.x, gro09_52b.y);
+        groth09::sec52b::Test(gro09_52b.x, gro09_52b.y);
   }
   if (gro09_53a.valid()) {
     rets["groth09::sec53a"] =
-        groth09::sec52a::TestRom(gro09_53a.x, gro09_53a.y);
+        groth09::sec52a::Test(gro09_53a.x, gro09_53a.y);
   }
   if (gro09_53b.valid()) {
     rets["groth09::sec53b"] =
-        groth09::sec52b::TestRom(gro09_53b.x, gro09_53b.y);
+        groth09::sec52b::Test(gro09_53b.x, gro09_53b.y);
   }
   if (gro09_43b.valid()) {
     rets["groth09::sec43b"] =
-        groth09::sec43b::TestRom(gro09_43b.x, gro09_43b.y);
+        groth09::sec43b::Test(gro09_43b.x, gro09_43b.y);
+  }
+  if (gro09_43c.valid()) {
+    rets["groth09::sec43c"] =
+        groth09::sec43c::Test(gro09_43c.x, gro09_43c.y);
   }
   if (matrix.valid()) {
     rets["pc_utils::matrix"] = pc_utils::matrix::Test(matrix.x, matrix.y);

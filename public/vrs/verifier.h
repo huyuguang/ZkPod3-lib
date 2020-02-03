@@ -20,8 +20,8 @@ class Verifier {
   bool Verify(h256_t seed, std::function<Fr(int64_t)> get_w,
               Proof const& proof, VerifyOutput& output) {
     // Tick tick(__FUNCTION__);
-    auto count = public_input_.count;
-
+    auto n = public_input_.count;
+    auto m = num_constraints();
     CryptoPP::Keccak_256 hash;
     HashUpdate(hash, seed);
     HashUpdate(hash, proof.var_coms);
@@ -30,11 +30,11 @@ class Verifier {
     std::array<parallel::Task, 3> tasks;
     // check com_plain
     bool ret_com_plain = false;
-    tasks[0] = [this, &proof, &ret_com_plain, count]() {
+    tasks[0] = [this, &proof, &ret_com_plain, n]() {
       G1 const& com_plain = proof.var_coms[0];
       Fr com_plain_r = FrZero(); // public val
-      std::vector<Fr> data(count);
-      for (int64_t i = 0; i < count; ++i) {
+      std::vector<Fr> data(n);
+      for (int64_t i = 0; i < n; ++i) {
         data[i] = public_input_.get_p(i);
       }
       int64_t x_g_offset = 0; // hardcode 0, because prover always use 0
@@ -44,22 +44,22 @@ class Verifier {
 
     // check hadamard product
     bool ret_hp = false;
-    tasks[1] = [this, &proof, &ret_hp, &seed]() {
+    tasks[1] = [this, &proof, &ret_hp, &seed, m, n]() {
       groth09::sec43b::CommitmentPub com_pub_hp;
       BuildHpCom(proof, com_pub_hp);
       com_pub_hp.Align();
       int64_t x_g_offset = 0;
       int64_t y_g_offset = 0;
       int64_t z_g_offset = 0;
-      groth09::sec43b::VerifierInput input_hp(com_pub_hp, x_g_offset,
+      groth09::sec43b::VerifierInput input_hp(m, n, com_pub_hp, x_g_offset,
                                               y_g_offset, z_g_offset);
-      ret_hp = groth09::sec43b::RomVerify(proof.proof_hp, seed, input_hp);
+      ret_hp = groth09::sec43b::Verify(proof.proof_hp, seed, input_hp);
     };
 
     // check inner product
     bool ret_ip = false;
-    tasks[2] = [this, &proof, &ret_ip, count, &get_w, &seed]() {
-      std::vector<Fr> input_w(count);
+    tasks[2] = [this, &proof, &ret_ip, n, &get_w, &seed]() {
+      std::vector<Fr> input_w(n);
       for (int64_t i = 0; i < (int64_t)input_w.size(); ++i) {
         input_w[i] = get_w(i);
       }
@@ -69,7 +69,7 @@ class Verifier {
       int64_t y_g_offset = -1;
       hyrax::a2::VerifierInput input_ip(input_w, com_pub_ip, x_g_offset,
                                         y_g_offset);
-      ret_ip = hyrax::a2::RomVerify(proof.proof_ip, seed, input_ip);
+      ret_ip = hyrax::a2::Verify(proof.proof_ip, seed, input_ip);
     };
 
     parallel::Invoke(tasks);

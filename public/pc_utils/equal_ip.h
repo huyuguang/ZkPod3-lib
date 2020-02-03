@@ -15,8 +15,8 @@ namespace pc_utils::equal_ip {
 // two hyrax::a2
 
 struct Proof {
-  hyrax::a2::RomProof p1;
-  hyrax::a2::RomProof p2;
+  hyrax::a2::Proof p1;
+  hyrax::a2::Proof p2;
   G1 com_z;
 };
 inline bool operator==(Proof const& a, Proof const& b) {
@@ -102,11 +102,11 @@ inline void Prove(Proof& proof, h256_t const& seed, ProverInput const& input) {
   std::array<parallel::Task, 2> tasks;
 
   tasks[0] = [&proof, &seed, &input1, &com_pub1, &com_sec1]() {
-    hyrax::a2::RomProve(proof.p1, seed, input1, com_pub1, com_sec1);
+    hyrax::a2::Prove(proof.p1, seed, input1, com_pub1, com_sec1);
   };
 
   tasks[1] = [&proof, &seed, &input2, &com_pub2, &com_sec2]() {
-    hyrax::a2::RomProve(proof.p2, seed, input2, com_pub2, com_sec2);
+    hyrax::a2::Prove(proof.p2, seed, input2, com_pub2, com_sec2);
   };
 
   parallel::Invoke(tasks);
@@ -140,7 +140,7 @@ inline bool Verify(h256_t const& seed, Proof const& proof,
     com_pub.tau = proof.com_z;
     hyrax::a2::VerifierInput a_input(input.a, com_pub, input.x_g_offset,
                                    input.z_g_offset);
-    rets[0] = hyrax::a2::RomVerify(proof.p1, seed, a_input);
+    rets[0] = hyrax::a2::Verify(proof.p1, seed, a_input);
   };
   tasks[1] = [&proof, &input, &rets, &seed]() {
     hyrax::a2::CommitmentPub com_pub;
@@ -148,7 +148,7 @@ inline bool Verify(h256_t const& seed, Proof const& proof,
     com_pub.tau = proof.com_z;
     hyrax::a2::VerifierInput a_input(input.b, com_pub, input.y_g_offset,
                                    input.z_g_offset);
-    rets[1] = hyrax::a2::RomVerify(proof.p2, seed, a_input);
+    rets[1] = hyrax::a2::Verify(proof.p2, seed, a_input);
   };
 
   parallel::Invoke(tasks);

@@ -41,7 +41,7 @@ struct ProverInput {
     assert(x.size() == y.size());
     assert(x.size() == t.size());
     assert(x.size() == yt.size());
-    assert(yt == details::HadamardProduct(y, t));
+    assert(yt == HadamardProduct(y, t));
     assert(z == InnerProduct(x, yt));
   }
 };
@@ -108,7 +108,7 @@ struct CommitmentExtSec {
   Fr t0;
 };
 
-struct Proof {
+struct SubProof {
   std::vector<Fr> fx;  // fx.size = n
   std::vector<Fr> fy;  // fy.size = n
   Fr rx;
@@ -117,9 +117,41 @@ struct Proof {
   int64_t n() const { return (int64_t)fx.size(); }
 };
 
-inline bool operator==(Proof const& left, Proof const& right) {
+inline bool operator==(SubProof const& left, SubProof const& right) {
   return left.fx == right.fx && left.fy == right.fy && left.rx == right.rx &&
          left.sy == right.sy && left.tz == right.tz;
+}
+
+inline bool operator!=(SubProof const& left, SubProof const& right) {
+  return !(left == right);
+}
+
+// save to bin
+template <typename Ar>
+void serialize(Ar& ar, SubProof const& t) {
+  ar& YAS_OBJECT_NVP("51.sp", ("fx", t.fx), ("fy", t.fy), ("rx", t.rx),
+                     ("sy", t.sy), ("tz", t.tz));
+}
+
+// load from bin
+template <typename Ar>
+void serialize(Ar& ar, SubProof& t) {
+  ar& YAS_OBJECT_NVP("51.sp", ("fx", t.fx), ("fy", t.fy), ("rx", t.rx),
+                     ("sy", t.sy), ("tz", t.tz));
+}
+
+struct Proof {
+  CommitmentExtPub com_ext_pub;  // 4 G1
+  SubProof sub_proof;            // (2n+3) Fr
+  bool CheckFormat() const {
+    return true;  // TODO:
+  }
+  int64_t n() const { return sub_proof.n(); }
+};
+
+inline bool operator==(Proof const& left, Proof const& right) {
+  return left.com_ext_pub == right.com_ext_pub &&
+         left.sub_proof == right.sub_proof;
 }
 
 inline bool operator!=(Proof const& left, Proof const& right) {
@@ -129,44 +161,13 @@ inline bool operator!=(Proof const& left, Proof const& right) {
 // save to bin
 template <typename Ar>
 void serialize(Ar& ar, Proof const& t) {
-  ar& YAS_OBJECT_NVP("51.pf", ("fx", t.fx), ("fy", t.fy), ("rx", t.rx),
-                     ("sy", t.sy), ("tz", t.tz));
+  ar& YAS_OBJECT_NVP("51.pf", ("c", t.com_ext_pub), ("p", t.sub_proof));
 }
 
 // load from bin
 template <typename Ar>
 void serialize(Ar& ar, Proof& t) {
-  ar& YAS_OBJECT_NVP("51.pf", ("fx", t.fx), ("fy", t.fy), ("rx", t.rx),
-                     ("sy", t.sy), ("tz", t.tz));
-}
-
-struct RomProof {
-  CommitmentExtPub com_ext_pub;  // 4 G1
-  Proof proof;                   // (2n+3) Fr
-  bool CheckFormat() const {
-    return true;  // TODO:
-  }
-  int64_t n() const { return proof.n(); }
-};
-
-inline bool operator==(RomProof const& left, RomProof const& right) {
-  return left.com_ext_pub == right.com_ext_pub && left.proof == right.proof;
-}
-
-inline bool operator!=(RomProof const& left, RomProof const& right) {
-  return !(left == right);
-}
-
-// save to bin
-template <typename Ar>
-void serialize(Ar& ar, RomProof const& t) {
-  ar& YAS_OBJECT_NVP("51.rp", ("c", t.com_ext_pub), ("p", t.proof));
-}
-
-// load from bin
-template <typename Ar>
-void serialize(Ar& ar, RomProof& t) {
-  ar& YAS_OBJECT_NVP("51.rp", ("c", t.com_ext_pub), ("p", t.proof));
+  ar& YAS_OBJECT_NVP("51.pf", ("c", t.com_ext_pub), ("p", t.sub_proof));
 }
 
 inline void ComputeCom(CommitmentPub& com_pub, CommitmentSec& com_sec,
@@ -199,7 +200,7 @@ inline void ComputeComExt(CommitmentExtPub& com_ext_pub,
   com_ext_sec.dy.resize(n);
   FrRand(com_ext_sec.dy.data(), n);
   com_ext_sec.dyt.resize(n);
-  details::HadamardProduct(com_ext_sec.dyt, com_ext_sec.dy, input.t);
+  HadamardProduct(com_ext_sec.dyt, com_ext_sec.dy, input.t);
   com_ext_sec.dz = InnerProduct(com_ext_sec.dx, com_ext_sec.dyt);
 
   com_ext_sec.rd = FrRand();
@@ -228,26 +229,26 @@ inline void ComputeComExt(CommitmentExtPub& com_ext_pub,
   parallel::Invoke(tasks);
 }
 
-inline void ComputeProof(Proof& proof, ProverInput const& input,
-                         CommitmentSec const& com_sec,
-                         CommitmentExtSec const& com_ext_sec,
-                         Fr const& challenge) {
+inline void ComputeSubProof(SubProof& sub_proof, ProverInput const& input,
+                            CommitmentSec const& com_sec,
+                            CommitmentExtSec const& com_ext_sec,
+                            Fr const& challenge) {
   // Tick tick(__FUNCTION__);
   auto n = input.n();
-  proof.fx.resize(n);
-  proof.fy.resize(n);
-  auto parallel_f = [&proof, &challenge, &input, &com_ext_sec](int64_t i) {
+  sub_proof.fx.resize(n);
+  sub_proof.fy.resize(n);
+  auto parallel_f = [&sub_proof, &challenge, &input, &com_ext_sec](int64_t i) {
     // fx = e * x + dx
-    proof.fx[i] = challenge * input.x[i] + com_ext_sec.dx[i];
+    sub_proof.fx[i] = challenge * input.x[i] + com_ext_sec.dx[i];
     // fy = e * y + dy
-    proof.fy[i] = challenge * input.y[i] + com_ext_sec.dy[i];
+    sub_proof.fy[i] = challenge * input.y[i] + com_ext_sec.dy[i];
   };
   parallel::For(n, parallel_f, n < 16 * 1024);
 
-  proof.rx = challenge * com_sec.r + com_ext_sec.rd;
-  proof.sy = challenge * com_sec.s + com_ext_sec.sd;
-  proof.tz = challenge * challenge * com_sec.t + challenge * com_ext_sec.t1 +
-             com_ext_sec.t0;
+  sub_proof.rx = challenge * com_sec.r + com_ext_sec.rd;
+  sub_proof.sy = challenge * com_sec.s + com_ext_sec.sd;
+  sub_proof.tz = challenge * challenge * com_sec.t +
+                 challenge * com_ext_sec.t1 + com_ext_sec.t0;
 }
 
 inline void UpdateSeed(h256_t& seed, CommitmentPub const com_pub,
@@ -281,9 +282,9 @@ struct VerifierInput {
 
 inline bool VerifyInternal(VerifierInput const& input, Fr const& challenge,
                            CommitmentExtPub const& com_ext_pub,
-                           Proof const& proof) {
-  auto const n = proof.fx.size();
-  assert(n == proof.fy.size());
+                           SubProof const& sub_proof) {
+  auto const n = sub_proof.fx.size();
+  assert(n == sub_proof.fy.size());
 
   auto const& com_pub = input.com_pub;
   auto const& e = challenge;
@@ -293,15 +294,15 @@ inline bool VerifyInternal(VerifierInput const& input, Fr const& challenge,
     // if x_g_offset == y_g_offset, we can combine the verification
     tasks.resize(2);
     rets.resize(2);
-    tasks[0] = [&rets, &com_pub, &e, &com_ext_pub, &proof, &input]() {
+    tasks[0] = [&rets, &com_pub, &e, &com_ext_pub, &sub_proof, &input]() {
       auto g_offset = input.x_g_offset;
       Fr alpha = FrRand();
       // (a^e * a_d)^alpha * b^e * b_d
       G1 left = (com_pub.a * e + com_ext_pub.ad) * alpha +
                 (com_pub.b * e + com_ext_pub.bd);
       // com(alpha * fx + fy,alpha * rx + sy)
-      std::vector<Fr> alpha_fx_fy = proof.fx * alpha + proof.fy;
-      Fr alpha_rx_sy = alpha * proof.rx + proof.sy;
+      std::vector<Fr> alpha_fx_fy = sub_proof.fx * alpha + sub_proof.fy;
+      Fr alpha_rx_sy = alpha * sub_proof.rx + sub_proof.sy;
       G1 right = PcComputeCommitmentG(g_offset, alpha_fx_fy, alpha_rx_sy);
       rets[0] = left == right;
       assert(rets[0]);
@@ -309,33 +310,35 @@ inline bool VerifyInternal(VerifierInput const& input, Fr const& challenge,
   } else {
     tasks.resize(3);
     rets.resize(3);
-    tasks[0] = [&rets, &com_pub, &e, &com_ext_pub, &proof, &input]() {
+    tasks[0] = [&rets, &com_pub, &e, &com_ext_pub, &sub_proof, &input]() {
       // a^e * a_d
       G1 left = (com_pub.a * e + com_ext_pub.ad);
       // com(fx,rx)
-      G1 right = PcComputeCommitmentG(input.x_g_offset, proof.fx, proof.rx);
+      G1 right =
+          PcComputeCommitmentG(input.x_g_offset, sub_proof.fx, sub_proof.rx);
       rets[0] = left == right;
       assert(rets[0]);
     };
-    tasks[1] = [&rets, &com_pub, &e, &com_ext_pub, &proof, &input]() {
+    tasks[1] = [&rets, &com_pub, &e, &com_ext_pub, &sub_proof, &input]() {
       // b^e * b_d
       G1 left = com_pub.b * e + com_ext_pub.bd;
       // com(fy,sy)
-      G1 right = PcComputeCommitmentG(input.y_g_offset, proof.fy, proof.sy);
+      G1 right =
+          PcComputeCommitmentG(input.y_g_offset, sub_proof.fy, sub_proof.sy);
       rets[1] = left == right;
       assert(rets[1]);
     };
   }
 
-  tasks.back() = [&rets, &com_pub, &e, &com_ext_pub, &proof, &input,n]() {
+  tasks.back() = [&rets, &com_pub, &e, &com_ext_pub, &sub_proof, &input, n]() {
     // c^(e^2) * c_1^e * c_0 == com(f_x * f_y , t_z)
     Fr e2_square = e * e;
     G1 left = com_pub.c * e2_square + com_ext_pub.c1 * e + com_ext_pub.c0;
 
     std::vector<Fr> proof_fyt(n);
-    details::HadamardProduct(proof_fyt, proof.fy, input.t);
-    Fr fz = InnerProduct(proof.fx, proof_fyt);
-    G1 right = PcComputeCommitmentG(input.z_g_offset, fz, proof.tz);
+    HadamardProduct(proof_fyt, sub_proof.fy, input.t);
+    Fr fz = InnerProduct(sub_proof.fx, proof_fyt);
+    G1 right = PcComputeCommitmentG(input.z_g_offset, fz, sub_proof.tz);
     rets.back() = left == right;
     assert(rets.back());
   };
@@ -348,35 +351,33 @@ inline bool VerifyInternal(VerifierInput const& input, Fr const& challenge,
   return all_success;
 }
 
-inline void RomProve(RomProof& rom_proof, h256_t seed,
-                     ProverInput const& input, CommitmentPub const& com_pub,
-                     CommitmentSec const& com_sec) {
+inline void Prove(Proof& proof, h256_t seed, ProverInput const& input,
+                  CommitmentPub const& com_pub, CommitmentSec const& com_sec) {
   // Tick tick(__FUNCTION__);
 
   assert(PcBase::kGSize >= input.n());
 
   CommitmentExtSec com_ext_sec;
-  ComputeComExt(rom_proof.com_ext_pub, com_ext_sec, input);
+  ComputeComExt(proof.com_ext_pub, com_ext_sec, input);
 
-  UpdateSeed(seed, com_pub, rom_proof.com_ext_pub);
+  UpdateSeed(seed, com_pub, proof.com_ext_pub);
   Fr challenge = H256ToFr(seed);
 
-  ComputeProof(rom_proof.proof, input, com_sec, com_ext_sec, challenge);
+  ComputeSubProof(proof.sub_proof, input, com_sec, com_ext_sec, challenge);
 }
 
-inline bool RomVerify(RomProof const& rom_proof, h256_t seed,
-                      VerifierInput const& input) {
+inline bool Verify(Proof const& proof, h256_t seed,
+                   VerifierInput const& input) {
   // Tick tick(__FUNCTION__);
-  assert(PcBase::kGSize >= rom_proof.n());
+  assert(PcBase::kGSize >= proof.n());
 
-  UpdateSeed(seed, input.com_pub, rom_proof.com_ext_pub);
+  UpdateSeed(seed, input.com_pub, proof.com_ext_pub);
   Fr challenge = H256ToFr(seed);
 
-  return VerifyInternal(input, challenge, rom_proof.com_ext_pub,
-                        rom_proof.proof);
+  return VerifyInternal(input, challenge, proof.com_ext_pub, proof.sub_proof);
 }
 
-inline bool TestRom(int64_t n) {
+inline bool Test(int64_t n) {
   Tick tick(__FUNCTION__);
   std::vector<Fr> x(n);
   FrRand(x.data(), n);
@@ -391,7 +392,7 @@ inline bool TestRom(int64_t n) {
   int64_t y_g_offset = 30;
   int64_t z_g_offset = -1;
   std::vector<Fr> yt(n);
-  yt = details::HadamardProduct(y, t);
+  yt = HadamardProduct(y, t);
   Fr z = InnerProduct(x, yt);
   ProverInput prover_input(x, y, t, yt, z, x_g_offset, y_g_offset, z_g_offset);
 
@@ -399,11 +400,11 @@ inline bool TestRom(int64_t n) {
   CommitmentSec com_sec;
   ComputeCom(com_pub, com_sec, prover_input);
 
-  RomProof rom_proof;
-  RomProve(rom_proof, seed, prover_input, com_pub, com_sec);
+  Proof proof;
+  Prove(proof, seed, prover_input, com_pub, com_sec);
 
   VerifierInput verifier_input(t, com_pub, x_g_offset, y_g_offset, z_g_offset);
-  bool success = RomVerify(rom_proof, seed, verifier_input);
+  bool success = Verify(proof, seed, verifier_input);
   std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success << "\n";
   return success;
 }

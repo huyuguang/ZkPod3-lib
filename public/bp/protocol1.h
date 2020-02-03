@@ -25,13 +25,13 @@ inline bool operator!=(Proof const& left, Proof const& right) {
 // save to bin
 template <typename Ar>
 void serialize(Ar& ar, Proof const& t) {
-  ar& YAS_OBJECT_NVP("bp.p1.proof", ("p", t.p), ("c", t.c), ("p2", t.p2));
+  ar& YAS_OBJECT_NVP("bp.p1.sub_proof", ("p", t.p), ("c", t.c), ("p2", t.p2));
 }
 
 // load from bin
 template <typename Ar>
 void serialize(Ar& ar, Proof& t) {
-  ar& YAS_OBJECT_NVP("bp.p1.proof", ("p", t.p), ("c", t.c), ("p2", t.p2));
+  ar& YAS_OBJECT_NVP("bp.p1.sub_proof", ("p", t.p), ("c", t.c), ("p2", t.p2));
 }
 
 void UpdateSeed(h256_t& seed, G1 const& p, Fr const& c, size_t size) {

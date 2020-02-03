@@ -262,7 +262,7 @@ class Prover {
 #endif
   }
 
-  void HpProve(h256_t const& seed, groth09::sec43b::RomProof& rom_proof) {
+  void HpProve(h256_t const& seed, groth09::sec43b::Proof& rom_proof) {
     Tick tick(__FUNCTION__);
     auto input = BuildHpInput();
     groth09::sec43b::CommitmentPub com_pub;
@@ -271,12 +271,12 @@ class Prover {
     DebugCheckHpCom(input, com_pub, com_sec);
     scheme_.reset();
     groth09::sec43b::AlignData(input, com_pub, com_sec);
-    groth09::sec43b::RomProve(rom_proof, seed, std::move(input),
+    groth09::sec43b::Prove(rom_proof, seed, std::move(input),
                               std::move(com_pub), std::move(com_sec));
   }
 
   void IpProve(h256_t const& seed, std::function<Fr(int64_t)> get_w,
-               hyrax::a2::RomProof& rom_proof) {
+               hyrax::a2::Proof& rom_proof) {
     Tick tick(__FUNCTION__);
     std::vector<Fr> input_w(public_input_.count);
     for (int64_t i = 0; i < public_input_.count; ++i) {
@@ -293,7 +293,7 @@ class Prover {
     com_pub.xi = var_coms_.back();  // the last var is the result of the mimc
     com_pub.tau = PcComputeCommitmentG(y_g_offset, input.y, com_sec.r_tau);
     com_vw_ = com_pub.tau;
-    hyrax::a2::RomProve(rom_proof, seed, std::move(input), std::move(com_pub),
+    hyrax::a2::Prove(rom_proof, seed, std::move(input), std::move(com_pub),
                         std::move(com_sec));
   }
 
