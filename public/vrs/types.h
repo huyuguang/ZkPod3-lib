@@ -71,36 +71,33 @@ struct CheckInput {
   Fr const& vw;
 };
 
+template <typename Policy>
 struct Proof {
   std::vector<G1> var_coms;
   G1 com_vw;
-  groth09::sec43b::Proof proof_hp;
-  hyrax::a2::Proof proof_ip;
+  typename Policy::Sec43::Proof proof_hp;
+  typename Policy::HyraxA::Proof proof_ip;
+  bool operator==(Proof const& right) const {
+    if (var_coms != right.var_coms) std::cout << __LINE__ << "\n";
+    if (com_vw != right.com_vw) std::cout << __LINE__ << "\n";
+    if (proof_hp != right.proof_hp) std::cout << __LINE__ << "\n";
+    if (proof_ip != right.proof_ip) std::cout << __LINE__ << "\n";
+    return var_coms == right.var_coms && left.com_vw == right.com_vw &&
+           proof_hp == right.proof_hp && left.proof_ip == right.proof_ip;
+  }
+  bool operator!=(Proof const& right) const { return !(*this == right); }
 };
 
-inline bool operator==(Proof const& left, Proof const& right) {
-  if (left.var_coms != right.var_coms) std::cout << __LINE__ << "\n";
-  if (left.com_vw != right.com_vw) std::cout << __LINE__ << "\n";
-  if (left.proof_hp != right.proof_hp) std::cout << __LINE__ << "\n";
-  if (left.proof_ip != right.proof_ip) std::cout << __LINE__ << "\n";
-  return left.var_coms == right.var_coms && left.com_vw == right.com_vw &&
-         left.proof_hp == right.proof_hp && left.proof_ip == right.proof_ip;
-}
-
-inline bool operator!=(Proof const& left, Proof const& right) {
-  return !(left == right);
-}
-
 // save to bin
-template <typename Ar>
-void serialize(Ar& ar, Proof const& t) {
+template <typename Ar, typename Policy>
+void serialize(Ar& ar, typename Proof<Policy> const& t) {
   ar& YAS_OBJECT_NVP("vrs.pf", ("var_coms", t.var_coms), ("com_vw", t.com_vw),
                      ("php", t.proof_hp), ("pip", t.proof_ip));
 }
 
 // load from bin
-template <typename Ar>
-void serialize(Ar& ar, Proof& t) {
+template <typename Ar, typename Policy>
+void serialize(Ar& ar, typename Proof<Policy>& t) {
   ar& YAS_OBJECT_NVP("vrs.pf", ("var_coms", t.var_coms), ("com_vw", t.com_vw),
                      ("php", t.proof_hp), ("pip", t.proof_ip));
 }

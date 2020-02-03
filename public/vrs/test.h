@@ -2,7 +2,7 @@
 
 namespace vrs {
 
-template<typename Scheme>
+template <typename Scheme, typename Policy>
 bool TestBasic(int64_t count) {
   Tick tick(__FUNCTION__);
   std::cout << "count = " << count << "\n";
@@ -17,10 +17,10 @@ bool TestBasic(int64_t count) {
 
   vrs::SecretInput secret_input{FrRand(), FrRand(), FrRand()};
 
-  vrs::Proof proof;
+  vrs::Proof<Policy> proof;
   vrs::ProveOutput prove_output;
-  vrs::Prover<Scheme> prover(public_input, secret_input, std::vector<G1>(),
-                     std::vector<Fr>());
+  vrs::Prover<Scheme, Policy> prover(
+      public_input, secret_input, std::vector<G1>(), std::vector<Fr>());
   prover.Evaluate();
 
   std::vector<Fr> w(count);
@@ -35,7 +35,7 @@ bool TestBasic(int64_t count) {
   assert(com_vw == proof.com_vw);
 
   vrs::VerifyOutput verify_output;
-  vrs::Verifier<Scheme> verifier(public_input);
+  vrs::Verifier<Scheme, Policy> verifier(public_input);
   bool ret = verifier.Verify(rom_seed, get_w, proof, verify_output);
   assert(ret);
 
@@ -49,7 +49,7 @@ bool TestBasic(int64_t count) {
   return ret;
 }
 
-template<typename Scheme>
+template <typename Scheme, typename Policy>
 bool TestLarge(int64_t count) {
   Tick tick(__FUNCTION__);
   std::cout << "count = " << count << "\n";
@@ -64,11 +64,11 @@ bool TestLarge(int64_t count) {
 
   vrs::SecretInput secret_input{FrRand(), FrRand(), FrRand()};
 
-  std::vector<vrs::Proof> proofs;
+  std::vector<vrs::Proof<Policy>> proofs;
   vrs::ProveOutput prove_output;
-  vrs::LargeProver<Scheme> prover(public_input, secret_input,
-                          std::vector<std::vector<G1>>(),
-                          std::vector<std::vector<Fr>>());
+  vrs::LargeProver<Scheme, Policy> prover(
+      public_input, secret_input, std::vector<std::vector<G1>>(),
+      std::vector<std::vector<Fr>>());
   prover.Evaluate();
 
   std::vector<Fr> w(count);
@@ -78,16 +78,16 @@ bool TestLarge(int64_t count) {
 
   int64_t y_g_offset = -1;
   auto check_com_vw =
-      PcComputeCommitmentG(y_g_offset,prover.vw(), secret_input.vw_com_r);
+      PcComputeCommitmentG(y_g_offset, prover.vw(), secret_input.vw_com_r);
   auto com_vw =
       std::accumulate(proofs.begin(), proofs.end(), G1Zero(),
-                      [](G1 const& a, Proof const& b) { return a + b.com_vw; });
+                      [](G1 const& a, Proof<Policy> const& b) { return a + b.com_vw; });
   (void)check_com_vw;
   (void)com_vw;
   assert(check_com_vw == com_vw);
 
   vrs::VerifyOutput verify_output;
-  vrs::LargeVerifier<Scheme> verifier(public_input);
+  vrs::LargeVerifier<Scheme, Policy> verifier(public_input);
   bool ret = verifier.Verify(rom_seed, get_w, proofs, verify_output);
   assert(ret);
 
@@ -103,7 +103,7 @@ bool TestLarge(int64_t count) {
   return ret;
 }
 
-template<typename Scheme>
+template <typename Scheme>
 inline void TestCache() {
   std::vector<bool> rets;
   // std::string output_file;
@@ -146,32 +146,32 @@ inline void TestCache() {
     std::cout << (i ? "success" : "failed") << "\n";
   }
 }
-
-inline void Test() {
-  std::vector<bool> ret;
-
-  //ret.push_back(TestBasic<Mimc5Scheme>(10));
-  //ret.push_back(TestLarge<Mimc5Scheme>(164));
-
-  ret.push_back(TestBasic<Sha256cScheme>(3));
-  ret.push_back(TestLarge<Sha256cScheme>(10));
-
-  std::cout << __FUNCTION__ << " summary:\n";
-  for (auto i : ret) {
-    std::cout << (i ? "success" : "failed") << "\n";
-  }
-}
-
-inline void TestPerformance() {
-  std::vector<bool> ret;
-
-  //ret.push_back(TestBasic<Mimc5Scheme>(1024*32));
-  ret.push_back(TestLarge<Mimc5Scheme>(1024*32*24));
-
-  ret.push_back(TestLarge<Sha256cScheme>(512*24));
-  std::cout << __FUNCTION__ << " summary:\n";
-  for (auto i : ret) {
-    std::cout << (i ? "success" : "failed") << "\n";
-  }
-}
+//
+// inline void Test() {
+//  std::vector<bool> ret;
+//
+//  //ret.push_back(TestBasic<Mimc5Scheme>(10));
+//  //ret.push_back(TestLarge<Mimc5Scheme>(164));
+//
+//  ret.push_back(TestBasic<Sha256cScheme>(3));
+//  ret.push_back(TestLarge<Sha256cScheme>(10));
+//
+//  std::cout << __FUNCTION__ << " summary:\n";
+//  for (auto i : ret) {
+//    std::cout << (i ? "success" : "failed") << "\n";
+//  }
+//}
+//
+// inline void TestPerformance() {
+//  std::vector<bool> ret;
+//
+//  //ret.push_back(TestBasic<Mimc5Scheme>(1024*32));
+//  ret.push_back(TestLarge<Mimc5Scheme>(1024*32*24));
+//
+//  ret.push_back(TestLarge<Sha256cScheme>(512*24));
+//  std::cout << __FUNCTION__ << " summary:\n";
+//  for (auto i : ret) {
+//    std::cout << (i ? "success" : "failed") << "\n";
+//  }
+//}
 }  // namespace vrs

@@ -7,17 +7,20 @@
 
 namespace vrs {
 
-template<typename Scheme>
+template <typename Scheme, typename Policy>
 class LargeProver {
  public:
+  using Sec53 = typename Policy::Sec53;
+  using HyraxA = typename Policy::HyraxA;
+
   LargeProver(PublicInput const& public_input, SecretInput const& secret_input,
               std::vector<std::vector<G1>> cached_var_coms,
               std::vector<std::vector<Fr>> cached_var_coms_r)
       : public_input_(public_input), secret_input_(secret_input) {
     Tick tick(__FUNCTION__);
     items_ = SplitLargeTask<Scheme>(public_input_.count);
-    std::cout << "items: " << items_.size() - 1 << "*" << Scheme::kMaxUnitPerZkp << "+"
-              << items_.back().second - items_.back().first << "\n";
+    std::cout << "items: " << items_.size() - 1 << "*" << Scheme::kMaxUnitPerZkp
+              << "+" << items_.back().second - items_.back().first << "\n";
     assert(cached_var_coms.size() == cached_var_coms_r.size());
 
     auto secret_inputs = BuildSecretInputs(cached_var_coms_r);
@@ -38,9 +41,9 @@ class LargeProver {
 
       auto& cached_var_com = cached_var_coms[i];
       auto& cached_var_com_r = cached_var_coms_r[i];
-      provers_[i].reset(new Prover<Scheme>(this_input, secret_inputs[i],
-                                   std::move(cached_var_com),
-                                   std::move(cached_var_com_r)));
+      provers_[i].reset(new Prover<Scheme, Policy>(this_input, secret_inputs[i],
+                                           std::move(cached_var_com),
+                                           std::move(cached_var_com_r)));
     }
   }
 
@@ -56,7 +59,7 @@ class LargeProver {
   }
 
   void Prove(h256_t const& rom_seed, std::function<Fr(int64_t)> get_w,
-             std::vector<Proof>& proofs, ProveOutput& output) {
+             std::vector<Proof<Policy>>& proofs, ProveOutput& output) {
     Tick tick(__FUNCTION__);
     auto size = (int64_t)provers_.size();
     proofs.resize(size);
@@ -81,10 +84,9 @@ class LargeProver {
     vw_ = parallel::Accumulate(vws.begin(), vws.end(), FrZero());
 
 #ifdef _DEBUG
-    int64_t g_offset = -1; // prover.h IpProve(), y_g_offset = -1
-    auto com_vw1 =
-        PcComputeCommitmentG(g_offset, vw_, secret_input_.vw_com_r);
-    auto op = [](G1 const& a, Proof const& b) { return a + b.com_vw; };
+    int64_t g_offset = -1;  // prover.h IpProve(), y_g_offset = -1
+    auto com_vw1 = PcComputeCommitmentG(g_offset, vw_, secret_input_.vw_com_r);
+    auto op = [](G1 const& a, Proof<Policy> const& b) { return a + b.com_vw; };
     auto com_vw2 = parallel::Accumulate(proofs.begin(), proofs.end(), G1Zero(),
                                         std::move(op));
     assert(com_vw1 == com_vw2);
@@ -131,15 +133,18 @@ class LargeProver {
   int64_t const primary_input_size_ = 1;
   PublicInput public_input_;
   SecretInput secret_input_;
-  std::vector<std::unique_ptr<Prover<Scheme>>> provers_;
+  std::vector<std::unique_ptr<Prover<Scheme, Policy>>> provers_;
   std::vector<std::pair<int64_t, int64_t>> items_;
   Fr vw_;
   std::vector<Fr> v_;
 };
 
-template<typename Scheme>
+template <typename Scheme, typename Policy>
 class LargeProverLowRam {
  public:
+  using Sec53 = typename Policy::Sec53;
+  using HyraxA = typename Policy::HyraxA;
+
   LargeProverLowRam(PublicInput const& public_input,
                     SecretInput const& secret_input,
                     std::vector<std::vector<G1>> cached_var_coms,
@@ -150,8 +155,8 @@ class LargeProverLowRam {
         cached_var_coms_r_(std::move(cached_var_coms_r)) {
     Tick tick(__FUNCTION__);
     items_ = SplitLargeTask<Scheme>(public_input_.count);
-    std::cout << "items: " << items_.size() - 1 << "*" << Scheme::kMaxUnitPerZkp << "+"
-              << items_.back().second - items_.back().first << "\n";
+    std::cout << "items: " << items_.size() - 1 << "*" << Scheme::kMaxUnitPerZkp
+              << "+" << items_.back().second - items_.back().first << "\n";
     assert(cached_var_coms_.size() == cached_var_coms_r_.size());
 
     BuildSecretInputs();
@@ -167,7 +172,7 @@ class LargeProverLowRam {
   }
 
   void Prove(h256_t const& rom_seed, std::function<Fr(int64_t)> get_w,
-             std::vector<Proof>& proofs, ProveOutput& output) {
+             std::vector<Proof<Policy>>& proofs, ProveOutput& output) {
     Tick tick(__FUNCTION__);
 
     auto size = (int64_t)items_.size();
@@ -185,8 +190,9 @@ class LargeProverLowRam {
 
       auto& cached_var_com = cached_var_coms_[i];
       auto& cached_var_com_r = cached_var_coms_r_[i];
-      Prover<Scheme> prover(this_input, secret_inputs_[i], std::move(cached_var_com),
-                    std::move(cached_var_com_r));
+      Prover<Scheme, Policy> prover(this_input, secret_inputs_[i],
+                                           std::move(cached_var_com),
+                                           std::move(cached_var_com_r));
 
       prover.Evaluate();
       auto const& v = prover.v();
@@ -205,9 +211,9 @@ class LargeProverLowRam {
     vw_ = parallel::Accumulate(vws.begin(), vws.end(), FrZero());
 
 #ifdef _DEBUG
-    int64_t g_offset = -1; // prover.h IpProve(), y_g_offset = -1
+    int64_t g_offset = -1;  // prover.h IpProve(), y_g_offset = -1
     auto com_vw1 = PcComputeCommitmentG(g_offset, vw_, secret_input_.vw_com_r);
-    auto op = [](G1 const& a, Proof const& b) { return a + b.com_vw; };
+    auto op = [](G1 const& a, Proof<Policy> const& b) { return a + b.com_vw; };
     auto com_vw2 = parallel::Accumulate(proofs.begin(), proofs.end(), G1Zero(),
                                         std::move(op));
     assert(com_vw1 == com_vw2);
@@ -260,9 +266,12 @@ class LargeProverLowRam {
   std::vector<Fr> v_;
 };
 
-template<typename Scheme>
+template <typename Scheme,typename Policy>
 class LargeVerifier {
  public:
+  using Sec53 = typename Policy::Sec53;
+  using HyraxA = typename Policy::HyraxA;
+
   LargeVerifier(PublicInput const& public_input) : public_input_(public_input) {
     auto kMaxUnitPerZkp = Scheme::kMaxUnitPerZkp;
     auto count = public_input_.count;
@@ -285,40 +294,38 @@ class LargeVerifier {
       PublicInput this_input(pair_size(item), [&item, this](int64_t j) {
         return public_input_.get_p(item.first + j);
       });
-      verifiers_[i].reset(new Verifier<Scheme>(this_input));
+      verifiers_[i].reset(new Verifier<Scheme, Policy>(this_input));
     };
     parallel::For((int64_t)verifiers_.size(), parallel_f);
   }
 
   bool Verify(h256_t const& rom_seed, std::function<Fr(int64_t)> get_w,
-              std::vector<Proof> const& proofs, VerifyOutput& output) {
+              std::vector<Proof<Policy>> const& proofs, VerifyOutput& output) {
     Tick tick(__FUNCTION__);
     if (proofs.size() != verifiers_.size()) return false;
     auto size = (int64_t)verifiers_.size();
     std::vector<VerifyOutput> outputs(size);
 
     bool all_success = false;
-    auto parallel_f = [this, &get_w, &rom_seed, &proofs,
-                       &outputs](int64_t i) {
+    auto parallel_f = [this, &get_w, &rom_seed, &proofs, &outputs](int64_t i) {
       auto const& item = items_[i];
       auto this_get_w = [&item, &get_w](int64_t j) {
         return get_w(j + item.first);
       };
       bool ret = verifiers_[i]->Verify(rom_seed, std::move(this_get_w),
-                                      proofs[i], outputs[i]);
+                                       proofs[i], outputs[i]);
       verifiers_[i].reset();
       return ret;
     };
     parallel::For(&all_success, size, parallel_f);
 
-    if (!all_success)
-      return false;
+    if (!all_success) return false;
 
     MergeOutputs(output, outputs);
 
     com_vw_ = parallel::Accumulate(
         proofs.begin(), proofs.end(), G1Zero(),
-        [](G1 const& a, Proof const& b) { return a + b.com_vw; });
+        [](G1 const& a, Proof<Policy> const& b) { return a + b.com_vw; });
 
     return true;
   }
@@ -327,7 +334,7 @@ class LargeVerifier {
 
  private:
   PublicInput public_input_;
-  std::vector<std::unique_ptr<Verifier<Scheme>>> verifiers_;
+  std::vector<std::unique_ptr<Verifier<Scheme, Policy>>> verifiers_;
   std::vector<std::pair<int64_t, int64_t>> items_;
   G1 com_vw_;
 };

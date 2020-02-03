@@ -232,9 +232,6 @@
     <ClInclude Include="..\public\scheme\bulletin_table.h">
       <Filter>public\scheme</Filter>
     </ClInclude>
-    <ClInclude Include="..\public\hyrax\test.h">
-      <Filter>public\hyrax</Filter>
-    </ClInclude>
     <ClInclude Include="..\public\groth09\sec51b.h">
       <Filter>public\groth09</Filter>
     </ClInclude>
@@ -253,16 +250,10 @@
     <ClInclude Include="..\public\groth09\sec53b.h">
       <Filter>public\groth09</Filter>
     </ClInclude>
-    <ClInclude Include="..\public\groth09\sec53c.h">
-      <Filter>public\groth09</Filter>
-    </ClInclude>
     <ClInclude Include="..\public\groth09\sec53a.h">
       <Filter>public\groth09</Filter>
     </ClInclude>
     <ClInclude Include="..\public\groth09\sec43b.h">
-      <Filter>public\groth09</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\groth09\sec43c.h">
       <Filter>public\groth09</Filter>
     </ClInclude>
     <ClInclude Include="..\public\pc_utils\details.h">
@@ -366,6 +357,9 @@
     </ClInclude>
     <ClInclude Include="..\public\ecc\pc_base.h">
       <Filter>public\ecc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\groth09\policy.h">
+      <Filter>public\groth09</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -9,16 +9,19 @@
 
 namespace vrs {
 
-template<typename Scheme>
+template <typename Scheme, typename Policy>
 class Verifier {
  public:
+  using HyraxA = typename Policy::HyraxA;
+  using Sec43 = typename Policy::Sec43;
+
   Verifier(PublicInput const& public_input) : public_input_(public_input) {
     pds_sigma_g_ = PcComputeSigmaG(g_offset_, public_input_.count);
     scheme_.reset(new Scheme);
   }
 
   bool Verify(h256_t seed, std::function<Fr(int64_t)> get_w,
-              Proof const& proof, VerifyOutput& output) {
+              Proof<Policy> const& proof, VerifyOutput& output) {
     // Tick tick(__FUNCTION__);
     auto n = public_input_.count;
     auto m = num_constraints();
@@ -32,12 +35,12 @@ class Verifier {
     bool ret_com_plain = false;
     tasks[0] = [this, &proof, &ret_com_plain, n]() {
       G1 const& com_plain = proof.var_coms[0];
-      Fr com_plain_r = FrZero(); // public val
+      Fr com_plain_r = FrZero();  // public val
       std::vector<Fr> data(n);
       for (int64_t i = 0; i < n; ++i) {
         data[i] = public_input_.get_p(i);
       }
-      int64_t x_g_offset = 0; // hardcode 0, because prover always use 0
+      int64_t x_g_offset = 0;  // hardcode 0, because prover always use 0
       auto check_value = PcComputeCommitmentG(x_g_offset, data, com_plain_r);
       ret_com_plain = check_value == com_plain;
     };
@@ -45,15 +48,15 @@ class Verifier {
     // check hadamard product
     bool ret_hp = false;
     tasks[1] = [this, &proof, &ret_hp, &seed, m, n]() {
-      groth09::sec43b::CommitmentPub com_pub_hp;
+      Sec43::CommitmentPub com_pub_hp;
       BuildHpCom(proof, com_pub_hp);
       com_pub_hp.Align();
       int64_t x_g_offset = 0;
       int64_t y_g_offset = 0;
       int64_t z_g_offset = 0;
-      groth09::sec43b::VerifierInput input_hp(m, n, com_pub_hp, x_g_offset,
-                                              y_g_offset, z_g_offset);
-      ret_hp = groth09::sec43b::Verify(proof.proof_hp, seed, input_hp);
+      Sec43::VerifierInput input_hp(m, n, com_pub_hp, x_g_offset, y_g_offset,
+                                    z_g_offset);
+      ret_hp = Sec43::Verify(proof.proof_hp, seed, input_hp);
     };
 
     // check inner product
@@ -63,13 +66,13 @@ class Verifier {
       for (int64_t i = 0; i < (int64_t)input_w.size(); ++i) {
         input_w[i] = get_w(i);
       }
-      hyrax::a2::CommitmentPub com_pub_ip;
+      HyraxA::CommitmentPub com_pub_ip;
       BuildIpCom(proof, com_pub_ip);
       int64_t x_g_offset = 0;
       int64_t y_g_offset = -1;
-      hyrax::a2::VerifierInput input_ip(input_w, com_pub_ip, x_g_offset,
-                                        y_g_offset);
-      ret_ip = hyrax::a2::Verify(proof.proof_ip, seed, input_ip);
+      HyraxA::VerifierInput input_ip(input_w, com_pub_ip, x_g_offset,
+                                     y_g_offset);
+      ret_ip = HyraxA::Verify(proof.proof_ip, seed, input_ip);
     };
 
     parallel::Invoke(tasks);
@@ -92,12 +95,12 @@ class Verifier {
 
   int64_t num_constraints() const { return scheme_->num_constraints(); }
 
-  void BuildIpCom(Proof const& proof, hyrax::a2::CommitmentPub& com_pub) {
+  void BuildIpCom(Proof<Policy> const& proof, typename HyraxA::CommitmentPub& com_pub) {
     com_pub.xi = proof.var_coms.back();
     com_pub.tau = proof.com_vw;
   }
 
-  void BuildHpCom(Proof const& proof, groth09::sec43b::CommitmentPub& com_pub) {
+  void BuildHpCom(Proof<Policy> const& proof, typename Sec43::CommitmentPub& com_pub) {
     // Tick tick(__FUNCTION__);
     auto m = num_constraints();
     com_pub.a.resize(m);
@@ -125,7 +128,7 @@ class Verifier {
 
   // com(<A,X>) or com(<B,X>) or com(<C,X>)
   void BuildHpCom(libsnark::linear_combination<Fr> const& lc, G1& com_pub,
-                  G1 const& sigma_g, Proof const& proof) {
+                  G1 const& sigma_g, Proof<Policy> const& proof) {
     // Tick tick(__FUNCTION__);
     for (auto const& term : lc.terms) {
       if (term.index == 0) {

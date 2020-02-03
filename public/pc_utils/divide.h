@@ -9,141 +9,147 @@
 // open com(x), com(s[i])
 // prove x = {s[i]}
 
-namespace pc_utils::divide::details {
-inline void UpdateSeed(h256_t& seed, G1 const& com_x, int64_t sn,
-                       std::vector<G1> const& com_s) {
-  // update seed
-  CryptoPP::Keccak_256 hash;
-  HashUpdate(hash, seed);
-  HashUpdate(hash, sn);
-  HashUpdate(hash, com_x);
-  HashUpdate(hash, com_s);
-  hash.Final(seed.data());
-}
-}  // namespace pc_utils::divide::details
+namespace pc_utils {
 
-namespace pc_utils::divide {
+// HyraxA: hyrax::A2 or hyrax::A3
+template <typename HyraxA>
+struct Divide {
+  using Proof = typename EqualIp<HyraxA>::Proof;
 
-using Proof = equal_ip::Proof;
-
-struct ProverInput {
-  ProverInput(std::vector<Fr> const& x, G1 const& com_x, Fr const& com_x_r,
-              int64_t x_g_offset, int64_t sn, std::vector<G1> const& com_s,
-              std::vector<Fr> const& com_s_r, int64_t s_g_offset)
-      : x(x),
-        com_x(com_x),
-        com_x_r(com_x_r),
-        x_g_offset(x_g_offset),
-        sn(sn),
-        com_s(com_s),
-        com_s_r(com_s_r),
-        s_g_offset(s_g_offset) {
-    assert(sn > 0);
-    assert(x.size() % sn == 0);
-    assert(x.size() / sn == com_s.size());
-    assert(com_s.size() == com_s_r.size());
-  }
-  std::vector<Fr> const& x;
-  G1 const& com_x;
-  Fr const& com_x_r;
-  int64_t const x_g_offset;
-  int64_t const sn;
-  std::vector<G1> const& com_s;
-  std::vector<Fr> const& com_s_r;
-  int64_t const s_g_offset;
-};
-
-inline void Prove(Proof& proof, h256_t seed, ProverInput const& input) {
-
-  details::UpdateSeed(seed, input.com_x, input.sn, input.com_s);
-
-  // d, e
-  std::vector<Fr> d(input.com_s.size());
-  ComputeFst(seed, "divide:d", d);
-  std::vector<Fr> e(input.sn);
-  ComputeFst(seed, "divide:e", e);
-
-  // f
-  std::vector<Fr> f;
-  f.reserve(input.x.size());
-  for (size_t i = 0; i < input.com_s.size(); ++i) {
-    auto de = e * d[i];
-    f.insert(f.end(), de.begin(), de.end());
-  }
-
-  // y
-  std::vector<Fr> y(input.sn, FrZero());
-  auto get_s = [&input](int64_t i) {
-    auto begin = input.x.begin() + i * input.sn;
-    auto end = begin + input.sn;
-    return std::vector<Fr>(begin, end);
+  struct ProverInput {
+    ProverInput(std::vector<Fr> const& x, G1 const& com_x, Fr const& com_x_r,
+                int64_t x_g_offset, int64_t sn, std::vector<G1> const& com_s,
+                std::vector<Fr> const& com_s_r, int64_t s_g_offset)
+        : x(x),
+          com_x(com_x),
+          com_x_r(com_x_r),
+          x_g_offset(x_g_offset),
+          sn(sn),
+          com_s(com_s),
+          com_s_r(com_s_r),
+          s_g_offset(s_g_offset) {
+      assert(sn > 0);
+      assert(x.size() % sn == 0);
+      assert(x.size() / sn == com_s.size());
+      assert(com_s.size() == com_s_r.size());
+    }
+    std::vector<Fr> const& x;
+    G1 const& com_x;
+    Fr const& com_x_r;
+    int64_t const x_g_offset;
+    int64_t const sn;
+    std::vector<G1> const& com_s;
+    std::vector<Fr> const& com_s_r;
+    int64_t const s_g_offset;
   };
-  for (size_t i = 0; i < input.com_s.size(); ++i) {
-    auto ds = get_s(i) * d[i];
-    y = y + ds;
+
+  static void UpdateSeed(h256_t& seed, G1 const& com_x, int64_t sn,
+                         std::vector<G1> const& com_s) {
+    // update seed
+    CryptoPP::Keccak_256 hash;
+    HashUpdate(hash, seed);
+    HashUpdate(hash, sn);
+    HashUpdate(hash, com_x);
+    HashUpdate(hash, com_s);
+    hash.Final(seed.data());
   }
 
-  // com_y_r, com_y
-  Fr com_y_r = InnerProduct(input.com_s_r, d);
-  G1 com_y = PcComputeCommitmentG(input.s_g_offset, y, com_y_r);  // multiexp(sn+1)
+  static void Prove(Proof& proof, h256_t seed, ProverInput const& input) {
+    UpdateSeed(seed, input.com_x, input.sn, input.com_s);
+
+    // d, e
+    std::vector<Fr> d(input.com_s.size());
+    ComputeFst(seed, "divide:d", d);
+    std::vector<Fr> e(input.sn);
+    ComputeFst(seed, "divide:e", e);
+
+    // f
+    std::vector<Fr> f;
+    f.reserve(input.x.size());
+    for (size_t i = 0; i < input.com_s.size(); ++i) {
+      auto de = e * d[i];
+      f.insert(f.end(), de.begin(), de.end());
+    }
+
+    // y
+    std::vector<Fr> y(input.sn, FrZero());
+    auto get_s = [&input](int64_t i) {
+      auto begin = input.x.begin() + i * input.sn;
+      auto end = begin + input.sn;
+      return std::vector<Fr>(begin, end);
+    };
+    for (size_t i = 0; i < input.com_s.size(); ++i) {
+      auto ds = get_s(i) * d[i];
+      y = y + ds;
+    }
+
+    // com_y_r, com_y
+    Fr com_y_r = InnerProduct(input.com_s_r, d);
+    G1 com_y =
+        PcComputeCommitmentG(input.s_g_offset, y, com_y_r);  // multiexp(sn+1)
 #ifdef _DEBUG
-  G1 check_com_y = MultiExpBdlo12(input.com_s, d);  // multiexp(n/sn)
-  assert(check_com_y == com_y);
+    G1 check_com_y = MultiExpBdlo12(input.com_s, d);  // multiexp(n/sn)
+    assert(check_com_y == com_y);
 #endif
 
-  // prove <x, f> == <y, e>
-  auto z = InnerProduct(input.x, f);
-  assert(z == InnerProduct(y, e));
+    // prove <x, f> == <y, e>
+    auto z = InnerProduct(input.x, f);
+    assert(z == InnerProduct(y, e));
 
-  equal_ip::ProverInput eip_input(input.x,f,input.com_x,input.com_x_r,
-                                  input.x_g_offset,y,e,com_y,com_y_r,
-                                  input.s_g_offset,z);
+    EqualIp<HyraxA>::ProverInput eip_input(input.x, f, input.com_x, input.com_x_r,
+                                    input.x_g_offset, y, e, com_y, com_y_r,
+                                    input.s_g_offset, z);
 
-  equal_ip::Prove(proof, seed, eip_input);
-}
-
-struct VerifierInput {
-  VerifierInput(int64_t sn, G1 const& com_x, int64_t x_g_offset,
-               std::vector<G1> const& com_s, int64_t s_g_offset)
-      : sn(sn),
-        com_x(com_x),
-        x_g_offset(x_g_offset),
-        com_s(com_s),
-        s_g_offset(s_g_offset) {}
-  int64_t const sn;
-  G1 const& com_x;
-  int64_t const x_g_offset;
-  std::vector<G1> const& com_s;
-  int64_t const s_g_offset;
-};
-
-inline bool Verify(h256_t seed, VerifierInput const& input, Proof const& proof) {
-  details::UpdateSeed(seed, input.com_x, input.sn, input.com_s);
-  int64_t n = input.com_s.size() * input.sn;
-
-  // d, e
-  std::vector<Fr> d(input.com_s.size());
-  ComputeFst(seed, "divide:d", d);
-  std::vector<Fr> e(input.sn);
-  ComputeFst(seed, "divide:e", e);
-
-  // f
-  std::vector<Fr> f;
-  f.reserve(n);
-  for (size_t i = 0; i < input.com_s.size(); ++i) {
-    auto de = e * d[i];
-    f.insert(f.end(), de.begin(), de.end());
+    EqualIp<HyraxA>::Prove(proof, seed, eip_input);
   }
 
-  // com_y
-  G1 com_y = MultiExpBdlo12(input.com_s, d);  // multiexp(com_s.size())
+  struct VerifierInput {
+    VerifierInput(int64_t sn, G1 const& com_x, int64_t x_g_offset,
+                  std::vector<G1> const& com_s, int64_t s_g_offset)
+        : sn(sn),
+          com_x(com_x),
+          x_g_offset(x_g_offset),
+          com_s(com_s),
+          s_g_offset(s_g_offset) {}
+    int64_t const sn;
+    G1 const& com_x;
+    int64_t const x_g_offset;
+    std::vector<G1> const& com_s;
+    int64_t const s_g_offset;
+  };
 
-  equal_ip::VerifierInput eip_input(f, input.com_x, input.x_g_offset, e, com_y,
-                                    input.s_g_offset);
-  return equal_ip::Verify(seed, proof,eip_input);
-}
+  static bool Verify(h256_t seed, VerifierInput const& input,
+                     Proof const& proof) {
+    UpdateSeed(seed, input.com_x, input.sn, input.com_s);
+    int64_t n = input.com_s.size() * input.sn;
 
-inline bool Test() {
+    // d, e
+    std::vector<Fr> d(input.com_s.size());
+    ComputeFst(seed, "divide:d", d);
+    std::vector<Fr> e(input.sn);
+    ComputeFst(seed, "divide:e", e);
+
+    // f
+    std::vector<Fr> f;
+    f.reserve(n);
+    for (size_t i = 0; i < input.com_s.size(); ++i) {
+      auto de = e * d[i];
+      f.insert(f.end(), de.begin(), de.end());
+    }
+
+    // com_y
+    G1 com_y = MultiExpBdlo12(input.com_s, d);  // multiexp(com_s.size())
+
+    EqualIp<HyraxA>::VerifierInput eip_input(f, input.com_x, input.x_g_offset, e,
+                                      com_y, input.s_g_offset);
+    return EqualIp<HyraxA>::Verify(seed, proof, eip_input);
+  }
+
+  static bool Test();
+};
+
+template <typename HyraxA>
+bool Divide<HyraxA>::Test() {
   auto seed = misc::RandH256();
 
   int64_t x_g_offset = 50;
@@ -151,7 +157,7 @@ inline bool Test() {
   std::vector<Fr> x(15);
   FrRand(x);
   Fr com_x_r = FrRand();
-  G1 com_x = PcComputeCommitmentG(x_g_offset,x, com_x_r);
+  G1 com_x = PcComputeCommitmentG(x_g_offset, x, com_x_r);
 
   int64_t sn = 3;
   int64_t m = x.size() / sn;
@@ -162,28 +168,28 @@ inline bool Test() {
     auto end = begin + sn;
     std::vector<Fr> s(begin, end);
     com_s_r[i] = FrRand();
-    com_s[i] = PcComputeCommitmentG(s_g_offset,s, com_s_r[i]);
+    com_s[i] = PcComputeCommitmentG(s_g_offset, s, com_s_r[i]);
   }
 
-  ProverInput prover_input(x, com_x, com_x_r, x_g_offset,
-                           sn, com_s, com_s_r, s_g_offset);
+  ProverInput prover_input(x, com_x, com_x_r, x_g_offset, sn, com_s, com_s_r,
+                           s_g_offset);
   Proof proof;
   Prove(proof, seed, prover_input);
 
-  yas::mem_ostream os;
-  yas::binary_oarchive<yas::mem_ostream, YasBinF()> oa(os);
-  oa.serialize(proof);
+  //yas::mem_ostream os;
+  //yas::binary_oarchive<yas::mem_ostream, YasBinF()> oa(os);
+  //oa.serialize(proof);
 
-  Proof proof2;
-  yas::mem_istream is(os.get_intrusive_buffer());
-  yas::binary_iarchive<yas::mem_istream, YasBinF()> ia(is);
-  ia.serialize(proof2);
+  //Proof proof2;
+  //yas::mem_istream is(os.get_intrusive_buffer());
+  //yas::binary_iarchive<yas::mem_istream, YasBinF()> ia(is);
+  //ia.serialize(proof2);
 
-  assert(proof == proof2);
+  //assert(proof == proof2);
 
   VerifierInput verifier_input(sn, com_x, x_g_offset, com_s, s_g_offset);
-  bool success = Verify(seed, verifier_input, proof2);
+  bool success = Verify(seed, verifier_input, proof);
   std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success << "\n";
   return success;
 }
-}  // namespace pc_utils::divide
+}  // namespace pc_utils

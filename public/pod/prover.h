@@ -6,8 +6,8 @@
 
 namespace pod {
 
-template<typename VrsScheme>
-void EncryptAndProve(ProveOutput<VrsScheme>& output, h256_t seed,
+template<typename VrsScheme,typename Policy>
+void EncryptAndProve(ProveOutput<VrsScheme, Policy>& output, h256_t seed,
                             CommitedData const& commited_data,
                             std::string cache_dir = "") {
   Tick _tick_(__FUNCTION__);
@@ -99,7 +99,7 @@ void EncryptAndProve(ProveOutput<VrsScheme>& output, h256_t seed,
   output.proved_data.vw_com_r = FrRand();
   vrs::SecretInput secret_input(output.secret.seed0, output.secret.seed0_com_r,
                                 output.proved_data.vw_com_r);
-  vrs::LargeProverLowRam<VrsScheme> prover(public_input, secret_input,
+  vrs::LargeProverLowRam<VrsScheme, Policy> prover(public_input, secret_input,
                                 std::move(cached_var_coms),
                                 std::move(cached_var_coms_r));
   auto get_w = [&w, s](int64_t i) { return w[i / (s + 1)]; };

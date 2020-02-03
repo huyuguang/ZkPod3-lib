@@ -140,8 +140,8 @@
     <ClInclude Include="..\public\ecc\types.h" />
     <ClInclude Include="..\public\groth09\details.h" />
     <ClInclude Include="..\public\groth09\groth09.h" />
+    <ClInclude Include="..\public\groth09\policy.h" />
     <ClInclude Include="..\public\groth09\sec43b.h" />
-    <ClInclude Include="..\public\groth09\sec43c.h" />
     <ClInclude Include="..\public\groth09\sec51a.h" />
     <ClInclude Include="..\public\groth09\sec51b.h" />
     <ClInclude Include="..\public\groth09\sec51c.h" />
@@ -149,14 +149,12 @@
     <ClInclude Include="..\public\groth09\sec52b.h" />
     <ClInclude Include="..\public\groth09\sec53a.h" />
     <ClInclude Include="..\public\groth09\sec53b.h" />
-    <ClInclude Include="..\public\groth09\sec53c.h" />
     <ClInclude Include="..\public\groth09\test.h" />
     <ClInclude Include="..\public\hyrax\a1.h" />
     <ClInclude Include="..\public\hyrax\a2.h" />
     <ClInclude Include="..\public\hyrax\a3.h" />
     <ClInclude Include="..\public\hyrax\details.h" />
     <ClInclude Include="..\public\hyrax\hyrax.h" />
-    <ClInclude Include="..\public\hyrax\test.h" />
     <ClInclude Include="..\public\log\log.h" />
     <ClInclude Include="..\public\misc\funcs.h" />
     <ClInclude Include="..\public\misc\func_alias.h" />

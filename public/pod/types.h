@@ -1,6 +1,7 @@
 #pragma once
 
 #include <functional>
+
 #include "ecc/ecc.h"
 #include "vrs/vrs.h"
 
@@ -19,34 +20,34 @@ struct CommitedData {
   GetCom get_com;
 };
 
+template <typename Policy>
 struct ProvedData {
   std::vector<G1> k;   // size = n+1, k=com(v)
   std::vector<Fr> em;  // size = n*(s+1), encrypted r&m
   std::vector<Fr> vw;  // s + 1
   h256_t vrs_plain_seed;
   Fr vw_com_r;
-  std::vector<vrs::Proof> vrs_proofs;
+  std::vector<vrs::Proof<Policy>> vrs_proofs;
+  bool operator==(ProvedData const& b) const {
+    return k == b.k && em == b.em && vw == b.vw &&
+           vrs_plain_seed == b.vrs_plain_seed && vw_com_r == b.vw_com_r &&
+           vrs_proofs == b.vrs_proofs;
+  }
+
+  bool operator!=(ProvedData const& b) const { return !(*this == b); }
 };
 
-inline bool operator==(ProvedData const& a, ProvedData const& b) {
-  return a.k == b.k && a.em == b.em && a.vw == b.vw &&
-         a.vrs_plain_seed == b.vrs_plain_seed && a.vw_com_r == b.vw_com_r &&
-         a.vrs_proofs == b.vrs_proofs;
-}
-
-inline bool operator!=(ProvedData const& a, ProvedData const& b) { return !(a == b); }
-
 // save to bin
-template <typename Ar>
-void serialize(Ar& ar, ProvedData const& t) {
+template <typename Ar, typename Policy>
+void serialize(Ar& ar, typename ProvedData<Policy> const& t) {
   ar& YAS_OBJECT_NVP("pod.pd", ("k", t.k), ("em", t.em), ("vw", t.vw),
                      ("seed", t.vrs_plain_seed), ("r", t.vw_com_r),
                      ("p", t.vrs_proofs));
 }
 
 // load from bin
-template <typename Ar>
-void serialize(Ar& ar, ProvedData& t) {
+template <typename Ar, typename Policy>
+void serialize(Ar& ar, typename ProvedData<Policy>& t) {
   ar& YAS_OBJECT_NVP("pod.pd", ("k", t.k), ("em", t.em), ("vw", t.vw),
                      ("seed", t.vrs_plain_seed), ("r", t.vw_com_r),
                      ("p", t.vrs_proofs));
@@ -68,9 +69,9 @@ struct Secret {
   Fr seed0_com_r;
 };
 
-template<typename VrsScheme>
+template <typename VrsScheme, typename Policy>
 struct ProveOutput {
-  ProvedData proved_data;
+  ProvedData<Policy> proved_data;
   Receipt receipt;
   Secret secret;
   vrs::AutoCacheFileUPtr<VrsScheme> auto_cache;
