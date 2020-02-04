@@ -196,7 +196,7 @@ inline void Prove(Proof& proof, h256_t seed, ProverInput&& input,
 
   G1 p = com_pub.p + com_ext_pub.r * x + input.h * (-proof.miu);
   p1::Prove(proof.p1, seed, std::move(input.g1), std::move(input.g2),
-                 std::move(a2), std::move(b2), p, proof.c);
+            std::move(a2), std::move(b2), p, proof.c);
 }
 
 struct VerifierInput {
@@ -265,10 +265,29 @@ inline bool Test(int64_t n) {
   Proof proof;
   Prove(proof, seed, std::move(prover_input), com_pub, com_sec);
 
+#ifndef DISABLE_SERIALIZE_CHECK
+  // serialize to buffer
+  yas::mem_ostream os;
+  yas::binary_oarchive<yas::mem_ostream, YasBinF()> oa(os);
+  oa.serialize(proof);
+  std::cout << "proof size: " << os.get_shared_buffer().size << "\n";
+  // serialize from buffer
+  yas::mem_istream is(os.get_intrusive_buffer());
+  yas::binary_iarchive<yas::mem_istream, YasBinF()> ia(is);
+  Proof proof2;
+  ia.serialize(proof2);
+  if (proof != proof2) {
+    assert(false);
+    std::cout << "oops, serialize check failed\n";
+    return false;
+  }
+#endif
+
   VerifierInput verifier_input(std::move(g1_copy), std::move(g2_copy), h, u,
                                com_pub);
   bool success = Verify(proof, seed, std::move(verifier_input));
-  std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success << "\n";
+  std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success
+            << "\n\n\n\n\n\n";
   return success;
 }
 }  // namespace bp::p3

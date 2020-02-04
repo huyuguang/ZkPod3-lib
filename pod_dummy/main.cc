@@ -99,8 +99,7 @@ int main(int argc, char** argv) {
         "thread_num", po::value<uint32_t>(&thread_num)->default_value(0),
         "Provide the number of the parallel thread, 1: disable, 0: default.")(
         "vrs_scheme", po::value<int>(&vrs_scheme)->default_value(kMimic5),
-        "Provide the scheme type, 0: mimc5, 1:sha256c")(
-        "hyrax_a1", "")(
+        "Provide the scheme type, 0: mimc5, 1:sha256c")("hyrax_a1", "")(
         "hyrax_a2", po::value<int64_t>(&hyrax_a2_n), "")(
         "hyrax_a3", po::value<int64_t>(&hyrax_a3_n), "")(
         "gro09_51a", po::value<int64_t>(&gro09_51a_n), "")(

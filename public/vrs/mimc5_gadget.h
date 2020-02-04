@@ -99,7 +99,7 @@ class Mimc5Gadget : public libsnark::gadget<Fr> {
 };
 
 struct Mimc5Scheme {
-  Mimc5Scheme() : gadget(pb, "Mimc5Gadget") {    
+  Mimc5Scheme() : gadget(pb, "Mimc5Gadget") {
     pb.set_input_sizes(kPrimaryInputSize);
     constraint_system = pb.get_constraint_system();
   }
@@ -115,9 +115,9 @@ struct Mimc5Scheme {
 #else
   static const int64_t kMaxUnitPerZkp = 1024 * 32;
 #endif
-  static_assert(kMaxUnitPerZkp <= (int64_t)PcBase::kGSize/3,
+  static_assert(kMaxUnitPerZkp <= (int64_t)PcBase::kGSize / 3,
                 "kMaxUnitPerZkp too large");
-  
+
   static std::string const& type() {
     static const std::string a = "mimc5";
     return a;

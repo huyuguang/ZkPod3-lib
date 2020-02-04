@@ -61,7 +61,6 @@ typedef std::function<void()> Task;
 
 template <typename T, typename F>
 void For(T count, F& f, bool direct = false) {
-  
   if (!count) return;
   if (count == 1) {
     f(0);

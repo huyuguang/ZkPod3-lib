@@ -343,7 +343,7 @@ bool SubstrQuery<Policy>::Test() {
   }
 
   bool success = check_rets == rets;
-  std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success << "\n";
+  std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success << "\n\n\n\n\n\n";
 
   return success;
 }

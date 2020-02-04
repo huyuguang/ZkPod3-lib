@@ -22,8 +22,8 @@
 #pragma warning(pop)
 #endif
 
-#include "./types.h"
 #include "./funcs.h"
+#include "./types.h"
 
 inline constexpr size_t YasBinF() {
   return yas::options::binary | yas::options::ebig | yas::options::compacted;

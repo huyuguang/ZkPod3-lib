@@ -93,7 +93,7 @@ class PcBase : boost::noncopyable {
     assert(g_offset >= 0 && g_offset < kGSize);
     return h_ * r + g_[g_offset] * x;
   }
-  
+
   std::vector<G1> CopyG(size_t offset, size_t count) const {
     assert(offset + count <= kGSize);
     auto begin = g_.begin() + offset;
@@ -111,7 +111,7 @@ class PcBase : boost::noncopyable {
     Tick tick(__FUNCTION__);
 
     GenerateG1(0xffffffff, &h_);
-    
+
     GenerateG1(0xfffffffe, &u_);
 
     auto parallel_f = [this](int64_t i) { GenerateG1(i, &g_[i]); };
@@ -157,11 +157,11 @@ class PcBase : boost::noncopyable {
 
     Header header;
     if (!ReadHeader(f, header)) throw std::runtime_error("Read header failed");
-    
+
     if (header.g_size != kGSize) throw std::runtime_error("Invalid data");
 
     if (!ReadG1(f, h_)) throw std::runtime_error("Read pedersen_base failed");
-    
+
     if (!ReadG1(f, u_)) throw std::runtime_error("Read pedersen_base failed");
 
     for (auto& i : g_) {
@@ -173,7 +173,7 @@ class PcBase : boost::noncopyable {
     static_assert(kGSize % kSigmaGInterval == 0 && kGSize >= kSigmaGInterval,
                   "");
     sigma_g_.resize(kGSize / kSigmaGInterval);
-    
+
     auto parallel_f = [this](int64_t i) {
       auto begin = g_.data() + i * kSigmaGInterval;
       auto end = begin + kSigmaGInterval;

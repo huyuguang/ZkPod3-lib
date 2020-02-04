@@ -6,10 +6,10 @@
 
 namespace pod {
 
-template<typename VrsScheme,typename Policy>
+template <typename VrsScheme, typename Policy>
 void EncryptAndProve(ProveOutput<VrsScheme, Policy>& output, h256_t seed,
-                            CommitedData const& commited_data,
-                            std::string cache_dir = "") {
+                     CommitedData const& commited_data,
+                     std::string cache_dir = "") {
   Tick _tick_(__FUNCTION__);
   auto n = commited_data.n;
   auto s = commited_data.s;
@@ -21,7 +21,8 @@ void EncryptAndProve(ProveOutput<VrsScheme, Policy>& output, h256_t seed,
     cache_dir += VrsScheme::type();
   }
 
-  output.auto_cache.reset(new vrs::AutoCacheFile<VrsScheme>(cache_dir, (n + 1) * (s + 1)));
+  output.auto_cache.reset(
+      new vrs::AutoCacheFile<VrsScheme>(cache_dir, (n + 1) * (s + 1)));
   auto cache = output.auto_cache->LoadAndUpgrade();
 
   std::vector<std::vector<G1>> cached_var_coms;
@@ -69,7 +70,7 @@ void EncryptAndProve(ProveOutput<VrsScheme, Policy>& output, h256_t seed,
   // mij' = vij + mij * wi
   output.proved_data.em.resize(n * (s + 1));
   auto parallel_f_m = [&output, &commited_data, s, &v, &w](uint64_t i) {
-    auto get_rm = [&commited_data](int64_t i, int64_t j)->Fr const& {
+    auto get_rm = [&commited_data](int64_t i, int64_t j) -> Fr const& {
       assert(j < (commited_data.s + 1) && i < commited_data.n);
       if (!j) return commited_data.get_r(i);
       return commited_data.get_m(i, j - 1);
@@ -80,7 +81,7 @@ void EncryptAndProve(ProveOutput<VrsScheme, Policy>& output, h256_t seed,
       output.proved_data.em[ij] = v[ij] + w[i] * get_rm(i, j);
     }
   };
-  parallel::For(n, parallel_f_m);  
+  parallel::For(n, parallel_f_m);
 
   // vw
   output.proved_data.vw.resize(s + 1);
@@ -99,9 +100,9 @@ void EncryptAndProve(ProveOutput<VrsScheme, Policy>& output, h256_t seed,
   output.proved_data.vw_com_r = FrRand();
   vrs::SecretInput secret_input(output.secret.seed0, output.secret.seed0_com_r,
                                 output.proved_data.vw_com_r);
-  vrs::LargeProverLowRam<VrsScheme, Policy> prover(public_input, secret_input,
-                                std::move(cached_var_coms),
-                                std::move(cached_var_coms_r));
+  vrs::LargeProverLowRam<VrsScheme, Policy> prover(
+      public_input, secret_input, std::move(cached_var_coms),
+      std::move(cached_var_coms_r));
   auto get_w = [&w, s](int64_t i) { return w[i / (s + 1)]; };
   vrs::ProveOutput vrs_output;
   prover.Prove(seed, get_w, output.proved_data.vrs_proofs, vrs_output);

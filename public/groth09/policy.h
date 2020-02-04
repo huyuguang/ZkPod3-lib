@@ -1,8 +1,8 @@
 #pragma once
 
+#include "./sec43b.h"
 #include "./sec51b.h"
 #include "./sec51c.h"
-#include "./sec43b.h"
 #include "hyrax/a2.h"
 #include "hyrax/a3.h"
 
@@ -21,4 +21,4 @@ struct SuccinctPolicy {
   using Sec53 = Sec53b<Sec51>;
   using Sec43 = Sec43b<Sec53, HyraxA>;
 };
-}
+}  // namespace groth09

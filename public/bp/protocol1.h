@@ -95,8 +95,27 @@ inline bool Test(int64_t n) {
   Prove(proof, seed, std::move(g), std::move(h), std::move(a), std::move(b), p,
         c);
 
+#ifndef DISABLE_SERIALIZE_CHECK
+  // serialize to buffer
+  yas::mem_ostream os;
+  yas::binary_oarchive<yas::mem_ostream, YasBinF()> oa(os);
+  oa.serialize(proof);
+  std::cout << "proof size: " << os.get_shared_buffer().size << "\n";
+  // serialize from buffer
+  yas::mem_istream is(os.get_intrusive_buffer());
+  yas::binary_iarchive<yas::mem_istream, YasBinF()> ia(is);
+  Proof proof2;
+  ia.serialize(proof2);
+  if (proof != proof2) {
+    assert(false);
+    std::cout << "oops, serialize check failed\n";
+    return false;
+  }
+#endif
+
   bool success = Verify(seed, std::move(g2), std::move(h2), proof);
-  std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success << "\n";
+  std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success
+            << "\n\n\n\n\n\n";
   return success;
 }
 }  // namespace bp::p1

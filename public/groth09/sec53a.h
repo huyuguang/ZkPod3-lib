@@ -489,7 +489,8 @@ bool Sec53a::Test(int64_t m, int64_t n) {
 
   VerifierInput verifier_input(com_pub, x_g_offset, y_g_offset, z_g_offset);
   bool success = Verify(proof, seed, verifier_input);
-  std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success << "\n";
+  std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success
+            << "\n\n\n\n\n\n";
   return success;
 }
 }  // namespace groth09

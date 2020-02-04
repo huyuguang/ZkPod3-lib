@@ -6,8 +6,8 @@
 #include <string>
 #include <vector>
 
-#include "ecc/ecc.h"
 #include "./mimc5.h"
+#include "ecc/ecc.h"
 
 namespace vrs {
 

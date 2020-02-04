@@ -59,7 +59,7 @@ class Sha256cGadget : public libsnark::gadget<Fr> {
 
  private:
   void generate_r1cs_constraints() {
-    //auto data = plain_;
+    // auto data = plain_;
     dual_plain_->generate_r1cs_constraints(true);
     dual_key_->generate_r1cs_constraints(true);
     dual_output_->generate_r1cs_constraints(true);
@@ -132,7 +132,7 @@ struct Sha256cScheme {
 #else
   static const int64_t kMaxUnitPerZkp = 512;
 #endif
-  static_assert(kMaxUnitPerZkp <= (int64_t)PcBase::kGSize/3,
+  static_assert(kMaxUnitPerZkp <= (int64_t)PcBase::kGSize / 3,
                 "kMaxUnitPerZkp too large");
 
   static std::string const& type() {

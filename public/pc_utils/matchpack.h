@@ -190,7 +190,7 @@ bool MatchPack<Policy>::Test() {
 
   VerifierInput verifier_input(n, k, x_g_offset, py_g_offset);
   bool success = Verify(proof, seed, verifier_input);
-  std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success << "\n";
+  std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success << "\n\n\n\n\n\n";
   return success;
 }
 }  // namespace pc_utils

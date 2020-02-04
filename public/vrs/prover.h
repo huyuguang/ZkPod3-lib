@@ -68,8 +68,8 @@ class Prover {
     }
   }
 
-  void Prove(h256_t seed, std::function<Fr(int64_t)> get_w, Proof<Policy>& proof,
-             ProveOutput& output) {
+  void Prove(h256_t seed, std::function<Fr(int64_t)> get_w,
+             Proof<Policy>& proof, ProveOutput& output) {
     Tick tick(__FUNCTION__);
     BuildVarComs();
 

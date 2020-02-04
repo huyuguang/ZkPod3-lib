@@ -221,7 +221,7 @@ struct Sec43b {
     input.Take(input_x, input_y, input_z);
 
     {
-      Tick tick53(" sec43b->Sec53");
+      //Tick tick53(" sec43b->Sec53");
 
       Sec53::CommitmentSec com_sec_53;
       Sec53::CommitmentPub com_pub_53;
@@ -233,7 +233,7 @@ struct Sec43b {
       Fr z = FrZero();
 
       {
-        Tick tickz("Sec53 compute z");
+        //Tick tickz("Sec53 compute z");
         // 2*m*n fr mul
         for (int64_t i = 0; i < original_m; ++i) {
           input_yt[i] = HadamardProduct(input_y[i], t);
@@ -252,7 +252,7 @@ struct Sec43b {
                                   input.y_g_offset, input_53_z_g_offset);
 
       {
-        Tick tickz("Sec53 compute com_sec_53 com_pub_53");
+        //Tick tickz("Sec53 compute com_sec_53 com_pub_53");
         input_53_z = input_53.z;
         com_sec_53.r.resize(m);
         com_pub_53.a.resize(m);
@@ -283,7 +283,7 @@ struct Sec43b {
     }
 
     {
-      Tick tick53("sec43b->hyraxa");
+      //Tick tick53("sec43b->hyraxa");
       HyraxA::CommitmentPub com_pub_hy;
       HyraxA::CommitmentSec com_sec_hy;
 
@@ -401,7 +401,8 @@ struct Sec43b {
 
 // save to bin
 template <typename Ar>
-void serialize(Ar& ar, typename Sec43b<Sec53b<Sec51b>, hyrax::A2>::Proof const& t) {
+void serialize(Ar& ar,
+               typename Sec43b<Sec53b<Sec51b>, hyrax::A2>::Proof const& t) {
   ar& YAS_OBJECT_NVP("43b.pf", ("c", t.c), ("53p", t.proof_53),
                      ("a2p", t.proof_a2));
 }
@@ -415,7 +416,8 @@ void serialize(Ar& ar, typename Sec43b<Sec53b<Sec51b>, hyrax::A2>::Proof& t) {
 
 // save to bin
 template <typename Ar>
-void serialize(Ar& ar, typename Sec43b<Sec53b<Sec51c>, hyrax::A3>::Proof const& t) {
+void serialize(Ar& ar,
+               typename Sec43b<Sec53b<Sec51c>, hyrax::A3>::Proof const& t) {
   ar& YAS_OBJECT_NVP("43b.pf", ("c", t.c), ("53p", t.proof_53),
                      ("a2p", t.proof_a2));
 }
@@ -466,10 +468,29 @@ bool Sec43b<Sec53, HyraxA>::Test(int64_t m, int64_t n) {
   Proof proof;
   Prove(proof, seed, prover_input, com_pub, com_sec);
 
+#ifndef DISABLE_SERIALIZE_CHECK
+  // serialize to buffer
+  yas::mem_ostream os;
+  yas::binary_oarchive<yas::mem_ostream, YasBinF()> oa(os);
+  oa.serialize(proof);
+  std::cout << "proof size: " << os.get_shared_buffer().size << "\n";
+  // serialize from buffer
+  yas::mem_istream is(os.get_intrusive_buffer());
+  yas::binary_iarchive<yas::mem_istream, YasBinF()> ia(is);
+  Proof proof2;
+  ia.serialize(proof2);
+  if (proof != proof2) {
+    assert(false);
+    std::cout << "oops, serialize check failed\n";
+    return false;
+  }
+#endif
+
   VerifierInput verifier_input(m, n, com_pub, x_g_offset, y_g_offset,
                                z_g_offset);
   bool success = Verify(proof, seed, verifier_input);
-  std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success << "\n";
+  std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success
+            << "\n\n\n\n\n\n";
   return success;
 }
 }  // namespace groth09

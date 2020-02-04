@@ -28,10 +28,10 @@ inline void UpdateSeed(h256_t& seed, std::vector<G1> const& k) {
   hash.Final(seed.data());
 }
 
-template<typename Scheme,typename Policy>
+template <typename Scheme, typename Policy>
 bool CheckVrs(int64_t n, int64_t s, h256_t const& seed,
-                     ProvedData<Policy> const& proved_data, VerifyOutput& output,
-                     vrs::VerifyOutput& vrs_output) {
+              ProvedData<Policy> const& proved_data, VerifyOutput& output,
+              vrs::VerifyOutput& vrs_output) {
   output.plain.resize((n + 1) * (s + 1));
   auto parallel_f = [&output, &proved_data](int64_t i) {
     output.plain[i] = vrs::GeneratePlain(proved_data.vrs_plain_seed, i);

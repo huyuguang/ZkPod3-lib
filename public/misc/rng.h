@@ -1,8 +1,9 @@
 #pragma once
 
 #include <cryptopp/osrng.h>
-#include "./types.h"
+
 #include "./mpz.h"
+#include "./types.h"
 
 namespace misc {
 // NOTE: NonblockingRng should enough for linux & windows

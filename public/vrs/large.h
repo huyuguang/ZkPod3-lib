@@ -41,9 +41,9 @@ class LargeProver {
 
       auto& cached_var_com = cached_var_coms[i];
       auto& cached_var_com_r = cached_var_coms_r[i];
-      provers_[i].reset(new Prover<Scheme, Policy>(this_input, secret_inputs[i],
-                                           std::move(cached_var_com),
-                                           std::move(cached_var_com_r)));
+      provers_[i].reset(new Prover<Scheme, Policy>(
+          this_input, secret_inputs[i], std::move(cached_var_com),
+          std::move(cached_var_com_r)));
     }
   }
 
@@ -72,8 +72,7 @@ class LargeProver {
       auto this_get_w = [&item, &get_w](int64_t j) {
         return get_w(j + item.first);
       };
-      provers_[i]->Prove(seed, std::move(this_get_w), proofs[i],
-                         outputs[i]);
+      provers_[i]->Prove(seed, std::move(this_get_w), proofs[i], outputs[i]);
       vws[i] = provers_[i]->vw();
       provers_[i].reset();
     };
@@ -191,8 +190,8 @@ class LargeProverLowRam {
       auto& cached_var_com = cached_var_coms_[i];
       auto& cached_var_com_r = cached_var_coms_r_[i];
       Prover<Scheme, Policy> prover(this_input, secret_inputs_[i],
-                                           std::move(cached_var_com),
-                                           std::move(cached_var_com_r));
+                                    std::move(cached_var_com),
+                                    std::move(cached_var_com_r));
 
       prover.Evaluate();
       auto const& v = prover.v();
@@ -266,7 +265,7 @@ class LargeProverLowRam {
   std::vector<Fr> v_;
 };
 
-template <typename Scheme,typename Policy>
+template <typename Scheme, typename Policy>
 class LargeVerifier {
  public:
   using Sec53 = typename Policy::Sec53;

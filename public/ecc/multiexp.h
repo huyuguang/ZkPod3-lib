@@ -1,6 +1,7 @@
 #pragma once
 
 #include <utility>
+
 #include "./funcs.h"
 #include "./types.h"
 
@@ -127,13 +128,13 @@ G MultiExpBdlo12(GET_G const& get_g, GET_F const& get_f, size_t n,
     if (pos.size() == n) {
       return MultiExpBdlo12Inner<G, GET_G, GET_F>(get_g, get_f, n);
     }
-    //std::cout << "MultiExpBdlo12: " << n << ", "
+    // std::cout << "MultiExpBdlo12: " << n << ", "
     //          << "0: " << count_0 << ", 1: " << count_1
     //          << ", left: " << pos.size() << "\n";
 
     if (!pos.empty()) {
-      auto new_get_g = [&get_g,&pos](int64_t i) { return get_g(pos[i]); };
-      auto new_get_f = [&get_f,&pos](int64_t i) { return get_f(pos[i]); };
+      auto new_get_g = [&get_g, &pos](int64_t i) { return get_g(pos[i]); };
+      auto new_get_f = [&get_f, &pos](int64_t i) { return get_f(pos[i]); };
       ret += MultiExpBdlo12Inner<G>(new_get_g, new_get_f, pos.size());
     }
     return ret;

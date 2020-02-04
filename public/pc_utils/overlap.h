@@ -193,7 +193,7 @@ bool Overlap<HyraxA>::Test() {
   VerifierInput verifier_input(xn, com_x, x_g_offset, yn, com_y, y_g_offset,
                                overlap);
   bool success = Verify(seed, verifier_input, proof);
-  std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success << "\n";
+  std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success << "\n\n\n\n\n\n";
   return success;
 }
 }  // namespace pc_utils

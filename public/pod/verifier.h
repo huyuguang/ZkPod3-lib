@@ -5,9 +5,10 @@
 #include "./types.h"
 
 namespace pod {
-template <typename VrsScheme,typename Policy>
+template <typename VrsScheme, typename Policy>
 bool VerifyAndSign(VerifyOutput& output, h256_t seed, int64_t n, int64_t s,
-                   GetCom const& get_com, ProvedData<Policy> const& proved_data) {
+                   GetCom const& get_com,
+                   ProvedData<Policy> const& proved_data) {
   Tick _tick_(__FUNCTION__);
   if ((int64_t)proved_data.k.size() != (n + 1)) {
     assert(false);
@@ -50,8 +51,8 @@ bool VerifyAndSign(VerifyOutput& output, h256_t seed, int64_t n, int64_t s,
   // check vrs
   vrs::VerifyOutput vrs_output;
   tasks[1] = [&ret, n, s, &seed, &proved_data, &output, &vrs_output]() {
-    ret[1] =
-        details::CheckVrs<VrsScheme, Policy>(n, s, seed, proved_data, output, vrs_output);
+    ret[1] = details::CheckVrs<VrsScheme, Policy>(n, s, seed, proved_data,
+                                                  output, vrs_output);
   };
 
   parallel::Invoke(tasks);

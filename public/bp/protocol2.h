@@ -72,21 +72,21 @@ inline bool operator!=(Proof const& left, Proof const& right) {
 // save to bin
 template <typename Ar>
 void serialize(Ar& ar, Proof const& t) {
-  ar& YAS_OBJECT_NVP("bp.p2.sub_proof", ("l", t.left), ("r", t.right), ("a", t.a),
-                     ("b", t.b));
+  ar& YAS_OBJECT_NVP("bp.p2.sub_proof", ("l", t.left), ("r", t.right),
+                     ("a", t.a), ("b", t.b));
 }
 
 // load from bin
 template <typename Ar>
 void serialize(Ar& ar, Proof& t) {
-  ar& YAS_OBJECT_NVP("bp.p2.sub_proof", ("l", t.left), ("r", t.right), ("a", t.a),
-                     ("b", t.b));
+  ar& YAS_OBJECT_NVP("bp.p2.sub_proof", ("l", t.left), ("r", t.right),
+                     ("a", t.a), ("b", t.b));
 }
 
 inline void Prove(Proof& proof, h256_t seed, G1 p, G1 const& u,
                   std::vector<G1>&& g1, std::vector<G1>&& g2,
                   std::vector<Fr>&& a, std::vector<Fr>&& b, Fr const& c) {
-  Tick tick(__FUNCTION__);
+  // Tick tick(__FUNCTION__);
   (void)c;
 
   assert(g1.size() == g2.size());
@@ -178,7 +178,7 @@ inline void Prove(Proof& proof, h256_t seed, G1 p, G1 const& u,
 
 bool Verify(h256_t seed, G1 p, G1 const& u, std::vector<G1>&& g1,
             std::vector<G1>&& g2, Proof const& proof) {
-  Tick tick(__FUNCTION__);
+  // Tick tick(__FUNCTION__);
   assert(g1.size() == g2.size());
   UpdateSeed(seed, p, u, g1.size());
 
@@ -279,9 +279,28 @@ inline bool Test(int64_t n) {
   Prove(proof, seed, p, u, std::move(g1), std::move(g2), std::move(a),
         std::move(b), c);
 
+#ifndef DISABLE_SERIALIZE_CHECK
+  // serialize to buffer
+  yas::mem_ostream os;
+  yas::binary_oarchive<yas::mem_ostream, YasBinF()> oa(os);
+  oa.serialize(proof);
+  std::cout << "proof size: " << os.get_shared_buffer().size << "\n";
+  // serialize from buffer
+  yas::mem_istream is(os.get_intrusive_buffer());
+  yas::binary_iarchive<yas::mem_istream, YasBinF()> ia(is);
+  Proof proof2;
+  ia.serialize(proof2);
+  if (proof != proof2) {
+    assert(false);
+    std::cout << "oops, serialize check failed\n";
+    return false;
+  }
+#endif
+
   bool success =
       Verify(seed, p, u, std::move(g1_copy), std::move(g2_copy), proof);
-  std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success << "\n";
+  std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success
+            << "\n\n\n\n\n\n";
   return success;
 }
 }  // namespace bp::p2

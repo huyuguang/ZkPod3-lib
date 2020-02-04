@@ -95,12 +95,14 @@ class Verifier {
 
   int64_t num_constraints() const { return scheme_->num_constraints(); }
 
-  void BuildIpCom(Proof<Policy> const& proof, typename HyraxA::CommitmentPub& com_pub) {
+  void BuildIpCom(Proof<Policy> const& proof,
+                  typename HyraxA::CommitmentPub& com_pub) {
     com_pub.xi = proof.var_coms.back();
     com_pub.tau = proof.com_vw;
   }
 
-  void BuildHpCom(Proof<Policy> const& proof, typename Sec43::CommitmentPub& com_pub) {
+  void BuildHpCom(Proof<Policy> const& proof,
+                  typename Sec43::CommitmentPub& com_pub) {
     // Tick tick(__FUNCTION__);
     auto m = num_constraints();
     com_pub.a.resize(m);

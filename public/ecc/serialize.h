@@ -22,8 +22,8 @@
 #pragma warning(pop)
 #endif
 
-#include "./types.h"
 #include "./funcs.h"
+#include "./types.h"
 
 namespace mcl {
 // save

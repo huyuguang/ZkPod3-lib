@@ -154,7 +154,7 @@ void UpgradeVarComs(h256_t const& seed, Fr const& key, int64_t begin,
                     std::vector<G1>& var_coms) {
   Tick tick(__FUNCTION__);
   if (old_end == new_end) return;
-  //int64_t const kPrimaryInputSize = Scheme::kPrimaryInputSize;
+  // int64_t const kPrimaryInputSize = Scheme::kPrimaryInputSize;
   auto min_end = std::min(old_end, new_end);
   auto max_end = std::max(old_end, new_end);
   bool is_grow = new_end > old_end;

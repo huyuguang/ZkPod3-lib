@@ -19,7 +19,6 @@
 namespace groth09 {
 
 struct Sec51c {
-
   struct ProverInput {
     std::vector<Fr> const& x;   // size = n
     std::vector<Fr> const& y;   // size = n
@@ -181,7 +180,7 @@ struct Sec51c {
 
   static bool Test(int64_t n);
 
-private:
+ private:
   static int64_t SelectYtOffset(int64_t n, int64_t x_g_offset) {
     auto kGSize = PcBase::kGSize;
     if (x_g_offset >= n) return x_g_offset - n;
@@ -194,7 +193,7 @@ private:
   }
 
   static void UpdateSeed(h256_t& seed, CommitmentPub const& com_pub,
-                  std::vector<Fr> const& t) {
+                         std::vector<Fr> const& t) {
     CryptoPP::Keccak_256 hash;
     HashUpdate(hash, com_pub.a);
     HashUpdate(hash, com_pub.b);
@@ -283,7 +282,8 @@ bool Sec51c::Test(int64_t n) {
 
   VerifierInput verifier_input(t, com_pub, x_g_offset, y_g_offset, z_g_offset);
   bool success = Verify(proof, seed, verifier_input);
-  std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success << "\n";
+  std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success
+            << "\n\n\n\n\n\n";
   return success;
 }
 }  // namespace groth09

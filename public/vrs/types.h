@@ -36,7 +36,8 @@ inline bool operator!=(Cache const& left, Cache const& right) {
 // save to bin
 template <typename Ar>
 void serialize(Ar& ar, Cache const& t) {
-  ar& YAS_OBJECT_NVP("cache", ("type", t.type),("max", t.max_unit_per_zkp),("c", t.count), ("s", t.seed), ("k", t.key),
+  ar& YAS_OBJECT_NVP("cache", ("type", t.type), ("max", t.max_unit_per_zkp),
+                     ("c", t.count), ("s", t.seed), ("k", t.key),
                      ("kcr", t.key_com_r), ("vc", t.var_coms),
                      ("vcr", t.var_coms_r));
 }
@@ -44,7 +45,8 @@ void serialize(Ar& ar, Cache const& t) {
 // load from bin
 template <typename Ar>
 void serialize(Ar& ar, Cache& t) {
-  ar& YAS_OBJECT_NVP("cache", ("type", t.type),("max", t.max_unit_per_zkp),("c", t.count), ("s", t.seed), ("k", t.key),
+  ar& YAS_OBJECT_NVP("cache", ("type", t.type), ("max", t.max_unit_per_zkp),
+                     ("c", t.count), ("s", t.seed), ("k", t.key),
                      ("kcr", t.key_com_r), ("vc", t.var_coms),
                      ("vcr", t.var_coms_r));
 }

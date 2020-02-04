@@ -21,7 +21,7 @@
 namespace groth09 {
 
 // Sec51: Sec51B or Sec51C
-template<typename Sec51>
+template <typename Sec51>
 struct Sec53b {
   struct CommitmentPub {
     std::vector<G1> a;  // a.size = m
@@ -191,8 +191,8 @@ struct Sec53b {
   };
 
   struct Proof {
-    CommitmentExtPub com_ext_pub;  // 2*log(m) G1
-    typename Sec51::Proof proof_51;        // 4 G1, 2n+3 Fr
+    CommitmentExtPub com_ext_pub;    // 2*log(m) G1
+    typename Sec51::Proof proof_51;  // 4 G1, 2n+3 Fr
 
     bool CheckFormat(int64_t check_m) const {
       return com_ext_pub.CheckFormat(check_m) && proof_51.CheckFormat();
@@ -246,8 +246,8 @@ struct Sec53b {
     assert(input.m() == 1);
 
     Sec51::ProverInput input_51(input.x[0], input.y[0], input.t, input.yt[0],
-                                 input.z, input.x_g_offset, input.y_g_offset,
-                                 input.z_g_offset);
+                                input.z, input.x_g_offset, input.y_g_offset,
+                                input.z_g_offset);
 
     Sec51::CommitmentPub com_pub_51(com_pub.a[0], com_pub.b[0], com_pub.c);
     Sec51::CommitmentSec com_sec_51(com_sec.r[0], com_sec.s[0], com_sec.t);
@@ -426,8 +426,8 @@ struct Sec53b {
 
     Sec51::CommitmentPub com_pub_51(com_pub.a[0], com_pub.b[0], com_pub.c);
     Sec51::VerifierInput verifier_input_51(input.t, com_pub_51,
-                                            input.x_g_offset, input.y_g_offset,
-                                            input.z_g_offset);
+                                           input.x_g_offset, input.y_g_offset,
+                                           input.z_g_offset);
     return Sec51::Verify(proof.proof_51, seed, verifier_input_51);
   }
 
@@ -482,7 +482,7 @@ void serialize(Ar& ar, typename Sec53b<Sec51c>::Proof& t) {
   ar& YAS_OBJECT_NVP("53.pf", ("c", t.com_ext_pub), ("r", t.proof_51));
 }
 
-template<typename Sec51>
+template <typename Sec51>
 bool Sec53b<Sec51>::Test(int64_t m, int64_t n) {
   Tick tick(__FUNCTION__);
   std::cout << "m=" << m << ", n=" << n << "\n";
@@ -546,7 +546,8 @@ bool Sec53b<Sec51>::Test(int64_t m, int64_t n) {
 
   VerifierInput verifier_input(t, com_pub, x_g_offset, y_g_offset, z_g_offset);
   bool success = Verify(proof, seed, verifier_input);
-  std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success << "\n";
+  std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success
+            << "\n\n\n\n\n\n";
   return success;
 }
 }  // namespace groth09

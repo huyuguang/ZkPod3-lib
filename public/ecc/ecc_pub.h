@@ -12,9 +12,9 @@
 #include <numeric>
 #include <vector>
 
-#include "./types.h"
 #include "./funcs.h"
 #include "./multiexp.h"
+#include "./types.h"
 #include "log/tick.h"
 
 // Order of the G1 can get through Fr::getModulo(), which return
