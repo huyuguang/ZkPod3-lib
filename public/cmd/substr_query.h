@@ -210,7 +210,7 @@ struct SubstrQuery {
     return true;
   }
 
-  static bool Test();
+  static bool Test(int64_t n, int64_t s, std::string const& key);
 };
 
 // save to bin
@@ -238,17 +238,19 @@ void serialize(Ar& ar, typename SubstrQuery<groth09::SuccinctPolicy>::Proof& t) 
 }
 
 template <typename Policy>
-bool SubstrQuery<Policy>::Test() {
+bool SubstrQuery<Policy>::Test(int64_t n, int64_t s, std::string const& key) {
+  if (key.size() > 31) {
+    std::cout << "invalid parameter: k.size() must <= 31.\n";
+    return false;
+  }
+  if (s >= PcBase::kGSize/2) {
+    std::cout << "invalid parameter: s must < " << PcBase::kGSize/2 << "\n";
+    return false;
+  }
+
   auto seed = misc::RandH256();
-  int64_t x_g_offset = 33;
-  std::string key = "cde";
-#ifdef _DEBUG
-  int64_t s = 32;
-  int64_t n = 3;
-#else
-  int64_t s = 4 * 1000;
-  int64_t n = 15;
-#endif
+  int64_t x_g_offset = 0;
+
   std::vector<std::vector<Fr>> x(n);
   auto parallel_f = [&x, s](int64_t i) {
     auto& xi = x[i];
@@ -265,9 +267,13 @@ bool SubstrQuery<Policy>::Test() {
   };
   parallel::For(n, parallel_f);
 
-  x[0][0] = PackStrToFr("cdefg123");
-  x[0][3] = PackStrToFr("abcdefg");
-  x[1][9] = PackStrToFr("123abfgcde");
+  if (key.size() == 31) {
+    x[rand() % n][rand()%s] = PackStrToFr(key.c_str());
+    x[rand() % n][rand()%s] = PackStrToFr(key.c_str());
+  } else {
+    x[rand() % n][rand()%s] = PackStrToFr((key+'a').c_str());
+    x[rand() % n][rand()%s] = PackStrToFr((std::string("b") + key).c_str());
+  }
 
   std::vector<boost::dynamic_bitset<uint8_t>> check_rets(n);
   for (auto i = 0; i < n; ++i) {

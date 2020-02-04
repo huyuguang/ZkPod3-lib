@@ -116,7 +116,7 @@ struct MatchPack {
     return Pack<HyraxA>::Verify(proof.pack_proof, seed, p_input);
   }
 
-  static bool Test();
+  static bool Test(int64_t n, std::string const& k);
 };
 
 // save to bin
@@ -148,19 +148,28 @@ void serialize(Ar& ar, MatchPack<groth09::SuccinctPolicy>::Proof& t) {
 }
 
 template <typename Policy>
-bool MatchPack<Policy>::Test() {
+bool MatchPack<Policy>::Test(int64_t n, std::string const& k) {
+  if (k.size() > 31) {
+    std::cout << "invalid parameter: k.size() must <= 31.\n";
+    return false;
+  }
+  if (n >= PcBase::kGSize/2) {
+    std::cout << "invalid parameter: n must < " << PcBase::kGSize/2 << "\n";
+    return false;
+  }
+
   auto seed = misc::RandH256();
-  int64_t x_g_offset = 540;
+  int64_t x_g_offset = 0;
   int64_t py_g_offset = 20;
-  int64_t n = 1000;
-  Fr k = FrRand();
+  Fr fr_k = PackStrToFr(k.c_str());
   std::vector<Fr> x(n);
   FrRand(x);
-  x[rand() % n] = k;
+  x[rand() % n] = fr_k;
+  x[rand() % n] = fr_k;
   auto com_x_r = FrRand();
   auto com_x = PcComputeCommitmentG(x_g_offset, x, com_x_r);
 
-  ProverInput prover_input(k, x, com_x, com_x_r, x_g_offset, py_g_offset);
+  ProverInput prover_input(fr_k, x, com_x, com_x_r, x_g_offset, py_g_offset);
   ProveOutput output;
   Prove(output, seed, prover_input);
 
@@ -188,7 +197,7 @@ bool MatchPack<Policy>::Test() {
   }
 #endif
 
-  VerifierInput verifier_input(n, k, x_g_offset, py_g_offset);
+  VerifierInput verifier_input(n, fr_k, x_g_offset, py_g_offset);
   bool success = Verify(proof, seed, verifier_input);
   std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success << "\n\n\n\n\n\n";
   return success;

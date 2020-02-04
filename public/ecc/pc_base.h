@@ -68,8 +68,11 @@ class PcBase : boost::noncopyable {
   typedef std::function<Fr const&(int64_t i)> GetX;
   G1 ComputeCommitmentG(int64_t g_offset, int64_t n, GetX const& x, Fr const& r,
                         bool check_01) const {
-    assert(g_offset >= 0);
-    assert(kGSize >= n);
+    if (g_offset < 0 || (kGSize < g_offset + n)) {
+      assert(false);
+      throw std::runtime_error(std::to_string(g_offset) + " + " +
+                               std::to_string(n) + " too large");
+    }
     auto get_g = [this, g_offset](int64_t i) -> G1 const& {
       return i ? g_[g_offset + i - 1] : h_;
     };
@@ -79,8 +82,11 @@ class PcBase : boost::noncopyable {
 
   G1 ComputeCommitmentG(int64_t g_offset, std::vector<Fr> const& x, Fr const& r,
                         bool check_01) const {
-    assert(g_offset >= 0);
-    assert(kGSize >= g_offset + (int64_t)x.size());
+    if (g_offset < 0 || (kGSize < g_offset + (int64_t)x.size())) {
+      assert(false);
+      throw std::runtime_error(std::to_string(g_offset) + " + " +
+                               std::to_string(x.size()) + " too large");
+    }
     auto get_g = [this, g_offset](int64_t i) -> G1 const& {
       return i ? g_[g_offset + i - 1] : h_;
     };
@@ -90,7 +96,10 @@ class PcBase : boost::noncopyable {
 
   G1 ComputeCommitmentG(int64_t g_offset, Fr const& x, Fr const& r) const {
     if (g_offset == -1) return h_ * r + u_ * x;
-    assert(g_offset >= 0 && g_offset < kGSize);
+    if (g_offset < 0 || g_offset >= kGSize) {
+      assert(false);
+      throw std::runtime_error(std::to_string(g_offset) + " too large");
+    }
     return h_ * r + g_[g_offset] * x;
   }
 

@@ -208,7 +208,7 @@ struct MatchQuery {
     return true;
   }
 
-  static bool Test();
+  static bool Test(int64_t n, int64_t s, std::string const& key);
 };
 
 // save to bin
@@ -236,26 +236,35 @@ void serialize(Ar& ar, MatchQuery<groth09::SuccinctPolicy>::Proof& t) {
 }
 
 template <typename Policy>
-bool MatchQuery<Policy>::Test() {
+bool MatchQuery<Policy>::Test(int64_t n, int64_t s, std::string const& key) {
+  if (key.size() > 31) {
+    std::cout << "invalid parameter: k.size() must <= 31.\n";
+    return false;
+  }
+  if (s >= PcBase::kGSize/2) {
+    std::cout << "invalid parameter: s must < " << PcBase::kGSize/2 << "\n";
+    return false;
+  }
+
   auto seed = misc::RandH256();
   int64_t x_g_offset = 10;
-  Fr key = FrRand();
-  int64_t s = 100;
-  int64_t n = 24;
+  Fr fr_key = PackStrToFr(key.c_str());
   std::vector<std::vector<Fr>> x(n);
-  auto parallel_f = [&x, s, &key](int64_t i) {
+  auto parallel_f = [&x, s](int64_t i) {
     auto& xi = x[i];
     xi.resize(s);
     FrRand(xi);
-    xi[rand() % s] = key;
   };
   parallel::For(n, parallel_f);
+
+  x[rand() % n][rand() % s] = fr_key;
+  x[rand() % n][rand() % s] = fr_key;
 
   std::vector<boost::dynamic_bitset<uint8_t>> check_rets(n);
   for (auto i = 0; i < n; ++i) {
     check_rets[i].resize(s);
     for (auto j = 0; j < s; ++j) {
-      check_rets[i][j] = x[i][j] == key;
+      check_rets[i][j] = x[i][j] == fr_key;
     }
   }
 
@@ -277,7 +286,7 @@ bool MatchQuery<Policy>::Test() {
   data_x.get_r = [&com_x_r](int64_t i) -> Fr const& { return com_x_r[i]; };
   data_x.get_m = [&x](int64_t i, int64_t j) -> Fr const& { return x[i][j]; };
 
-  ProverInput prover_input(key, data_x, x_g_offset);
+  ProverInput prover_input(fr_key, data_x, x_g_offset);
 
   ProveOutput prove_output;
   Prove(prove_output, seed, prover_input);
@@ -301,7 +310,7 @@ bool MatchQuery<Policy>::Test() {
   }
 #endif
 
-  VerifierInput verifier_input(key, s, com_x, x_g_offset);
+  VerifierInput verifier_input(fr_key, s, com_x, x_g_offset);
   pod::VerifyOutput verify_output;
   if (!Verify(proof, seed, verifier_input, verify_output)) {
     assert(false);

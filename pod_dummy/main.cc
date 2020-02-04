@@ -57,6 +57,45 @@ inline std::istream& operator>>(std::istream& in, ParamIntPair& t) {
   return in;
 }
 
+struct ParamIntStr {
+  bool valid() const { return n && !str.empty(); }
+  int64_t n = 0;
+  std::string str;
+};
+
+inline std::istream& operator>>(std::istream& in, ParamIntStr& t) {
+  try {
+    char sperator;
+    in >> t.n;
+    in >> sperator;
+    in >> t.str;
+  } catch (std::exception&) {
+    in.setstate(std::ios_base::failbit);
+  }
+  return in;
+}
+
+struct Param2IntStr {
+  bool valid() const { return n && s && !str.empty(); }
+  int64_t n = 0;
+  int64_t s = 0;
+  std::string str;
+};
+
+inline std::istream& operator>>(std::istream& in, Param2IntStr& t) {
+  try {
+    char sperator;
+    in >> t.n;
+    in >> sperator;
+    in >> t.s;
+    in >> sperator;
+    in >> t.str;
+  } catch (std::exception&) {
+    in.setstate(std::ios_base::failbit);
+  }
+  return in;
+}
+
 int main(int argc, char** argv) {
   setlocale(LC_ALL, "");
   std::string data_dir;
@@ -83,10 +122,10 @@ int main(int argc, char** argv) {
   bool match = false;
   bool substr = false;
   bool pack = false;
-  bool substrpack = false;
-  bool matchpack = false;
-  bool match_query = false;
-  bool substr_query = false;
+  ParamIntStr substrpack;
+  ParamIntStr matchpack;
+  Param2IntStr match_query;
+  Param2IntStr substr_query;
   int64_t bp_p1_n = 0;
   int64_t bp_p2_n = 0;
   int64_t bp_p3_n = 0;
@@ -116,8 +155,11 @@ int main(int argc, char** argv) {
         "matrix", po::value<ParamIntPair>(&matrix), "n*s, ex:10*20")(
         "equal_ip", po::value<ParamIntPair>(&equal_ip), "xn,yn, ex:10,20")(
         "overlap", "")("divide", "")("match", "")("substr", "")("pack", "")(
-        "substrpack", "")("matchpack", "")("match_query", "")(
-        "substr_query", "")("bp_p1", po::value<int64_t>(&bp_p1_n), "")(
+        "substrpack", po::value<ParamIntStr>(&substrpack), "n,key, ex: 10,abc")(
+        "matchpack", po::value<ParamIntStr>(&substrpack), "n,key, ex: 10,abc")(
+        "match_query", po::value<Param2IntStr>(&substr_query), "n,s,key, ex: 24,1000,abc")(
+        "substr_query", po::value<Param2IntStr>(&substr_query), "n,s,key, ex: 24,1000,abc")(
+        "bp_p1", po::value<int64_t>(&bp_p1_n), "")(
         "bp_p2", po::value<int64_t>(&bp_p2_n), "")(
         "bp_p3", po::value<int64_t>(&bp_p3_n), "");
 
@@ -159,22 +201,6 @@ int main(int argc, char** argv) {
 
     if (vmap.count("pack")) {
       pack = true;
-    }
-
-    if (vmap.count("substrpack")) {
-      substrpack = true;
-    }
-
-    if (vmap.count("matchpack")) {
-      matchpack = true;
-    }
-
-    if (vmap.count("match_query")) {
-      match_query = true;
-    }
-
-    if (vmap.count("substr_query")) {
-      substr_query = true;
     }
   } catch (std::exception& e) {
     std::cout << "Unknown parameters.\n"
@@ -273,29 +299,41 @@ int main(int argc, char** argv) {
     rets["pc_utils::pack_1"] = pc_utils::Pack<hyrax::A2>::Test();
     rets["pc_utils::pack_2"] = pc_utils::Pack<hyrax::A3>::Test();
   }
-  if (substrpack) {
+  if (substrpack.valid()) {
     rets["pc_utils::substrpack_1"] =
-        pc_utils::SubstrPack<groth09::OrdinaryPolicy>::Test();
+        pc_utils::SubstrPack<groth09::OrdinaryPolicy>::Test(substrpack.n,
+                                                            substrpack.str);
     rets["pc_utils::substrpack_2"] =
-        pc_utils::SubstrPack<groth09::SuccinctPolicy>::Test();
+        pc_utils::SubstrPack<groth09::SuccinctPolicy>::Test(substrpack.n,
+                                                            substrpack.str);
   }
-  if (matchpack) {
+  if (matchpack.valid()) {
     rets["pc_utils::matchpack_1"] =
-        pc_utils::MatchPack<groth09::OrdinaryPolicy>::Test();
+        pc_utils::MatchPack<groth09::OrdinaryPolicy>::Test(matchpack.n,
+                                                           matchpack.str);
     rets["pc_utils::matchpack_2"] =
-        pc_utils::MatchPack<groth09::SuccinctPolicy>::Test();
+        pc_utils::MatchPack<groth09::SuccinctPolicy>::Test(matchpack.n,
+                                                           matchpack.str);
   }
-  if (match_query) {
+  if (match_query.valid()) {
     rets["cmd::match_query_1"] =
-        cmd::MatchQuery<groth09::OrdinaryPolicy>::Test();
+        cmd::MatchQuery<groth09::OrdinaryPolicy>::Test(match_query.n,
+                                                       match_query.s,
+                                                       match_query.str);
     rets["cmd::match_query_2"] =
-        cmd::MatchQuery<groth09::SuccinctPolicy>::Test();
+        cmd::MatchQuery<groth09::SuccinctPolicy>::Test(match_query.n,
+                                                       match_query.s,
+                                                       match_query.str);
   }
-  if (substr_query) {
+  if (substr_query.valid()) {
     rets["cmd::substr_query_1"] =
-        cmd::SubstrQuery<groth09::OrdinaryPolicy>::Test();
+        cmd::SubstrQuery<groth09::OrdinaryPolicy>::Test(substr_query.n,
+                                                        substr_query.s,
+                                                        substr_query.str);
     rets["cmd::substr_query_2"] =
-        cmd::SubstrQuery<groth09::SuccinctPolicy>::Test();
+        cmd::SubstrQuery<groth09::SuccinctPolicy>::Test(substr_query.n,
+                                                        substr_query.s,
+                                                        substr_query.str);
   }
 
   if (vrs_scheme == VrsSchemeType::kMimic5) {

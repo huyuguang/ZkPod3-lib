@@ -121,7 +121,7 @@ struct SubstrPack {
     return Pack<HyraxA>::Verify(proof.pack_proof, seed, p_input);
   }
 
-  static bool Test();
+  static bool Test(int64_t n, std::string const& k);
 };
 
 // save to bin
@@ -153,19 +153,34 @@ void serialize(Ar& ar, typename SubstrPack<groth09::SuccinctPolicy>::Proof& t) {
 }
 
 template <typename Policy>
-bool SubstrPack<Policy>::Test() {
-  auto seed = misc::RandH256();
-  int64_t x_g_offset = 550;
-  int64_t py_g_offset = 20;
-  std::vector<Fr> x;
-  x.push_back(PackStrToFr("abcdefg"));
-  for (int i = 0; i < 100; ++i) {
-    x.push_back(PackStrToFr(misc::RandString(31).c_str()));
+bool SubstrPack<Policy>::Test(int64_t n, std::string const& k) {
+  if (k.size() > 31) {
+    std::cout << "invalid parameter: k.size() must <= 31.\n";
+    return false;
   }
-  int64_t n = x.size();
+  if (n >= PcBase::kGSize/2) {
+    std::cout << "invalid parameter: n must < " << PcBase::kGSize/2 << "\n";
+    return false;
+  }
+
+  auto seed = misc::RandH256();
+  int64_t x_g_offset = 0; // any value
+  int64_t py_g_offset = 20; // any value
+  std::vector<Fr> x(n);
+  for (int64_t i = 0; i < n; ++i) {
+    x[i] = PackStrToFr(misc::RandString(31).c_str());
+  }
+
+  if (k.size() == 31) {
+    x[rand() % n] = PackStrToFr(k.c_str());
+    x[rand() % n] = PackStrToFr(k.c_str());
+  } else {
+    x[rand() % n] = PackStrToFr((k+'a').c_str());
+    x[rand() % n] = PackStrToFr((std::string("b") + k).c_str());
+  }
+
   auto com_x_r = FrRand();
   auto com_x = PcComputeCommitmentG(x_g_offset, x, com_x_r);
-  std::string k = "cde";
 
   ProverInput prover_input(k, x, com_x, com_x_r, x_g_offset, py_g_offset);
   ProveOutput output;
