@@ -8,6 +8,6 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LocalDebuggerWorkingDirectory>$(OutDir)</LocalDebuggerWorkingDirectory>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
-    <LocalDebuggerCommandArguments>ecc_pub.bin 1024 8</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>--pod=100*1023</LocalDebuggerCommandArguments>
   </PropertyGroup>
 </Project>

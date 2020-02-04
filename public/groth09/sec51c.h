@@ -263,6 +263,24 @@ bool Sec51c::Test(int64_t n) {
   Proof proof;
   Prove(proof, seed, prover_input, com_pub, com_sec);
 
+#ifndef DISABLE_SERIALIZE_CHECK
+  // serialize to buffer
+  yas::mem_ostream os;
+  yas::binary_oarchive<yas::mem_ostream, YasBinF()> oa(os);
+  oa.serialize(proof);
+  std::cout << "proof size: " << os.get_shared_buffer().size << "\n";
+  // serialize from buffer
+  yas::mem_istream is(os.get_intrusive_buffer());
+  yas::binary_iarchive<yas::mem_istream, YasBinF()> ia(is);
+  Proof proof2;
+  ia.serialize(proof2);
+  if (proof != proof2) {
+    assert(false);
+    std::cout << "oops, serialize check failed\n";
+    return false;
+  }
+#endif
+
   VerifierInput verifier_input(t, com_pub, x_g_offset, y_g_offset, z_g_offset);
   bool success = Verify(proof, seed, verifier_input);
   std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success << "\n";

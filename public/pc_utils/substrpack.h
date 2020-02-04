@@ -15,12 +15,12 @@ struct SubstrPack {
     typename Substr<Policy>::Proof substr_proof;
     typename Pack<HyraxA>::Proof pack_proof;
     G1 com_pack_y;
-    bool operator==(Proof const& b) {
+    bool operator==(Proof const& b) const {
       return substr_proof == b.substr_proof && pack_proof == b.pack_proof &&
              com_pack_y == b.com_pack_y;
     }
 
-    bool operator!=(Proof const& b) { return !(*this == b); }
+    bool operator!=(Proof const& b) const { return !(*this == b); }
   };
 
   struct ProveOutput {
@@ -125,15 +125,29 @@ struct SubstrPack {
 };
 
 // save to bin
-template <typename Ar, typename Policy>
-void serialize(Ar& ar, typename SubstrPack<Policy>::Proof const& t) {
+template <typename Ar>
+void serialize(Ar& ar, typename SubstrPack<groth09::OrdinaryPolicy>::Proof const& t) {
   ar& YAS_OBJECT_NVP("sp.p", ("s", t.substr_proof), ("p", t.pack_proof),
                      ("y", t.com_pack_y));
 }
 
 // load from bin
-template <typename Ar, typename Policy>
-void serialize(Ar& ar, typename SubstrPack<Policy>::Proof& t) {
+template <typename Ar>
+void serialize(Ar& ar, typename SubstrPack<groth09::OrdinaryPolicy>::Proof& t) {
+  ar& YAS_OBJECT_NVP("sp.p", ("s", t.substr_proof), ("p", t.pack_proof),
+                     ("y", t.com_pack_y));
+}
+
+// save to bin
+template <typename Ar>
+void serialize(Ar& ar, typename SubstrPack<groth09::SuccinctPolicy>::Proof const& t) {
+  ar& YAS_OBJECT_NVP("sp.p", ("s", t.substr_proof), ("p", t.pack_proof),
+                     ("y", t.com_pack_y));
+}
+
+// load from bin
+template <typename Ar>
+void serialize(Ar& ar, typename SubstrPack<groth09::SuccinctPolicy>::Proof& t) {
   ar& YAS_OBJECT_NVP("sp.p", ("s", t.substr_proof), ("p", t.pack_proof),
                      ("y", t.com_pack_y));
 }
@@ -162,6 +176,24 @@ bool SubstrPack<Policy>::Test() {
     assert(false);
     return false;
   }
+
+#ifndef DISABLE_SERIALIZE_CHECK
+  // serialize to buffer
+  yas::mem_ostream os;
+  yas::binary_oarchive<yas::mem_ostream, YasBinF()> oa(os);
+  oa.serialize(proof);
+  std::cout << "proof size: " << os.get_shared_buffer().size << "\n";
+  // serialize from buffer
+  yas::mem_istream is(os.get_intrusive_buffer());
+  yas::binary_iarchive<yas::mem_istream, YasBinF()> ia(is);
+  Proof proof2;
+  ia.serialize(proof2);
+  if (proof != proof2) {
+    assert(false);
+    std::cout << "oops, serialize check failed\n";
+    return false;
+  }
+#endif
 
   VerifierInput verifier_input(n, k, x_g_offset, py_g_offset);
   bool success = Verify(proof, seed, verifier_input);

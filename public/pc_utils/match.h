@@ -199,14 +199,26 @@ struct Match {
 };
 
 // save to bin
-template <typename Ar, typename Policy>
-void serialize(Ar& ar, typename Match<Policy>::Proof const& t) {
+template <typename Ar>
+void serialize(Ar& ar, typename Match<groth09::OrdinaryPolicy>::Proof const& t) {
   ar& YAS_OBJECT_NVP("m.p", ("r1cs", t.r1cs_proof), ("w", t.com_w));
 }
 
 // load from bin
-template <typename Ar, typename Policy>
-void serialize(Ar& ar, typename Match<Policy>::Proof& t) {
+template <typename Ar>
+void serialize(Ar& ar, typename Match<groth09::OrdinaryPolicy>::Proof& t) {
+  ar& YAS_OBJECT_NVP("m.p", ("r1cs", t.r1cs_proof), ("w", t.com_w));
+}
+
+// save to bin
+template <typename Ar>
+void serialize(Ar& ar, typename Match<groth09::SuccinctPolicy>::Proof const& t) {
+  ar& YAS_OBJECT_NVP("m.p", ("r1cs", t.r1cs_proof), ("w", t.com_w));
+}
+
+// load from bin
+template <typename Ar>
+void serialize(Ar& ar, typename Match<groth09::SuccinctPolicy>::Proof& t) {
   ar& YAS_OBJECT_NVP("m.p", ("r1cs", t.r1cs_proof), ("w", t.com_w));
 }
 
@@ -233,6 +245,24 @@ bool Match<Policy>::Test() {
   ProverInput prover_input(k, x, com_x, com_x_r, y, com_y, com_y_r, g_offset);
   Proof proof;
   Prove(proof, seed, prover_input);
+
+#ifndef DISABLE_SERIALIZE_CHECK
+  // serialize to buffer
+  yas::mem_ostream os;
+  yas::binary_oarchive<yas::mem_ostream, YasBinF()> oa(os);
+  oa.serialize(proof);
+  std::cout << "proof size: " << os.get_shared_buffer().size << "\n";
+  // serialize from buffer
+  yas::mem_istream is(os.get_intrusive_buffer());
+  yas::binary_iarchive<yas::mem_istream, YasBinF()> ia(is);
+  Proof proof2;
+  ia.serialize(proof2);
+  if (proof != proof2) {
+    assert(false);
+    std::cout << "oops, serialize check failed\n";
+    return false;
+  }
+#endif
 
   VerifierInput verifier_input(n, k, g_offset);
   bool success = Verify(proof, seed, verifier_input);

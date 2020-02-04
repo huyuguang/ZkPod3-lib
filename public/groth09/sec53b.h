@@ -435,26 +435,50 @@ struct Sec53b {
 };
 
 // save to bin
-template <typename Ar, typename Sec51>
-void serialize(Ar& ar, typename Sec53b<Sec51>::CommitmentExtPub const& t) {
+template <typename Ar>
+void serialize(Ar& ar, typename Sec53b<Sec51b>::CommitmentExtPub const& t) {
   ar& YAS_OBJECT_NVP("53b.cep", ("cl", t.cl), ("cu", t.cu));
 }
 
 // load from bin
-template <typename Ar, typename Sec51>
-void serialize(Ar& ar, typename Sec53b<Sec51>::CommitmentExtPub& t) {
+template <typename Ar>
+void serialize(Ar& ar, typename Sec53b<Sec51b>::CommitmentExtPub& t) {
   ar& YAS_OBJECT_NVP("53b.cep", ("cl", t.cl), ("cu", t.cu));
 }
 
 // save to bin
-template <typename Ar, typename Sec51>
-void serialize(Ar& ar, typename Sec53b<Sec51>::Proof const& t) {
+template <typename Ar>
+void serialize(Ar& ar, typename Sec53b<Sec51c>::CommitmentExtPub const& t) {
+  ar& YAS_OBJECT_NVP("53b.cep", ("cl", t.cl), ("cu", t.cu));
+}
+
+// load from bin
+template <typename Ar>
+void serialize(Ar& ar, typename Sec53b<Sec51c>::CommitmentExtPub& t) {
+  ar& YAS_OBJECT_NVP("53b.cep", ("cl", t.cl), ("cu", t.cu));
+}
+
+// save to bin
+template <typename Ar>
+void serialize(Ar& ar, typename Sec53b<Sec51b>::Proof const& t) {
   ar& YAS_OBJECT_NVP("53.pf", ("c", t.com_ext_pub), ("r", t.proof_51));
 }
 
 // load from bin
-template <typename Ar, typename Sec51>
-void serialize(Ar& ar, typename Sec53b<Sec51>::Proof& t) {
+template <typename Ar>
+void serialize(Ar& ar, typename Sec53b<Sec51b>::Proof& t) {
+  ar& YAS_OBJECT_NVP("53.pf", ("c", t.com_ext_pub), ("r", t.proof_51));
+}
+
+// save to bin
+template <typename Ar>
+void serialize(Ar& ar, typename Sec53b<Sec51c>::Proof const& t) {
+  ar& YAS_OBJECT_NVP("53.pf", ("c", t.com_ext_pub), ("r", t.proof_51));
+}
+
+// load from bin
+template <typename Ar>
+void serialize(Ar& ar, typename Sec53b<Sec51c>::Proof& t) {
   ar& YAS_OBJECT_NVP("53.pf", ("c", t.com_ext_pub), ("r", t.proof_51));
 }
 
@@ -501,6 +525,24 @@ bool Sec53b<Sec51>::Test(int64_t m, int64_t n) {
 
   Proof proof;
   Prove(proof, seed, prover_input, com_pub, com_sec);
+
+#ifndef DISABLE_SERIALIZE_CHECK
+  // serialize to buffer
+  yas::mem_ostream os;
+  yas::binary_oarchive<yas::mem_ostream, YasBinF()> oa(os);
+  oa.serialize(proof);
+  std::cout << "proof size: " << os.get_shared_buffer().size << "\n";
+  // serialize from buffer
+  yas::mem_istream is(os.get_intrusive_buffer());
+  yas::binary_iarchive<yas::mem_istream, YasBinF()> ia(is);
+  Proof proof2;
+  ia.serialize(proof2);
+  if (proof != proof2) {
+    assert(false);
+    std::cout << "oops, serialize check failed\n";
+    return false;
+  }
+#endif
 
   VerifierInput verifier_input(t, com_pub, x_g_offset, y_g_offset, z_g_offset);
   bool success = Verify(proof, seed, verifier_input);

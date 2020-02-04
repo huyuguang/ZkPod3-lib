@@ -82,22 +82,36 @@ struct Proof {
     if (com_vw != right.com_vw) std::cout << __LINE__ << "\n";
     if (proof_hp != right.proof_hp) std::cout << __LINE__ << "\n";
     if (proof_ip != right.proof_ip) std::cout << __LINE__ << "\n";
-    return var_coms == right.var_coms && left.com_vw == right.com_vw &&
-           proof_hp == right.proof_hp && left.proof_ip == right.proof_ip;
+    return var_coms == right.var_coms && com_vw == right.com_vw &&
+           proof_hp == right.proof_hp && proof_ip == right.proof_ip;
   }
   bool operator!=(Proof const& right) const { return !(*this == right); }
 };
 
 // save to bin
-template <typename Ar, typename Policy>
-void serialize(Ar& ar, typename Proof<Policy> const& t) {
+template <typename Ar>
+void serialize(Ar& ar, Proof<groth09::OrdinaryPolicy> const& t) {
   ar& YAS_OBJECT_NVP("vrs.pf", ("var_coms", t.var_coms), ("com_vw", t.com_vw),
                      ("php", t.proof_hp), ("pip", t.proof_ip));
 }
 
 // load from bin
-template <typename Ar, typename Policy>
-void serialize(Ar& ar, typename Proof<Policy>& t) {
+template <typename Ar>
+void serialize(Ar& ar, Proof<groth09::OrdinaryPolicy>& t) {
+  ar& YAS_OBJECT_NVP("vrs.pf", ("var_coms", t.var_coms), ("com_vw", t.com_vw),
+                     ("php", t.proof_hp), ("pip", t.proof_ip));
+}
+
+// save to bin
+template <typename Ar>
+void serialize(Ar& ar, Proof<groth09::SuccinctPolicy> const& t) {
+  ar& YAS_OBJECT_NVP("vrs.pf", ("var_coms", t.var_coms), ("com_vw", t.com_vw),
+                     ("php", t.proof_hp), ("pip", t.proof_ip));
+}
+
+// load from bin
+template <typename Ar>
+void serialize(Ar& ar, Proof<groth09::SuccinctPolicy>& t) {
   ar& YAS_OBJECT_NVP("vrs.pf", ("var_coms", t.var_coms), ("com_vw", t.com_vw),
                      ("php", t.proof_hp), ("pip", t.proof_ip));
 }

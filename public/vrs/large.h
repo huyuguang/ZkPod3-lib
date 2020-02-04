@@ -58,7 +58,7 @@ class LargeProver {
     parallel::For(provers_.size(), parallel_f);
   }
 
-  void Prove(h256_t const& rom_seed, std::function<Fr(int64_t)> get_w,
+  void Prove(h256_t const& seed, std::function<Fr(int64_t)> get_w,
              std::vector<Proof<Policy>>& proofs, ProveOutput& output) {
     Tick tick(__FUNCTION__);
     auto size = (int64_t)provers_.size();
@@ -66,13 +66,13 @@ class LargeProver {
     std::vector<ProveOutput> outputs(size);
     std::vector<Fr> vws(size);
 
-    auto parallel_f = [this, &vws, &get_w, &rom_seed, &proofs,
+    auto parallel_f = [this, &vws, &get_w, &seed, &proofs,
                        &outputs](int64_t i) {
       auto const& item = items_[i];
       auto this_get_w = [&item, &get_w](int64_t j) {
         return get_w(j + item.first);
       };
-      provers_[i]->Prove(rom_seed, std::move(this_get_w), proofs[i],
+      provers_[i]->Prove(seed, std::move(this_get_w), proofs[i],
                          outputs[i]);
       vws[i] = provers_[i]->vw();
       provers_[i].reset();

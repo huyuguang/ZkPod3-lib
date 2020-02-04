@@ -3,7 +3,7 @@
 #include "./pod.h"
 
 namespace pod {
-template<typename Scheme,typename Policy>
+template <typename Scheme, typename Policy>
 bool Test(int64_t n, int64_t s) {
   std::vector<Fr> m(n * s);
   FrRand(m.data(), m.size());
@@ -14,7 +14,7 @@ bool Test(int64_t n, int64_t s) {
   std::vector<Fr> r(n);
   FrRand(r.data(), r.size());
   auto get_r = [&r](int64_t i) -> Fr const& { return r[i]; };
-  
+
   std::vector<G1> com(n);
   auto parallel_f = [&m, &com, &r, s](int64_t i) {
     int64_t g_offset = 0;
@@ -28,7 +28,7 @@ bool Test(int64_t n, int64_t s) {
   commited_data.n = n;
   commited_data.s = s;
   commited_data.get_m = get_m;
-  
+
   commited_data.get_r = get_r;
   commited_data.get_com = get_com;
   assert(details::CheckCommitedData(commited_data));
@@ -39,16 +39,34 @@ bool Test(int64_t n, int64_t s) {
   std::cout << "n = " << n << ", s = " << s << "\n";
 
   // prove
-  ProveOutput<Scheme,Policy> prove_output;
+  ProveOutput<Scheme, Policy> prove_output;
   EncryptAndProve<Scheme, Policy>(prove_output, seed, commited_data);
 
-  // prover send proveoutput.proved_data to verifier
+  // prover send prove_output.proved_data to verifier
+#ifndef DISABLE_SERIALIZE_CHECK
+  // serialize to buffer
+  yas::mem_ostream os;
+  yas::binary_oarchive<yas::mem_ostream, YasBinF()> oa(os);
+  oa.serialize(prove_output.proved_data);
+  std::cout << "proof with encrypted data size: " << os.get_shared_buffer().size
+            << "\n";
+  // serialize from buffer
+  yas::mem_istream is(os.get_intrusive_buffer());
+  yas::binary_iarchive<yas::mem_istream, YasBinF()> ia(is);
+  ProvedData<Policy> proved_data2;
+  ia.serialize(proved_data2);
+  if (prove_output.proved_data != proved_data2) {
+    assert(false);
+    std::cout << "oops, serialize check failed\n";
+    return false;
+  }
+#endif
 
   // verifier verify the proved_data, if ok, sign verify_output.receipt and send
   // to prover
   VerifyOutput verify_output;
   if (!VerifyAndSign<Scheme, Policy>(verify_output, seed, n, s, get_com,
-                     prove_output.proved_data)) {
+                                     prove_output.proved_data)) {
     assert(false);
     return false;
   }
@@ -82,7 +100,7 @@ bool Test(int64_t n, int64_t s) {
     assert(false);
     return false;
   }
-  
+
   std::cout << "success\n";
   return true;
 }

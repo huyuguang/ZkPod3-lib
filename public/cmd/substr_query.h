@@ -12,11 +12,11 @@ struct SubstrQuery {
   struct Proof {
     pod::ProvedData<Policy> pod_proved_data;
     std::vector<typename pc_utils::SubstrPack<Policy>::Proof> sp_proofs;
-    bool operator==(Proof const& b) {
+    bool operator==(Proof const& b) const {
       return pod_proved_data == b.pod_proved_data && sp_proofs == b.sp_proofs;
     }
 
-    bool operator!=(Proof const& b) { return !(*this == b); }
+    bool operator!=(Proof const& b) const { return !(*this == b); }
   };
 
   struct ProveOutput {
@@ -214,14 +214,26 @@ struct SubstrQuery {
 };
 
 // save to bin
-template <typename Ar, typename Policy>
-void serialize(Ar& ar, typename SubstrQuery<Policy>::Proof const& t) {
+template <typename Ar>
+void serialize(Ar& ar, typename SubstrQuery<groth09::OrdinaryPolicy>::Proof const& t) {
   ar& YAS_OBJECT_NVP("sq.p", ("pod", t.pod_proved_data), ("sp", t.sp_proofs));
 }
 
 // load from bin
-template <typename Ar, typename Policy>
-void serialize(Ar& ar, typename SubstrQuery<Policy>::Proof& t) {
+template <typename Ar>
+void serialize(Ar& ar, typename SubstrQuery<groth09::OrdinaryPolicy>::Proof& t) {
+  ar& YAS_OBJECT_NVP("sq.p", ("pod", t.pod_proved_data), ("sp", t.sp_proofs));
+}
+
+// save to bin
+template <typename Ar>
+void serialize(Ar& ar, typename SubstrQuery<groth09::SuccinctPolicy>::Proof const& t) {
+  ar& YAS_OBJECT_NVP("sq.p", ("pod", t.pod_proved_data), ("sp", t.sp_proofs));
+}
+
+// load from bin
+template <typename Ar>
+void serialize(Ar& ar, typename SubstrQuery<groth09::SuccinctPolicy>::Proof& t) {
   ar& YAS_OBJECT_NVP("sq.p", ("pod", t.pod_proved_data), ("sp", t.sp_proofs));
 }
 
@@ -290,25 +302,21 @@ bool SubstrQuery<Policy>::Test() {
   Prove(prove_output, seed, prover_input);
   Proof proof = prove_output.BuildProof();
 
-  size_t proof_size = 0;
-
-#if 0 // TODO
-  {
-    // serialize to buffer
-    yas::mem_ostream os;
-    yas::binary_oarchive<yas::mem_ostream, YasBinF()> oa(os);
-    oa.serialize(proof);
-    proof_size = os.get_shared_buffer().size;
-    // serialize from buffer
-    yas::mem_istream is(os.get_intrusive_buffer());
-    yas::binary_iarchive<yas::mem_istream, YasBinF()> ia(is);
-    Proof proof2;
-    ia.serialize(proof2);
-    if (proof != proof2) {
-      assert(false);
-      std::cout << "oops, serialize error\n";
-      return false;
-    }
+#ifndef DISABLE_SERIALIZE_CHECK
+  // serialize to buffer
+  yas::mem_ostream os;
+  yas::binary_oarchive<yas::mem_ostream, YasBinF()> oa(os);
+  oa.serialize(proof);
+  std::cout << "proof size: " << os.get_shared_buffer().size << "\n";
+  // serialize from buffer
+  yas::mem_istream is(os.get_intrusive_buffer());
+  yas::binary_iarchive<yas::mem_istream, YasBinF()> ia(is);
+  Proof proof2;
+  ia.serialize(proof2);
+  if (proof != proof2) {
+    assert(false);
+    std::cout << "oops, serialize check failed\n";
+    return false;
   }
 #endif
 
@@ -336,7 +344,6 @@ bool SubstrQuery<Policy>::Test() {
 
   bool success = check_rets == rets;
   std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success << "\n";
-  std::cout << "sub_proof size: " << proof_size << "\n";
 
   return success;
 }

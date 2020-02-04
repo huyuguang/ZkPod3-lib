@@ -176,17 +176,24 @@ bool Divide<HyraxA>::Test() {
   Proof proof;
   Prove(proof, seed, prover_input);
 
-  //yas::mem_ostream os;
-  //yas::binary_oarchive<yas::mem_ostream, YasBinF()> oa(os);
-  //oa.serialize(proof);
-
-  //Proof proof2;
-  //yas::mem_istream is(os.get_intrusive_buffer());
-  //yas::binary_iarchive<yas::mem_istream, YasBinF()> ia(is);
-  //ia.serialize(proof2);
-
-  //assert(proof == proof2);
-
+#ifndef DISABLE_SERIALIZE_CHECK
+  // serialize to buffer
+  yas::mem_ostream os;
+  yas::binary_oarchive<yas::mem_ostream, YasBinF()> oa(os);
+  oa.serialize(proof);
+  std::cout << "proof size: " << os.get_shared_buffer().size << "\n";
+  // serialize from buffer
+  yas::mem_istream is(os.get_intrusive_buffer());
+  yas::binary_iarchive<yas::mem_istream, YasBinF()> ia(is);
+  Proof proof2;
+  ia.serialize(proof2);
+  if (proof != proof2) {
+    assert(false);
+    std::cout << "oops, serialize check failed\n";
+    return false;
+  }
+#endif
+  
   VerifierInput verifier_input(sn, com_x, x_g_offset, com_s, s_g_offset);
   bool success = Verify(seed, verifier_input, proof);
   std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success << "\n";

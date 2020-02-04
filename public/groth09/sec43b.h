@@ -400,15 +400,29 @@ struct Sec43b {
 };
 
 // save to bin
-template <typename Ar, typename Sec53, typename HyraxA>
-void serialize(Ar& ar, typename Sec43b<Sec53, HyraxA>::Proof const& t) {
+template <typename Ar>
+void serialize(Ar& ar, typename Sec43b<Sec53b<Sec51b>, hyrax::A2>::Proof const& t) {
   ar& YAS_OBJECT_NVP("43b.pf", ("c", t.c), ("53p", t.proof_53),
                      ("a2p", t.proof_a2));
 }
 
 // load from bin
-template <typename Ar, typename Sec53, typename HyraxA>
-void serialize(Ar& ar, typename Sec43b<Sec53, HyraxA>::Proof& t) {
+template <typename Ar>
+void serialize(Ar& ar, typename Sec43b<Sec53b<Sec51b>, hyrax::A2>::Proof& t) {
+  ar& YAS_OBJECT_NVP("43b.pf", ("c", t.c), ("53p", t.proof_53),
+                     ("a2p", t.proof_a2));
+}
+
+// save to bin
+template <typename Ar>
+void serialize(Ar& ar, typename Sec43b<Sec53b<Sec51c>, hyrax::A3>::Proof const& t) {
+  ar& YAS_OBJECT_NVP("43b.pf", ("c", t.c), ("53p", t.proof_53),
+                     ("a2p", t.proof_a2));
+}
+
+// load from bin
+template <typename Ar>
+void serialize(Ar& ar, typename Sec43b<Sec53b<Sec51c>, hyrax::A3>::Proof& t) {
   ar& YAS_OBJECT_NVP("43b.pf", ("c", t.c), ("53p", t.proof_53),
                      ("a2p", t.proof_a2));
 }

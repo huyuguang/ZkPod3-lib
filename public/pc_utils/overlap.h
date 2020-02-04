@@ -170,6 +170,24 @@ bool Overlap<HyraxA>::Test() {
   Proof proof;
   Prove(proof, seed, prover_input);
 
+#ifndef DISABLE_SERIALIZE_CHECK
+  // serialize to buffer
+  yas::mem_ostream os;
+  yas::binary_oarchive<yas::mem_ostream, YasBinF()> oa(os);
+  oa.serialize(proof);
+  std::cout << "proof size: " << os.get_shared_buffer().size << "\n";
+  // serialize from buffer
+  yas::mem_istream is(os.get_intrusive_buffer());
+  yas::binary_iarchive<yas::mem_istream, YasBinF()> ia(is);
+  Proof proof2;
+  ia.serialize(proof2);
+  if (proof != proof2) {
+    assert(false);
+    std::cout << "oops, serialize check failed\n";
+    return false;
+  }
+#endif
+
   auto xn = (int64_t)x.size();
   auto yn = (int64_t)y.size();
   VerifierInput verifier_input(xn, com_x, x_g_offset, yn, com_y, y_g_offset,

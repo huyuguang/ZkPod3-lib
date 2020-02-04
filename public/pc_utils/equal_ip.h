@@ -155,18 +155,6 @@ struct EqualIp {
   static bool Test(int64_t xn, int64_t yn);
 };
 
-//// save to bin
-//template <typename Ar, typename HyraxA>
-//void serialize(Ar& ar, typename EqualIp<HyraxA>::Proof const& t) {
-//  ar& YAS_OBJECT_NVP("ei.p", ("p1", t.p1), ("p2", t.p2), ("z", t.com_z));
-//}
-//
-//// load from bin
-//template <typename Ar, typename HyraxA>
-//void serialize(Ar& ar, typename EqualIp<HyraxA>::Proof& t) {
-//  ar& YAS_OBJECT_NVP("ei.p", ("p1", t.p1), ("p2", t.p2), ("z", t.com_z));
-//}
-
 // save to bin
 template <typename Ar>
 void serialize(Ar& ar, typename EqualIp<hyrax::A3>::Proof const& t) {
@@ -222,17 +210,23 @@ bool EqualIp<HyraxA>::Test(int64_t xn, int64_t yn) {
   Proof proof;
   Prove(proof, seed, prover_input);
 
-  // test serialize
+#ifndef DISABLE_SERIALIZE_CHECK
+  // serialize to buffer
   yas::mem_ostream os;
   yas::binary_oarchive<yas::mem_ostream, YasBinF()> oa(os);
   oa.serialize(proof);
-
-  Proof proof2;
+  std::cout << "proof size: " << os.get_shared_buffer().size << "\n";
+  // serialize from buffer
   yas::mem_istream is(os.get_intrusive_buffer());
   yas::binary_iarchive<yas::mem_istream, YasBinF()> ia(is);
+  Proof proof2;
   ia.serialize(proof2);
-
-  assert(proof == proof2);
+  if (proof != proof2) {
+    assert(false);
+    std::cout << "oops, serialize check failed\n";
+    return false;
+  }
+#endif
 
   VerifierInput verifier_input(a, com_x, x_g_offset, b, com_y, y_g_offset);
   bool success = Verify(seed, proof, verifier_input);

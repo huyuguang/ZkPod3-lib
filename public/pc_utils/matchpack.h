@@ -120,18 +120,33 @@ struct MatchPack {
 };
 
 // save to bin
-template <typename Ar, typename Policy>
-void serialize(Ar& ar, typename MatchPack<Policy>::Proof const& t) {
+template <typename Ar>
+void serialize(Ar& ar, MatchPack<groth09::OrdinaryPolicy>::Proof const& t) {
   ar& YAS_OBJECT_NVP("mp.p", ("s", t.match_proof), ("p", t.pack_proof),
                      ("y", t.com_pack_y));
 }
 
 // load from bin
-template <typename Ar, typename Policy>
-void serialize(Ar& ar, typename MatchPack<Policy>::Proof& t) {
+template <typename Ar>
+void serialize(Ar& ar, MatchPack<groth09::OrdinaryPolicy>::Proof& t) {
   ar& YAS_OBJECT_NVP("mp.p", ("s", t.match_proof), ("p", t.pack_proof),
                      ("y", t.com_pack_y));
 }
+
+// save to bin
+template <typename Ar>
+void serialize(Ar& ar, MatchPack<groth09::SuccinctPolicy>::Proof const& t) {
+  ar& YAS_OBJECT_NVP("mp.p", ("s", t.match_proof), ("p", t.pack_proof),
+                     ("y", t.com_pack_y));
+}
+
+// load from bin
+template <typename Ar>
+void serialize(Ar& ar, MatchPack<groth09::SuccinctPolicy>::Proof& t) {
+  ar& YAS_OBJECT_NVP("mp.p", ("s", t.match_proof), ("p", t.pack_proof),
+                     ("y", t.com_pack_y));
+}
+
 template <typename Policy>
 bool MatchPack<Policy>::Test() {
   auto seed = misc::RandH256();
@@ -154,6 +169,24 @@ bool MatchPack<Policy>::Test() {
     assert(false);
     return false;
   }
+
+#ifndef DISABLE_SERIALIZE_CHECK
+  // serialize to buffer
+  yas::mem_ostream os;
+  yas::binary_oarchive<yas::mem_ostream, YasBinF()> oa(os);
+  oa.serialize(proof);
+  std::cout << "proof size: " << os.get_shared_buffer().size << "\n";
+  // serialize from buffer
+  yas::mem_istream is(os.get_intrusive_buffer());
+  yas::binary_iarchive<yas::mem_istream, YasBinF()> ia(is);
+  Proof proof2;
+  ia.serialize(proof2);
+  if (proof != proof2) {
+    assert(false);
+    std::cout << "oops, serialize check failed\n";
+    return false;
+  }
+#endif
 
   VerifierInput verifier_input(n, k, x_g_offset, py_g_offset);
   bool success = Verify(proof, seed, verifier_input);
