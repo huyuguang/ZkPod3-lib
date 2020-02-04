@@ -21,7 +21,7 @@ template <typename Policy>
 struct Substr {
   using Sec53 = typename Policy::Sec53;
   using HyraxA = typename Policy::HyraxA;
-  using R1cs = typename ParallelR1cs<Policy>;
+  using R1cs = typename pc_utils::ParallelR1cs<Policy>;
 
   // if (is_any(x,0)) ret = 1; else ret = 0;
   class HasZeroGadget : public libsnark::gadget<Fr> {
@@ -250,7 +250,7 @@ struct Substr {
       parallel::For<int64_t>(1LL, input.s - 1, parallel_f);
     }
 
-    ParallelR1cs<Policy>::ProverInput pr_input(input.pb, std::move(input.w), com_w,
+    typename ParallelR1cs<Policy>::ProverInput pr_input(input.pb, std::move(input.w), com_w,
                                         com_w_r, input.g_offset);
     ParallelR1cs<Policy>::Prove(proof.r1cs_proof, seed, std::move(pr_input));
     proof.com_w = std::move(com_w);
@@ -292,7 +292,7 @@ struct Substr {
     //  return false;
     //}
 
-    ParallelR1cs<Policy>::VerifierInput pr_input(input.n, input.pb, proof.com_w,
+    typename ParallelR1cs<Policy>::VerifierInput pr_input(input.n, input.pb, proof.com_w,
                                           input.public_w, input.g_offset);
     return ParallelR1cs<Policy>::Verify(proof.r1cs_proof, seed, pr_input);
   }

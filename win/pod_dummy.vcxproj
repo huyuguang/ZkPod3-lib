@@ -195,7 +195,6 @@
     <ClInclude Include="..\public\scheme\public_misc.h" />
     <ClInclude Include="..\public\scheme\table_misc.h" />
     <ClInclude Include="..\public\scheme\vrf_meta.h" />
-    <ClInclude Include="..\public\utils\chain.h" />
     <ClInclude Include="..\public\utils\fst.h" />
     <ClInclude Include="..\public\utils\mkl_tree.h" />
     <ClInclude Include="..\public\utils\schnorr.h" />

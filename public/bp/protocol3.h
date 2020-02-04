@@ -230,6 +230,10 @@ inline bool Verify(Proof const& proof, h256_t seed, VerifierInput&& input) {
     return false;
   }
   G1 p = input.com_pub.p + proof.com_ext_pub.r * x + input.h * (-proof.miu);
+  if (p != proof.p1.p) {
+    assert(false);
+    return false;
+  }
   return p1::Verify(seed, std::move(input.g1), std::move(input.g2), proof.p1);
 }
 

@@ -73,21 +73,21 @@ struct EqualIp {
     Fr r_tau = FrRand();
     proof.com_z = PcComputeCommitmentG(input.z_g_offset, input.z, r_tau);
 
-    HyraxA::ProverInput input1(input.x, input.a, input.z, input.x_g_offset,
+    typename HyraxA::ProverInput input1(input.x, input.a, input.z, input.x_g_offset,
                                input.z_g_offset);
-    HyraxA::CommitmentSec com_sec1;
+    typename HyraxA::CommitmentSec com_sec1;
     com_sec1.r_xi = input.com_x_r;
     com_sec1.r_tau = r_tau;
-    HyraxA::CommitmentPub com_pub1;
+    typename HyraxA::CommitmentPub com_pub1;
     com_pub1.xi = input.com_x;
     com_pub1.tau = proof.com_z;
 
-    HyraxA::ProverInput input2(input.y, input.b, input.z, input.y_g_offset,
+    typename HyraxA::ProverInput input2(input.y, input.b, input.z, input.y_g_offset,
                                input.z_g_offset);
-    HyraxA::CommitmentSec com_sec2;
+    typename HyraxA::CommitmentSec com_sec2;
     com_sec2.r_xi = input.com_y_r;
     com_sec2.r_tau = r_tau;
-    HyraxA::CommitmentPub com_pub2;
+    typename HyraxA::CommitmentPub com_pub2;
     com_pub2.xi = input.com_y;
     com_pub2.tau = proof.com_z;
 
@@ -127,18 +127,18 @@ struct EqualIp {
     std::array<std::atomic<bool>, 2> rets;
     std::array<parallel::Task, 2> tasks;
     tasks[0] = [&proof, &input, &rets, &seed]() {
-      HyraxA::CommitmentPub com_pub;
+      typename HyraxA::CommitmentPub com_pub;
       com_pub.xi = input.com_x;
       com_pub.tau = proof.com_z;
-      HyraxA::VerifierInput a_input(input.a, com_pub, input.x_g_offset,
+      typename HyraxA::VerifierInput a_input(input.a, com_pub, input.x_g_offset,
                                     input.z_g_offset);
       rets[0] = HyraxA::Verify(proof.p1, seed, a_input);
     };
     tasks[1] = [&proof, &input, &rets, &seed]() {
-      HyraxA::CommitmentPub com_pub;
+      typename HyraxA::CommitmentPub com_pub;
       com_pub.xi = input.com_y;
       com_pub.tau = proof.com_z;
-      HyraxA::VerifierInput a_input(input.b, com_pub, input.y_g_offset,
+      typename HyraxA::VerifierInput a_input(input.b, com_pub, input.y_g_offset,
                                     input.z_g_offset);
       rets[1] = HyraxA::Verify(proof.p2, seed, a_input);
     };

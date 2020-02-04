@@ -103,7 +103,7 @@ struct Matrix {
     Fr z = InnerProduct(v, e);
     assert(z == InnerProduct(w, d));
 
-    EqualIp<HyraxA>::ProverInput eip_input(v, e, com_v, com_v_r,
+    typename EqualIp<HyraxA>::ProverInput eip_input(v, e, com_v, com_v_r,
                                            input.r_g_offset, w, d, com_w,
                                            com_w_r, input.c_g_offset, z);
     EqualIp<HyraxA>::Prove(proof, seed, eip_input);
@@ -150,7 +150,7 @@ struct Matrix {
 
     parallel::Invoke(tasks);
 
-    EqualIp<HyraxA>::VerifierInput eip_input(e, com_v, input.r_g_offset, d,
+    typename EqualIp<HyraxA>::VerifierInput eip_input(e, com_v, input.r_g_offset, d,
                                              com_w, input.c_g_offset);
 
     return EqualIp<HyraxA>::Verify(seed, proof, eip_input);

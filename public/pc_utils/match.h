@@ -20,7 +20,7 @@ template <typename Policy>
 struct Match {
   using Sec53 = typename Policy::Sec53;
   using HyraxA = typename Policy::HyraxA;
-  using R1cs = typename ParallelR1cs<Policy>;
+  using R1cs = typename pc_utils::ParallelR1cs<Policy>;
 
   // x2 = (k==x)? 0:1/(x-k);
   // assert(y*(x-k))==0)
@@ -149,7 +149,7 @@ struct Match {
     };
     parallel::For<int64_t>(1, input.s - 1, parallel_f);
 
-    R1cs::ProverInput pr_input(input.pb, std::move(input.w), com_w, com_w_r,
+    typename R1cs::ProverInput pr_input(input.pb, std::move(input.w), com_w, com_w_r,
                                input.g_offset);
     R1cs::Prove(proof.r1cs_proof, seed, std::move(pr_input));
     proof.com_w = std::move(com_w);
@@ -190,7 +190,7 @@ struct Match {
     //  return false;
     //}
 
-    R1cs::VerifierInput pr_input(input.n, input.pb, proof.com_w, input.public_w,
+    typename R1cs::VerifierInput pr_input(input.n, input.pb, proof.com_w, input.public_w,
                                  input.g_offset);
     return R1cs::Verify(proof.r1cs_proof, seed, pr_input);
   }

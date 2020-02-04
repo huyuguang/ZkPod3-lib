@@ -74,7 +74,7 @@ struct SubstrQuery {
     G1 com_x = input.data_x.get_com(i);
     Fr com_x_r = input.data_x.get_r(i);
 
-    pc_utils::SubstrPack<Policy>::ProverInput s_input(
+    typename pc_utils::SubstrPack<Policy>::ProverInput s_input(
         input.key, x, com_x, com_x_r, input.x_g_offset, input.py_g_offset);
 
     pc_utils::SubstrPack<Policy>::Prove(sp_output, seed, s_input);

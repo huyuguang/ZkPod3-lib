@@ -245,12 +245,14 @@ struct Sec53b {
     // Tick tick(__FUNCTION__);
     assert(input.m() == 1);
 
-    Sec51::ProverInput input_51(input.x[0], input.y[0], input.t, input.yt[0],
-                                input.z, input.x_g_offset, input.y_g_offset,
-                                input.z_g_offset);
+    typename Sec51::ProverInput input_51(input.x[0], input.y[0], input.t,
+                                         input.yt[0], input.z, input.x_g_offset,
+                                         input.y_g_offset, input.z_g_offset);
 
-    Sec51::CommitmentPub com_pub_51(com_pub.a[0], com_pub.b[0], com_pub.c);
-    Sec51::CommitmentSec com_sec_51(com_sec.r[0], com_sec.s[0], com_sec.t);
+    typename Sec51::CommitmentPub com_pub_51(com_pub.a[0], com_pub.b[0],
+                                             com_pub.c);
+    typename Sec51::CommitmentSec com_sec_51(com_sec.r[0], com_sec.s[0],
+                                             com_sec.t);
     Sec51::Prove(proof.proof_51, seed, input_51, com_pub_51, com_sec_51);
   }
 
@@ -424,10 +426,11 @@ struct Sec53b {
 
     assert(com_pub.m() == 1);
 
-    Sec51::CommitmentPub com_pub_51(com_pub.a[0], com_pub.b[0], com_pub.c);
-    Sec51::VerifierInput verifier_input_51(input.t, com_pub_51,
-                                           input.x_g_offset, input.y_g_offset,
-                                           input.z_g_offset);
+    typename Sec51::CommitmentPub com_pub_51(com_pub.a[0], com_pub.b[0],
+                                             com_pub.c);
+    typename Sec51::VerifierInput verifier_input_51(
+        input.t, com_pub_51, input.x_g_offset, input.y_g_offset,
+        input.z_g_offset);
     return Sec51::Verify(proof.proof_51, seed, verifier_input_51);
   }
 

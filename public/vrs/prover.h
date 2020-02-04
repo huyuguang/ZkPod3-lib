@@ -170,8 +170,9 @@ class Prover {
     values_.clear();
     values_.shrink_to_fit();
 
-    return Sec43::ProverInput(m, std::move(x), std::move(y), std::move(z),
-                              g_offset_, g_offset_, g_offset_);
+    return
+        typename Sec43::ProverInput(m, std::move(x), std::move(y), std::move(z),
+                                    g_offset_, g_offset_, g_offset_);
   }
 
   void BuildHpCom(typename Sec43::CommitmentPub& com_pub,
@@ -268,8 +269,8 @@ class Prover {
   void HpProve(h256_t const& seed, typename Sec43::Proof& rom_proof) {
     Tick tick(__FUNCTION__);
     auto input = BuildHpInput();
-    Sec43::CommitmentPub com_pub;
-    Sec43::CommitmentSec com_sec;
+    typename Sec43::CommitmentPub com_pub;
+    typename Sec43::CommitmentSec com_sec;
     BuildHpCom(com_pub, com_sec);
     DebugCheckHpCom(input, com_pub, com_sec);
     scheme_.reset();
@@ -288,9 +289,10 @@ class Prover {
     vw_ = InnerProduct(v_, input_w);
     int64_t x_g_offset = g_offset_;
     int64_t y_g_offset = -1;
-    HyraxA::ProverInput input(v_, input_w, vw_, x_g_offset, y_g_offset);
-    HyraxA::CommitmentPub com_pub;
-    HyraxA::CommitmentSec com_sec;
+    typename HyraxA::ProverInput input(v_, input_w, vw_, x_g_offset,
+                                       y_g_offset);
+    typename HyraxA::CommitmentPub com_pub;
+    typename HyraxA::CommitmentSec com_sec;
     com_sec.r_xi = var_coms_r_.back();
     com_sec.r_tau = secret_input_.vw_com_r;
     com_pub.xi = var_coms_.back();  // the last var is the result of the mimc

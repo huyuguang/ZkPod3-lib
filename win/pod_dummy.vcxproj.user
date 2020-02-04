@@ -3,11 +3,11 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LocalDebuggerWorkingDirectory>$(OutDir)</LocalDebuggerWorkingDirectory>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
-    <LocalDebuggerCommandArguments>--substrpack=131072,abc</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>--bp_p3=10</LocalDebuggerCommandArguments>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LocalDebuggerWorkingDirectory>$(OutDir)</LocalDebuggerWorkingDirectory>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
-    <LocalDebuggerCommandArguments>--match_query=24,1000,abc</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>--bp_p3_n=10</LocalDebuggerCommandArguments>
   </PropertyGroup>
 </Project>

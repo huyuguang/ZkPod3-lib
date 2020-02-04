@@ -205,9 +205,6 @@
     <ClInclude Include="..\public\utils\fst.h">
       <Filter>public\utils</Filter>
     </ClInclude>
-    <ClInclude Include="..\public\utils\chain.h">
-      <Filter>public\utils</Filter>
-    </ClInclude>
     <ClInclude Include="..\public\utils\schnorr.h">
       <Filter>public\utils</Filter>
     </ClInclude>

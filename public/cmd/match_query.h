@@ -73,7 +73,7 @@ struct MatchQuery {
     G1 com_x = input.data_x.get_com(i);
     Fr com_x_r = input.data_x.get_r(i);
 
-    pc_utils::MatchPack<Policy>::ProverInput m_input(
+    typename pc_utils::MatchPack<Policy>::ProverInput m_input(
         input.key, x, com_x, com_x_r, input.x_g_offset, input.py_g_offset);
     pc_utils::MatchPack<Policy>::Prove(sp_output, seed, m_input);
   }
@@ -157,8 +157,8 @@ struct MatchQuery {
     bool all_success = false;
     auto parallel_f = [&proof, &seed, s, &input](int64_t i) {
       auto const& sp_proof = proof.mp_proofs[i];
-      pc_utils::MatchPack<Policy>::VerifierInput m_input(s, input.key, input.x_g_offset,
-                                                 input.py_g_offset);
+      typename pc_utils::MatchPack<Policy>::VerifierInput m_input(
+          s, input.key, input.x_g_offset, input.py_g_offset);
       return pc_utils::MatchPack<Policy>::Verify(sp_proof, seed, m_input);
     };
     parallel::For(&all_success, n, parallel_f);
@@ -241,8 +241,8 @@ bool MatchQuery<Policy>::Test(int64_t n, int64_t s, std::string const& key) {
     std::cout << "invalid parameter: k.size() must <= 31.\n";
     return false;
   }
-  if (s >= PcBase::kGSize/2) {
-    std::cout << "invalid parameter: s must < " << PcBase::kGSize/2 << "\n";
+  if (s >= PcBase::kGSize / 2) {
+    std::cout << "invalid parameter: s must < " << PcBase::kGSize / 2 << "\n";
     return false;
   }
 
@@ -333,7 +333,8 @@ bool MatchQuery<Policy>::Test(int64_t n, int64_t s, std::string const& key) {
   }
 
   bool success = check_rets == rets;
-  std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success << "\n\n\n\n\n\n";
+  std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success
+            << "\n\n\n\n\n\n";
   return success;
 }
 }  // namespace cmd

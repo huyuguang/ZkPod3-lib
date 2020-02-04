@@ -80,7 +80,7 @@ struct Overlap {
     Fr z = InnerProduct(input.x, a);
     assert(z == InnerProduct(input.y, b));
 
-    EqualIp<HyraxA>::ProverInput eip_input(
+    typename EqualIp<HyraxA>::ProverInput eip_input(
         input.x, a, input.com_x, input.com_x_r, input.x_g_offset, input.y, b,
         input.com_y, input.com_y_r, input.y_g_offset, z);
     EqualIp<HyraxA>::Prove(proof, seed, eip_input);
@@ -121,7 +121,7 @@ struct Overlap {
       b[o.y] += c[i];
     }
 
-    EqualIp<HyraxA>::VerifierInput eip_input(a, input.com_x, input.x_g_offset,
+    typename EqualIp<HyraxA>::VerifierInput eip_input(a, input.com_x, input.x_g_offset,
                                              b, input.com_y, input.y_g_offset);
     return EqualIp<HyraxA>::Verify(seed, proof, eip_input);
   }

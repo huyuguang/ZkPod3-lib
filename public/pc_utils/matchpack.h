@@ -9,7 +9,7 @@ template <typename Policy>
 struct MatchPack {
   using Sec53 = typename Policy::Sec53;
   using HyraxA = typename Policy::HyraxA;
-  using R1cs = typename ParallelR1cs<Policy>;
+  using R1cs = typename pc_utils::ParallelR1cs<Policy>;
 
   struct Proof {
     typename Match<Policy>::Proof match_proof;
@@ -76,7 +76,7 @@ struct MatchPack {
     auto com_y =
         PcComputeCommitmentG(input.x_g_offset, output.y, output.com_y_r, true);
 
-    Match<Policy>::ProverInput m_input(input.k, input.x, input.com_x, input.com_x_r,
+    typename Match<Policy>::ProverInput m_input(input.k, input.x, input.com_x, input.com_x_r,
                                output.y, com_y, output.com_y_r,
                                input.x_g_offset);
     auto& match_proof = output.match_proof;
@@ -89,7 +89,7 @@ struct MatchPack {
     output.com_pack_y = PcComputeCommitmentG(input.py_g_offset, output.pack_y,
                                              output.com_pack_y_r);
     auto& pack_proof = output.pack_proof;
-    Pack<HyraxA>::ProverInput p_input(output.y, com_y, output.com_y_r, input.x_g_offset,
+    typename Pack<HyraxA>::ProverInput p_input(output.y, com_y, output.com_y_r, input.x_g_offset,
                               output.pack_y, output.com_pack_y,
                               output.com_pack_y_r, input.py_g_offset);
     Pack<HyraxA>::Prove(pack_proof, seed, p_input);
@@ -111,7 +111,7 @@ struct MatchPack {
     if (!Match<Policy>::Verify(proof.match_proof, seed, m_input)) return false;
 
     G1 const& com_y = proof.match_proof.com_w.back();
-    Pack<HyraxA>::VerifierInput p_input(input.n, com_y, input.x_g_offset,
+    typename Pack<HyraxA>::VerifierInput p_input(input.n, com_y, input.x_g_offset,
                                 proof.com_pack_y, input.py_g_offset);
     return Pack<HyraxA>::Verify(proof.pack_proof, seed, p_input);
   }

@@ -31,7 +31,7 @@ inline void HashUpdate(CryptoPP::Keccak_256& hash, Fr const& d) {
   HashUpdate(hash, FrToBin(d));
 }
 
-template<typename T>
+template <typename T>
 inline void HashUpdate(CryptoPP::Keccak_256& hash, std::vector<T> const& d) {
   for (auto const& i : d) {
     HashUpdate(hash, i);
@@ -41,7 +41,7 @@ inline void HashUpdate(CryptoPP::Keccak_256& hash, std::vector<T> const& d) {
 // Fiat-Shamir transform
 // c[i] = hash(seed,salt,i)
 inline void ComputeFst1(h256_t const& seed, std::string const& salt,
-                       std::vector<Fr>& c) {
+                        std::vector<Fr>& c) {
   assert(!c.empty());
   auto parallel_f = [&seed, &c, &salt](int64_t i) {
     CryptoPP::Keccak_256 hash;
@@ -58,7 +58,7 @@ inline void ComputeFst1(h256_t const& seed, std::string const& salt,
 // Fiat-Shamir transform
 // c[i] = hash(seed, salt)^i
 inline void ComputeFst2(h256_t const& seed, std::string const& salt,
-                       std::vector<Fr>& c) {
+                        std::vector<Fr>& c) {
   assert(c.size() >= 2);
   assert(!c.empty());
   CryptoPP::Keccak_256 hash;
@@ -75,6 +75,6 @@ inline void ComputeFst2(h256_t const& seed, std::string const& salt,
 }
 
 inline void ComputeFst(h256_t const& seed, std::string const& salt,
-                        std::vector<Fr>& c) {
+                       std::vector<Fr>& c) {
   return ComputeFst1(seed, salt, c);
 }

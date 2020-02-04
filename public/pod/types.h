@@ -39,7 +39,8 @@ struct ProvedData {
 
 // save to bin
 template <typename Ar>
-void serialize(Ar& ar, typename ProvedData<groth09::OrdinaryPolicy> const& t) {
+void serialize(Ar& ar,
+               typename pod::ProvedData<groth09::OrdinaryPolicy> const& t) {
   ar& YAS_OBJECT_NVP("pod.pd", ("k", t.k), ("em", t.em), ("vw", t.vw),
                      ("seed", t.vrs_plain_seed), ("r", t.vw_com_r),
                      ("p", t.vrs_proofs));
@@ -47,7 +48,7 @@ void serialize(Ar& ar, typename ProvedData<groth09::OrdinaryPolicy> const& t) {
 
 // load from bin
 template <typename Ar>
-void serialize(Ar& ar, typename ProvedData<groth09::OrdinaryPolicy>& t) {
+void serialize(Ar& ar, typename pod::ProvedData<groth09::OrdinaryPolicy>& t) {
   ar& YAS_OBJECT_NVP("pod.pd", ("k", t.k), ("em", t.em), ("vw", t.vw),
                      ("seed", t.vrs_plain_seed), ("r", t.vw_com_r),
                      ("p", t.vrs_proofs));
@@ -55,7 +56,8 @@ void serialize(Ar& ar, typename ProvedData<groth09::OrdinaryPolicy>& t) {
 
 // save to bin
 template <typename Ar>
-void serialize(Ar& ar, typename ProvedData<groth09::SuccinctPolicy> const& t) {
+void serialize(Ar& ar,
+               typename pod::ProvedData<groth09::SuccinctPolicy> const& t) {
   ar& YAS_OBJECT_NVP("pod.pd", ("k", t.k), ("em", t.em), ("vw", t.vw),
                      ("seed", t.vrs_plain_seed), ("r", t.vw_com_r),
                      ("p", t.vrs_proofs));
@@ -63,7 +65,7 @@ void serialize(Ar& ar, typename ProvedData<groth09::SuccinctPolicy> const& t) {
 
 // load from bin
 template <typename Ar>
-void serialize(Ar& ar, typename ProvedData<groth09::SuccinctPolicy>& t) {
+void serialize(Ar& ar, typename pod::ProvedData<groth09::SuccinctPolicy>& t) {
   ar& YAS_OBJECT_NVP("pod.pd", ("k", t.k), ("em", t.em), ("vw", t.vw),
                      ("seed", t.vrs_plain_seed), ("r", t.vw_com_r),
                      ("p", t.vrs_proofs));

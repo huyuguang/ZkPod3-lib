@@ -48,14 +48,14 @@ class Verifier {
     // check hadamard product
     bool ret_hp = false;
     tasks[1] = [this, &proof, &ret_hp, &seed, m, n]() {
-      Sec43::CommitmentPub com_pub_hp;
+      typename Sec43::CommitmentPub com_pub_hp;
       BuildHpCom(proof, com_pub_hp);
       com_pub_hp.Align();
       int64_t x_g_offset = 0;
       int64_t y_g_offset = 0;
       int64_t z_g_offset = 0;
-      Sec43::VerifierInput input_hp(m, n, com_pub_hp, x_g_offset, y_g_offset,
-                                    z_g_offset);
+      typename Sec43::VerifierInput input_hp(m, n, com_pub_hp, x_g_offset,
+                                             y_g_offset, z_g_offset);
       ret_hp = Sec43::Verify(proof.proof_hp, seed, input_hp);
     };
 
@@ -66,12 +66,12 @@ class Verifier {
       for (int64_t i = 0; i < (int64_t)input_w.size(); ++i) {
         input_w[i] = get_w(i);
       }
-      HyraxA::CommitmentPub com_pub_ip;
+      typename HyraxA::CommitmentPub com_pub_ip;
       BuildIpCom(proof, com_pub_ip);
       int64_t x_g_offset = 0;
       int64_t y_g_offset = -1;
-      HyraxA::VerifierInput input_ip(input_w, com_pub_ip, x_g_offset,
-                                     y_g_offset);
+      typename HyraxA::VerifierInput input_ip(input_w, com_pub_ip, x_g_offset,
+                                              y_g_offset);
       ret_ip = HyraxA::Verify(proof.proof_ip, seed, input_ip);
     };
 

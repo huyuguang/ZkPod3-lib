@@ -96,7 +96,7 @@ struct Divide {
     auto z = InnerProduct(input.x, f);
     assert(z == InnerProduct(y, e));
 
-    EqualIp<HyraxA>::ProverInput eip_input(input.x, f, input.com_x, input.com_x_r,
+    typename EqualIp<HyraxA>::ProverInput eip_input(input.x, f, input.com_x, input.com_x_r,
                                     input.x_g_offset, y, e, com_y, com_y_r,
                                     input.s_g_offset, z);
 
@@ -140,7 +140,7 @@ struct Divide {
     // com_y
     G1 com_y = MultiExpBdlo12(input.com_s, d);  // multiexp(com_s.size())
 
-    EqualIp<HyraxA>::VerifierInput eip_input(f, input.com_x, input.x_g_offset, e,
+    typename EqualIp<HyraxA>::VerifierInput eip_input(f, input.com_x, input.x_g_offset, e,
                                       com_y, input.s_g_offset);
     return EqualIp<HyraxA>::Verify(seed, proof, eip_input);
   }

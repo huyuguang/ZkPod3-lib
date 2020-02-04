@@ -157,9 +157,10 @@ int main(int argc, char** argv) {
         "overlap", "")("divide", "")("match", "")("substr", "")("pack", "")(
         "substrpack", po::value<ParamIntStr>(&substrpack), "n,key, ex: 10,abc")(
         "matchpack", po::value<ParamIntStr>(&substrpack), "n,key, ex: 10,abc")(
-        "match_query", po::value<Param2IntStr>(&substr_query), "n,s,key, ex: 24,1000,abc")(
-        "substr_query", po::value<Param2IntStr>(&substr_query), "n,s,key, ex: 24,1000,abc")(
-        "bp_p1", po::value<int64_t>(&bp_p1_n), "")(
+        "match_query", po::value<Param2IntStr>(&substr_query),
+        "n,s,key, ex: 24,1000,abc")(
+        "substr_query", po::value<Param2IntStr>(&substr_query),
+        "n,s,key, ex: 24,1000,abc")("bp_p1", po::value<int64_t>(&bp_p1_n), "")(
         "bp_p2", po::value<int64_t>(&bp_p2_n), "")(
         "bp_p3", po::value<int64_t>(&bp_p3_n), "");
 
@@ -316,24 +317,18 @@ int main(int argc, char** argv) {
                                                            matchpack.str);
   }
   if (match_query.valid()) {
-    rets["cmd::match_query_1"] =
-        cmd::MatchQuery<groth09::OrdinaryPolicy>::Test(match_query.n,
-                                                       match_query.s,
-                                                       match_query.str);
-    rets["cmd::match_query_2"] =
-        cmd::MatchQuery<groth09::SuccinctPolicy>::Test(match_query.n,
-                                                       match_query.s,
-                                                       match_query.str);
+    rets["cmd::match_query_1"] = cmd::MatchQuery<groth09::OrdinaryPolicy>::Test(
+        match_query.n, match_query.s, match_query.str);
+    rets["cmd::match_query_2"] = cmd::MatchQuery<groth09::SuccinctPolicy>::Test(
+        match_query.n, match_query.s, match_query.str);
   }
   if (substr_query.valid()) {
     rets["cmd::substr_query_1"] =
-        cmd::SubstrQuery<groth09::OrdinaryPolicy>::Test(substr_query.n,
-                                                        substr_query.s,
-                                                        substr_query.str);
+        cmd::SubstrQuery<groth09::OrdinaryPolicy>::Test(
+            substr_query.n, substr_query.s, substr_query.str);
     rets["cmd::substr_query_2"] =
-        cmd::SubstrQuery<groth09::SuccinctPolicy>::Test(substr_query.n,
-                                                        substr_query.s,
-                                                        substr_query.str);
+        cmd::SubstrQuery<groth09::SuccinctPolicy>::Test(
+            substr_query.n, substr_query.s, substr_query.str);
   }
 
   if (vrs_scheme == VrsSchemeType::kMimic5) {

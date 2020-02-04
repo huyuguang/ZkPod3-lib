@@ -221,10 +221,10 @@ struct Sec43b {
     input.Take(input_x, input_y, input_z);
 
     {
-      //Tick tick53(" sec43b->Sec53");
+      // Tick tick53(" sec43b->Sec53");
 
-      Sec53::CommitmentSec com_sec_53;
-      Sec53::CommitmentPub com_pub_53;
+      typename Sec53::CommitmentSec com_sec_53;
+      typename Sec53::CommitmentPub com_pub_53;
 
       auto parallel_f = [&input_x, &k](int64_t i) { input_x[i] *= k[i]; };
       parallel::For(original_m, parallel_f, original_m < 1024);
@@ -233,7 +233,7 @@ struct Sec43b {
       Fr z = FrZero();
 
       {
-        //Tick tickz("Sec53 compute z");
+        // Tick tickz("Sec53 compute z");
         // 2*m*n fr mul
         for (int64_t i = 0; i < original_m; ++i) {
           input_yt[i] = HadamardProduct(input_y[i], t);
@@ -247,12 +247,12 @@ struct Sec43b {
 
       auto input_53_z_g_offset = SelectSec53Zoffset(
           input.x_g_offset, input.y_g_offset, input.z_g_offset);
-      Sec53::ProverInput input_53(std::move(input_x), std::move(input_y), t,
-                                  std::move(input_yt), z, input.x_g_offset,
-                                  input.y_g_offset, input_53_z_g_offset);
+      typename Sec53::ProverInput input_53(
+          std::move(input_x), std::move(input_y), t, std::move(input_yt), z,
+          input.x_g_offset, input.y_g_offset, input_53_z_g_offset);
 
       {
-        //Tick tickz("Sec53 compute com_sec_53 com_pub_53");
+        // Tick tickz("Sec53 compute com_sec_53 com_pub_53");
         input_53_z = input_53.z;
         com_sec_53.r.resize(m);
         com_pub_53.a.resize(m);
@@ -283,9 +283,9 @@ struct Sec43b {
     }
 
     {
-      //Tick tick53("sec43b->hyraxa");
-      HyraxA::CommitmentPub com_pub_hy;
-      HyraxA::CommitmentSec com_sec_hy;
+      // Tick tick53("sec43b->hyraxa");
+      typename HyraxA::CommitmentPub com_pub_hy;
+      typename HyraxA::CommitmentSec com_sec_hy;
 
       std::vector<Fr> x_hy(n);
 
@@ -302,8 +302,8 @@ struct Sec43b {
       auto input_a2_y_g_offset = SelectSec53Zoffset(
           input.x_g_offset, input.y_g_offset, input.z_g_offset);
 
-      HyraxA::ProverInput input_hy(x_hy, t, input_53_z, input_a2_x_g_offset,
-                                   input_a2_y_g_offset);
+      typename HyraxA::ProverInput input_hy(
+          x_hy, t, input_53_z, input_a2_x_g_offset, input_a2_y_g_offset);
 
       com_sec_hy.r_xi = InnerProduct(com_sec.t, k);
       com_sec_hy.r_tau = com_sec_53_t;
@@ -357,7 +357,7 @@ struct Sec43b {
     std::array<parallel::Task, 2> tasks;
     bool ret_53 = false;
     tasks[0] = [&ret_53, &proof, &input, m, &com_pub, &k, &t, &seed]() {
-      Sec53::CommitmentPub com_pub_53;
+      typename Sec53::CommitmentPub com_pub_53;
       com_pub_53.c = proof.c;
       com_pub_53.b = input.com_pub.b;
       com_pub_53.a.resize(m);
@@ -369,20 +369,22 @@ struct Sec43b {
       auto intput_53_z_g_offset = SelectSec53Zoffset(
           input.x_g_offset, input.y_g_offset, input.z_g_offset);
 
-      Sec53::VerifierInput input_53(t, com_pub_53, input.x_g_offset,
-                                    input.y_g_offset, intput_53_z_g_offset);
+      typename Sec53::VerifierInput input_53(t, com_pub_53, input.x_g_offset,
+                                             input.y_g_offset,
+                                             intput_53_z_g_offset);
       ret_53 = Sec53::Verify(proof.proof_53, seed, input_53);
       assert(ret_53);
     };
 
     bool ret_a2 = false;
     tasks[1] = [&ret_a2, &com_pub, &proof, &t, &k, &seed, &input]() {
-      HyraxA::CommitmentPub com_pub_hy(MultiExpBdlo12(com_pub.c, k), proof.c);
+      typename HyraxA::CommitmentPub com_pub_hy(MultiExpBdlo12(com_pub.c, k),
+                                                proof.c);
       auto input_a2_x_g_offset = input.z_g_offset;
       auto input_a2_y_g_offset = SelectSec53Zoffset(
           input.x_g_offset, input.y_g_offset, input.z_g_offset);
-      HyraxA::VerifierInput input_hy(t, com_pub_hy, input_a2_x_g_offset,
-                                     input_a2_y_g_offset);
+      typename HyraxA::VerifierInput input_hy(
+          t, com_pub_hy, input_a2_x_g_offset, input_a2_y_g_offset);
       ret_a2 = HyraxA::Verify(proof.proof_a2, seed, input_hy);
       assert(ret_a2);
     };
