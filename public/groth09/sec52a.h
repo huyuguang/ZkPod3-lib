@@ -4,7 +4,7 @@
 #include <memory>
 #include <numeric>
 
-#include "./Sec51a.h"
+#include "./sec51a.h"
 #include "./details.h"
 #include "utils/fst.h"
 
