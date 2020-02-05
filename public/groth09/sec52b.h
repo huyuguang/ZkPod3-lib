@@ -3,7 +3,7 @@
 #include <map>
 #include <memory>
 
-#include "./Sec51b.h"
+#include "./sec51b.h"
 #include "./details.h"
 #include "utils/fst.h"
 

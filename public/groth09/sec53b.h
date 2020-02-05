@@ -3,8 +3,8 @@
 #include <map>
 #include <memory>
 
-#include "groth09/Sec51b.h"
-#include "groth09/Sec51c.h"
+#include "groth09/sec51b.h"
+#include "groth09/sec51c.h"
 #include "groth09/details.h"
 #include "utils/fst.h"
 
