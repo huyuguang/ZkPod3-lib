@@ -10,9 +10,9 @@
 // verify cost: 6 eccmul
 namespace hyrax {
 struct A1 {
-  struct ProverInput {
-    ProverInput(Fr const& x, Fr const& y, Fr const& z, int64_t x_g_offset,
-                int64_t y_g_offset)
+  struct ProveInput {
+    ProveInput(Fr const& x, Fr const& y, Fr const& z, int64_t x_g_offset,
+               int64_t y_g_offset)
         : x(x), y(y), z(z), x_g_offset(x_g_offset), y_g_offset(y_g_offset) {
       assert(z == x * y);
     }
@@ -86,16 +86,16 @@ struct A1 {
     bool operator!=(Proof const& right) const { return !(*this == right); }
   };
 
-  struct VerifierInput {
-    VerifierInput(CommitmentPub const& com_pub, int64_t x_g_offset,
-                  int64_t y_g_offset)
+  struct VerifyInput {
+    VerifyInput(CommitmentPub const& com_pub, int64_t x_g_offset,
+                int64_t y_g_offset)
         : com_pub(com_pub), x_g_offset(x_g_offset), y_g_offset(y_g_offset) {}
     CommitmentPub const& com_pub;
     int64_t const x_g_offset;
     int64_t const y_g_offset;
   };
 
-  static bool VerifyInternal(VerifierInput const& input, Fr const& c,
+  static bool VerifyInternal(VerifyInput const& input, Fr const& c,
                              CommitmentExtPub const& com_ext_pub,
                              SubProof const& sub_proof) {
     // Tick tick(__FUNCTION__);
@@ -133,7 +133,7 @@ struct A1 {
   }
 
   static void ComputeCom(CommitmentPub& com_pub, CommitmentSec& com_sec,
-                         ProverInput const& input) {
+                         ProveInput const& input) {
     // Tick tick(__FUNCTION__);
     auto const& gx = PcG(input.x_g_offset);
     auto const& gy = PcG(input.y_g_offset);
@@ -160,7 +160,7 @@ struct A1 {
 
   static void ComputeCommitmentExt(CommitmentExtPub& com_ext_pub,
                                    CommitmentExtSec& com_ext_sec,
-                                   ProverInput const& input,
+                                   ProveInput const& input,
                                    CommitmentPub const& com_pub) {
     // Tick tick(__FUNCTION__);
     auto const& gx = PcG(input.x_g_offset);
@@ -199,7 +199,7 @@ struct A1 {
     hash.Final(seed.data());
   }
 
-  static void ComputeSubProof(SubProof& sub_proof, ProverInput const& input,
+  static void ComputeSubProof(SubProof& sub_proof, ProveInput const& input,
                               CommitmentSec const& com_sec,
                               CommitmentExtSec const& com_ext_sec,
                               Fr const& c) {
@@ -210,7 +210,7 @@ struct A1 {
     sub_proof.z5 = com_ext_sec.b5 + c * (com_sec.r_z - com_sec.r_x * input.y);
   }
 
-  static void Prove(Proof& proof, h256_t seed, ProverInput input,
+  static void Prove(Proof& proof, h256_t seed, ProveInput input,
                     CommitmentPub com_pub, CommitmentSec com_sec) {
     // Tick tick(__FUNCTION__);
 
@@ -224,7 +224,7 @@ struct A1 {
   }
 
   static bool Verify(Proof const& proof, h256_t seed,
-                     VerifierInput const& input) {
+                     VerifyInput const& input) {
     // Tick tick(__FUNCTION__);
     UpdateSeed(seed, input.com_pub, proof.com_ext_pub);
     Fr challenge = H256ToFr(seed);
@@ -281,14 +281,14 @@ inline bool A1::Test() {
   Fr x = FrRand();
   Fr y = FrRand();
   Fr z = x * y;
-  ProverInput prover_input(x, y, z, x_g_offset, y_g_offset);
+  ProveInput prove_input(x, y, z, x_g_offset, y_g_offset);
 
   CommitmentPub com_pub;
   CommitmentSec com_sec;
-  ComputeCom(com_pub, com_sec, prover_input);
+  ComputeCom(com_pub, com_sec, prove_input);
 
   Proof proof;
-  Prove(proof, UpdateSeed, prover_input, com_pub, com_sec);
+  Prove(proof, UpdateSeed, prove_input, com_pub, com_sec);
 
 #ifndef DISABLE_SERIALIZE_CHECK
   // serialize to buffer
@@ -308,9 +308,10 @@ inline bool A1::Test() {
   }
 #endif
 
-  VerifierInput verifier_input(com_pub, x_g_offset, y_g_offset);
-  bool success = Verify(proof, UpdateSeed, verifier_input);
-  std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success << "\n\n\n\n\n\n";
+  VerifyInput verify_input(com_pub, x_g_offset, y_g_offset);
+  bool success = Verify(proof, UpdateSeed, verify_input);
+  std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success
+            << "\n\n\n\n\n\n";
   return success;
 }
 }  // namespace hyrax

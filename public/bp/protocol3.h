@@ -11,10 +11,10 @@
 
 namespace bp::p3 {
 
-struct ProverInput {
-  ProverInput(std::vector<G1>&& ig1, std::vector<G1>&& ig2, G1 const& h,
-              G1 const& u, std::vector<Fr>&& ia, std::vector<Fr>&& ib,
-              Fr const& c)
+struct ProveInput {
+  ProveInput(std::vector<G1>&& ig1, std::vector<G1>&& ig2, G1 const& h,
+             G1 const& u, std::vector<Fr>&& ia, std::vector<Fr>&& ib,
+             Fr const& c)
       : n((int64_t)ig1.size()),
         g1(std::move(ig1)),
         g2(std::move(ig2)),
@@ -49,7 +49,7 @@ struct CommitmentSec {
 };
 
 inline void ComputeCom(CommitmentPub& com_pub, CommitmentSec& com_sec,
-                       ProverInput const& input) {
+                       ProveInput const& input) {
   com_sec.alpha = FrRand();
   com_sec.beta = FrRand();
 
@@ -115,7 +115,7 @@ struct CommitmentExtSec {
 
 inline void ComputeComExt(CommitmentExtPub& com_ext_pub,
                           CommitmentExtSec const& com_ext_sec,
-                          ProverInput const& input) {
+                          ProveInput const& input) {
   auto get_g = [&input](int64_t i) -> G1 const& {
     if (i == 0) return input.h;
     if (i > 0 && i <= input.n) return input.g1[i - 1];
@@ -178,7 +178,7 @@ void serialize(Ar& ar, Proof& t) {
                      ("cep", t.com_ext_pub), ("p1", t.p1));
 }
 
-inline void Prove(Proof& proof, h256_t seed, ProverInput&& input,
+inline void Prove(Proof& proof, h256_t seed, ProveInput&& input,
                   CommitmentPub const& com_pub, CommitmentSec const& com_sec) {
   CommitmentExtSec com_ext_sec(input.n);
   ComputeComExt(proof.com_ext_pub, com_ext_sec, input);
@@ -199,9 +199,9 @@ inline void Prove(Proof& proof, h256_t seed, ProverInput&& input,
             std::move(a2), std::move(b2), p, proof.c);
 }
 
-struct VerifierInput {
-  VerifierInput(std::vector<G1>&& ig1, std::vector<G1>&& ig2, G1 const& h,
-                G1 const& u, CommitmentPub const& com_pub)
+struct VerifyInput {
+  VerifyInput(std::vector<G1>&& ig1, std::vector<G1>&& ig2, G1 const& h,
+              G1 const& u, CommitmentPub const& com_pub)
       : n((int64_t)ig1.size()),
         g1(std::move(ig1)),
         g2(std::move(ig2)),
@@ -219,7 +219,7 @@ struct VerifierInput {
   CommitmentPub const& com_pub;
 };
 
-inline bool Verify(Proof const& proof, h256_t seed, VerifierInput&& input) {
+inline bool Verify(Proof const& proof, h256_t seed, VerifyInput&& input) {
   UpdateSeed(seed, input.com_pub, proof.com_ext_pub, input.n);
   Fr x = H256ToFr(seed);
   G1 left = input.com_pub.q + proof.com_ext_pub.t1 * x +
@@ -259,15 +259,15 @@ inline bool Test(int64_t n) {
 
   auto g1_copy = g1;
   auto g2_copy = g2;
-  ProverInput prover_input(std::move(g1), std::move(g2), h, u, std::move(a),
-                           std::move(b), c);
+  ProveInput prove_input(std::move(g1), std::move(g2), h, u, std::move(a),
+                         std::move(b), c);
 
   CommitmentSec com_sec;
   CommitmentPub com_pub;
-  ComputeCom(com_pub, com_sec, prover_input);
+  ComputeCom(com_pub, com_sec, prove_input);
 
   Proof proof;
-  Prove(proof, seed, std::move(prover_input), com_pub, com_sec);
+  Prove(proof, seed, std::move(prove_input), com_pub, com_sec);
 
 #ifndef DISABLE_SERIALIZE_CHECK
   // serialize to buffer
@@ -287,9 +287,9 @@ inline bool Test(int64_t n) {
   }
 #endif
 
-  VerifierInput verifier_input(std::move(g1_copy), std::move(g2_copy), h, u,
-                               com_pub);
-  bool success = Verify(proof, seed, std::move(verifier_input));
+  VerifyInput verify_input(std::move(g1_copy), std::move(g2_copy), h, u,
+                           com_pub);
+  bool success = Verify(proof, seed, std::move(verify_input));
   std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success
             << "\n\n\n\n\n\n";
   return success;

@@ -11,9 +11,9 @@
 // proof size: 2 G1 and 2log(n) Fr
 namespace hyrax {
 struct A3 {
-  struct ProverInput {
-    ProverInput(std::vector<Fr> const& x, std::vector<Fr> const& a, Fr const& y,
-                int64_t x_g_offset, int64_t y_g_offset)
+  struct ProveInput {
+    ProveInput(std::vector<Fr> const& x, std::vector<Fr> const& a, Fr const& y,
+               int64_t x_g_offset, int64_t y_g_offset)
         : x(x), a(a), y(y), x_g_offset(x_g_offset), y_g_offset(y_g_offset) {
       assert(x.size() == a.size() && !a.empty());
       assert(y == InnerProduct(x, a));
@@ -99,9 +99,9 @@ struct A3 {
     bool operator!=(Proof const& right) const { return !(*this == right); }
   };
 
-  struct VerifierInput {
-    VerifierInput(std::vector<Fr> const& a, CommitmentPub const& com_pub,
-                  int64_t x_g_offset, int64_t y_g_offset)
+  struct VerifyInput {
+    VerifyInput(std::vector<Fr> const& a, CommitmentPub const& com_pub,
+                int64_t x_g_offset, int64_t y_g_offset)
         : a(a),
           com_pub(com_pub),
           x_g_offset(x_g_offset),
@@ -154,7 +154,7 @@ struct A3 {
   }
 
   static void ComputeCom(CommitmentPub& com_pub, CommitmentSec const& com_sec,
-                         ProverInput const& input) {
+                         ProveInput const& input) {
     // Tick tick(__FUNCTION__);
     std::array<parallel::Task, 2> tasks;
     tasks[0] = [&com_pub, &input, &com_sec]() {
@@ -168,7 +168,7 @@ struct A3 {
     parallel::Invoke(tasks, true);
   }
 
-  static void Prove(Proof& proof, h256_t seed, ProverInput input,
+  static void Prove(Proof& proof, h256_t seed, ProveInput input,
                     CommitmentPub com_pub, CommitmentSec com_sec) {
     UpdateSeed(seed, input.a, com_pub);
 
@@ -251,7 +251,7 @@ struct A3 {
   }
 
   static bool Verify(Proof const& proof, h256_t seed,
-                     VerifierInput const& input) {
+                     VerifyInput const& input) {
     assert(PcBase::kGSize >= proof.aligned_n());
     auto n = input.a.size();
     if (!n || (int64_t)misc::Pow2UB(n) != proof.aligned_n()) {
@@ -378,14 +378,14 @@ bool A3::Test(int64_t n) {
   int64_t x_g_offset = 20;
   int64_t y_g_offset = -1;
   auto y = InnerProduct(x, a);
-  ProverInput prover_input(x, a, y, x_g_offset, y_g_offset);
+  ProveInput prove_input(x, a, y, x_g_offset, y_g_offset);
 
   CommitmentPub com_pub;
   CommitmentSec com_sec(FrRand(), FrRand());
-  ComputeCom(com_pub, com_sec, prover_input);
+  ComputeCom(com_pub, com_sec, prove_input);
 
   Proof proof;
-  Prove(proof, UpdateSeed, prover_input, com_pub, com_sec);
+  Prove(proof, UpdateSeed, prove_input, com_pub, com_sec);
 
 #ifndef DISABLE_SERIALIZE_CHECK
   // serialize to buffer
@@ -405,9 +405,10 @@ bool A3::Test(int64_t n) {
   }
 #endif
 
-  VerifierInput verifier_input(a, com_pub, x_g_offset, y_g_offset);
-  bool success = Verify(proof, UpdateSeed, verifier_input);
-  std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success << "\n\n\n\n\n\n";
+  VerifyInput verify_input(a, com_pub, x_g_offset, y_g_offset);
+  bool success = Verify(proof, UpdateSeed, verify_input);
+  std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success
+            << "\n\n\n\n\n\n";
   return success;
 }
 }  // namespace hyrax

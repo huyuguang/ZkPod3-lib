@@ -1,15 +1,15 @@
 #include "ecc/ecc.h"
 #include "public.h"
-#include "vrs/vrs.h"
+#include "clink/vrs_cache.h"
 
 bool InitAll(std::string const& data_dir) {
   InitEcc();
 
-  auto ecc_pub_file = data_dir + "/" + "ecc_pub.bin";
-  if (!OpenOrCreateEccPub(ecc_pub_file)) {
-    std::cerr << "Open or create ecc pub file " << ecc_pub_file << " failed\n";
-    return false;
-  }
+  //auto ecc_pub_file = data_dir + "/" + "ecc_pub.bin";
+  //if (!OpenOrCreateEccPub(ecc_pub_file)) {
+  //  std::cerr << "Open or create ecc pub file " << ecc_pub_file << " failed\n";
+  //  return false;
+  //}
 
   auto ecc_pds_file = data_dir + "/" + "pds_pub.bin";
   if (!OpenOrCreatePdsPub(ecc_pds_file)) {
@@ -25,8 +25,9 @@ enum VrsSchemeType { kMimic5 = 0, kSha256c = 1 };
 template <typename Scheme>
 bool CreateAndSave(std::string const& cache_dir, uint64_t count,
                    std::string& cache_file) {
-  auto cache = vrs::CreateCache<Scheme>(count);
-  return vrs::SaveCache<Scheme>(cache_dir, cache, cache_file);
+  using VrsCache = clink::VrsCache<Scheme>;
+  auto cache = VrsCache::CreateFileData(count);
+  return VrsCache::SaveFileData(cache_dir, cache, cache_file);
 }
 
 int main(int argc, char** argv) {
@@ -89,9 +90,9 @@ int main(int argc, char** argv) {
 
   std::string cache_dir = data_dir + "/vrs_cache/";  
   if (vrs_scheme == VrsSchemeType::kMimic5) {
-    cache_dir += vrs::Mimc5Scheme::type();
+    cache_dir += clink::VrsMimc5Scheme::type();
   } else {
-    cache_dir += vrs::Sha256cScheme::type();
+    cache_dir += clink::VrsSha256cScheme::type();
   }
   fs::create_directories(cache_dir);
   if (!fs::is_directory(cache_dir)) {
@@ -102,9 +103,9 @@ int main(int argc, char** argv) {
   bool ret = false;
   std::string cache_file;
   if (vrs_scheme == VrsSchemeType::kMimic5) {    
-    ret = CreateAndSave<vrs::Mimc5Scheme>(cache_dir, count, cache_file);
+    ret = CreateAndSave<clink::VrsMimc5Scheme>(cache_dir, count, cache_file);
   } else {    
-    ret = CreateAndSave<vrs::Sha256cScheme>(cache_dir, count, cache_file);
+    ret = CreateAndSave<clink::VrsSha256cScheme>(cache_dir, count, cache_file);
   }
 
   if (ret) {

@@ -5,19 +5,14 @@
 
 #include <iostream>
 
-#include "bp/protocol1.h"
-#include "bp/protocol2.h"
-#include "bp/protocol3.h"
-#include "cmd/test.h"
+#include "bp/bp.h"
+#include "cmd/cmd.h"
 #include "ecc/ecc.h"
-#include "groth09/test.h"
+#include "groth09/groth09.h"
 #include "log/tick.h"
 #include "misc/misc.h"
-#include "pc_utils/test.h"
-#include "pod/test.h"
+#include "clink/clink.h"
 #include "public.h"
-#include "vrs/sha256c_gadget.h"
-#include "vrs/test.h"
 
 bool InitAll(std::string const& data_dir) {
   InitEcc();
@@ -265,55 +260,55 @@ int main(int argc, char** argv) {
             gro09_43b.x, gro09_43b.y);
   }
   if (matrix.valid()) {
-    rets["pc_utils::matrix_a2"] =
-        pc_utils::Matrix<hyrax::A2>::Test(matrix.x, matrix.y);
-    rets["pc_utils::matrix_a3"] =
-        pc_utils::Matrix<hyrax::A3>::Test(matrix.x, matrix.y);
+    rets["clink::matrix_a2"] =
+        clink::Matrix<hyrax::A2>::Test(matrix.x, matrix.y);
+    rets["clink::matrix_a3"] =
+        clink::Matrix<hyrax::A3>::Test(matrix.x, matrix.y);
   }
   if (equal_ip.valid()) {
-    rets["pc_utils::equal_ip_1"] =
-        pc_utils::EqualIp<hyrax::A2>::Test(equal_ip.x, equal_ip.y);
-    rets["pc_utils::equal_ip_2"] =
-        pc_utils::EqualIp<hyrax::A3>::Test(equal_ip.x, equal_ip.y);
+    rets["clink::equal_ip_1"] =
+        clink::EqualIp<hyrax::A2>::Test(equal_ip.x, equal_ip.y);
+    rets["clink::equal_ip_2"] =
+        clink::EqualIp<hyrax::A3>::Test(equal_ip.x, equal_ip.y);
   }
   if (overlap) {
-    rets["pc_utils::overlap_1"] = pc_utils::Overlap<hyrax::A2>::Test();
-    rets["pc_utils::overlap_2"] = pc_utils::Overlap<hyrax::A3>::Test();
+    rets["clink::overlap_1"] = clink::Overlap<hyrax::A2>::Test();
+    rets["clink::overlap_2"] = clink::Overlap<hyrax::A3>::Test();
   }
   if (divide) {
-    rets["pc_utils::divide_1"] = pc_utils::Divide<hyrax::A2>::Test();
-    rets["pc_utils::divide_2"] = pc_utils::Divide<hyrax::A3>::Test();
+    rets["clink::divide_1"] = clink::Divide<hyrax::A2>::Test();
+    rets["clink::divide_2"] = clink::Divide<hyrax::A3>::Test();
   }
   if (match) {
-    rets["pc_utils::match_1"] =
-        pc_utils::Match<groth09::OrdinaryPolicy>::Test();
-    rets["pc_utils::match_2"] =
-        pc_utils::Match<groth09::SuccinctPolicy>::Test();
+    rets["clink::match_1"] =
+        clink::Match<groth09::OrdinaryPolicy>::Test();
+    rets["clink::match_2"] =
+        clink::Match<groth09::SuccinctPolicy>::Test();
   }
   if (substr) {
-    rets["pc_utils::substr_1"] =
-        pc_utils::Substr<groth09::OrdinaryPolicy>::Test();
-    rets["pc_utils::substr_2"] =
-        pc_utils::Substr<groth09::SuccinctPolicy>::Test();
+    rets["clink::substr_1"] =
+        clink::Substr<groth09::OrdinaryPolicy>::Test();
+    rets["clink::substr_2"] =
+        clink::Substr<groth09::SuccinctPolicy>::Test();
   }
   if (pack) {
-    rets["pc_utils::pack_1"] = pc_utils::Pack<hyrax::A2>::Test();
-    rets["pc_utils::pack_2"] = pc_utils::Pack<hyrax::A3>::Test();
+    rets["clink::pack_1"] = clink::Pack<hyrax::A2>::Test();
+    rets["clink::pack_2"] = clink::Pack<hyrax::A3>::Test();
   }
   if (substrpack.valid()) {
-    rets["pc_utils::substrpack_1"] =
-        pc_utils::SubstrPack<groth09::OrdinaryPolicy>::Test(substrpack.n,
+    rets["clink::substrpack_1"] =
+        clink::SubstrPack<groth09::OrdinaryPolicy>::Test(substrpack.n,
                                                             substrpack.str);
-    rets["pc_utils::substrpack_2"] =
-        pc_utils::SubstrPack<groth09::SuccinctPolicy>::Test(substrpack.n,
+    rets["clink::substrpack_2"] =
+        clink::SubstrPack<groth09::SuccinctPolicy>::Test(substrpack.n,
                                                             substrpack.str);
   }
   if (matchpack.valid()) {
-    rets["pc_utils::matchpack_1"] =
-        pc_utils::MatchPack<groth09::OrdinaryPolicy>::Test(matchpack.n,
+    rets["clink::matchpack_1"] =
+        clink::MatchPack<groth09::OrdinaryPolicy>::Test(matchpack.n,
                                                            matchpack.str);
-    rets["pc_utils::matchpack_2"] =
-        pc_utils::MatchPack<groth09::SuccinctPolicy>::Test(matchpack.n,
+    rets["clink::matchpack_2"] =
+        clink::MatchPack<groth09::SuccinctPolicy>::Test(matchpack.n,
                                                            matchpack.str);
   }
   if (match_query.valid()) {
@@ -334,48 +329,53 @@ int main(int argc, char** argv) {
   if (vrs_scheme == VrsSchemeType::kMimic5) {
     if (vrs_basic_n) {
       rets["vrs::basic_1"] =
-          vrs::TestBasic<vrs::Mimc5Scheme, groth09::OrdinaryPolicy>(
-              vrs_basic_n);
+          clink::VrsBasic<clink::VrsMimc5Scheme,
+                             groth09::OrdinaryPolicy>::Test(vrs_basic_n);
       rets["vrs::basic_2"] =
-          vrs::TestBasic<vrs::Mimc5Scheme, groth09::SuccinctPolicy>(
-              vrs_basic_n);
+          clink::VrsBasic<clink::VrsMimc5Scheme,
+                             groth09::SuccinctPolicy>::Test(vrs_basic_n);
     }
     if (vrs_large_n) {
-      rets["vrs::large_1"] =
-          vrs::TestLarge<vrs::Mimc5Scheme, groth09::OrdinaryPolicy>(
-              vrs_large_n);
-      rets["vrs::large_2"] =
-          vrs::TestLarge<vrs::Mimc5Scheme, groth09::SuccinctPolicy>(
-              vrs_large_n);
+      rets["vrs::basic_1"] =
+          clink::VrsLarge<clink::VrsMimc5Scheme,
+                             groth09::OrdinaryPolicy>::Test(vrs_large_n);
+      rets["vrs::basic_2"] =
+          clink::VrsLarge<clink::VrsMimc5Scheme,
+                             groth09::SuccinctPolicy>::Test(vrs_large_n);
     }
     if (pod.valid()) {
       rets["pod_1"] =
-          pod::Test<vrs::Mimc5Scheme, groth09::OrdinaryPolicy>(pod.x, pod.y);
+          clink::Pod<clink::VrsMimc5Scheme,
+                        groth09::OrdinaryPolicy>::Test(pod.x, pod.y);
       rets["pod_2"] =
-          pod::Test<vrs::Mimc5Scheme, groth09::SuccinctPolicy>(pod.x, pod.y);
+          clink::Pod<clink::VrsMimc5Scheme,
+                        groth09::SuccinctPolicy>::Test(pod.x, pod.y);
     }
   } else {
     if (vrs_basic_n) {
       rets["vrs::basic_1"] =
-          vrs::TestBasic<vrs::Sha256cScheme, groth09::OrdinaryPolicy>(
-              vrs_basic_n);
+          clink::VrsBasic<clink::VrsSha256cScheme,
+                             groth09::OrdinaryPolicy>::Test(vrs_basic_n);
       rets["vrs::basic_2"] =
-          vrs::TestBasic<vrs::Sha256cScheme, groth09::SuccinctPolicy>(
-              vrs_basic_n);
+          clink::VrsBasic<clink::VrsSha256cScheme,
+                             groth09::SuccinctPolicy>::Test(vrs_basic_n);
     }
     if (vrs_large_n) {
-      rets["vrs::large_1"] =
-          vrs::TestLarge<vrs::Sha256cScheme, groth09::OrdinaryPolicy>(
-              vrs_large_n);
-      rets["vrs::large_2"] =
-          vrs::TestLarge<vrs::Sha256cScheme, groth09::SuccinctPolicy>(
-              vrs_large_n);
+      rets["vrs::basic_1"] =
+          clink::VrsLarge<clink::VrsSha256cScheme,
+                             groth09::OrdinaryPolicy>::Test(vrs_large_n);
+      rets["vrs::basic_2"] =
+          clink::VrsLarge<clink::VrsSha256cScheme,
+                             groth09::SuccinctPolicy>::Test(vrs_large_n);
     }
+
     if (pod.valid()) {
       rets["pod_1"] =
-          pod::Test<vrs::Sha256cScheme, groth09::OrdinaryPolicy>(pod.x, pod.y);
+          clink::Pod<clink::VrsSha256cScheme,
+                        groth09::OrdinaryPolicy>::Test(pod.x, pod.y);
       rets["pod_2"] =
-          pod::Test<vrs::Sha256cScheme, groth09::SuccinctPolicy>(pod.x, pod.y);
+          clink::Pod<clink::VrsSha256cScheme,
+                        groth09::SuccinctPolicy>::Test(pod.x, pod.y);
     }
   }
 

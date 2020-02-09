@@ -15,15 +15,15 @@
 namespace groth09 {
 
 struct Sec51a {
-  struct ProverInput {
+  struct ProveInput {
     std::vector<Fr> const& x;  // size = n
     std::vector<Fr> const& y;  // size = n
     Fr const z;                // z = <x,y>
     int64_t const x_g_offset;
     int64_t const y_g_offset;
     int64_t const z_g_offset;
-    ProverInput(std::vector<Fr> const& x, std::vector<Fr> const& y, Fr const& z,
-                int64_t x_g_offset, int64_t y_g_offset, int64_t z_g_offset)
+    ProveInput(std::vector<Fr> const& x, std::vector<Fr> const& y, Fr const& z,
+               int64_t x_g_offset, int64_t y_g_offset, int64_t z_g_offset)
         : x(x),
           y(y),
           z(z),
@@ -110,7 +110,7 @@ struct Sec51a {
   };
 
   static void ComputeCom(CommitmentPub& com_pub, CommitmentSec& com_sec,
-                         ProverInput const& input) {
+                         ProveInput const& input) {
     // Tick tick(__FUNCTION__);
     com_sec.r = FrRand();
     com_sec.s = FrRand();
@@ -131,7 +131,7 @@ struct Sec51a {
 
   static void ComputeComExt(CommitmentExtPub& com_ext_pub,
                             CommitmentExtSec& com_ext_sec,
-                            ProverInput const& input) {
+                            ProveInput const& input) {
     // Tick tick(__FUNCTION__);
     auto const n = input.n();
     com_ext_sec.dx.resize(n);
@@ -166,7 +166,7 @@ struct Sec51a {
     parallel::Invoke(tasks);
   }
 
-  static void ComputeSubProof(SubProof& sub_proof, ProverInput const& input,
+  static void ComputeSubProof(SubProof& sub_proof, ProveInput const& input,
                               CommitmentSec const& com_sec,
                               CommitmentExtSec const& com_ext_sec,
                               Fr const& challenge) {
@@ -203,9 +203,9 @@ struct Sec51a {
     hash.Final(seed.data());
   }
 
-  struct VerifierInput {
-    VerifierInput(CommitmentPub const& com_pub, int64_t x_g_offset,
-                  int64_t y_g_offset, int64_t z_g_offset)
+  struct VerifyInput {
+    VerifyInput(CommitmentPub const& com_pub, int64_t x_g_offset,
+                int64_t y_g_offset, int64_t z_g_offset)
         : com_pub(com_pub),
           x_g_offset(x_g_offset),
           y_g_offset(y_g_offset),
@@ -216,7 +216,7 @@ struct Sec51a {
     int64_t const z_g_offset;
   };
 
-  static bool VerifyInternal(VerifierInput const& input, Fr const& challenge,
+  static bool VerifyInternal(VerifyInput const& input, Fr const& challenge,
                              CommitmentExtPub const& com_ext_pub,
                              SubProof const& sub_proof) {
     auto const n = sub_proof.fx.size();
@@ -288,7 +288,7 @@ struct Sec51a {
     return all_success;
   }
 
-  static void Prove(Proof& proof, h256_t seed, ProverInput const& input,
+  static void Prove(Proof& proof, h256_t seed, ProveInput const& input,
                     CommitmentPub const& com_pub,
                     CommitmentSec const& com_sec) {
     // Tick tick(__FUNCTION__);
@@ -305,7 +305,7 @@ struct Sec51a {
   }
 
   static bool Verify(Proof const& proof, h256_t seed,
-                     VerifierInput const& input) {
+                     VerifyInput const& input) {
     // Tick tick(__FUNCTION__);
     assert(PcBase::kGSize >= proof.n());
 
@@ -371,14 +371,14 @@ inline bool Sec51a::Test(int64_t n) {
   int64_t x_g_offset = 5;
   int64_t y_g_offset = 10;
   int64_t z_g_offset = -1;
-  ProverInput prover_input(x, y, z, x_g_offset, y_g_offset, z_g_offset);
+  ProveInput prove_input(x, y, z, x_g_offset, y_g_offset, z_g_offset);
 
   CommitmentPub com_pub;
   CommitmentSec com_sec;
-  ComputeCom(com_pub, com_sec, prover_input);
+  ComputeCom(com_pub, com_sec, prove_input);
 
   Proof proof;
-  Prove(proof, seed, prover_input, com_pub, com_sec);
+  Prove(proof, seed, prove_input, com_pub, com_sec);
 
 #ifndef DISABLE_SERIALIZE_CHECK
   // serialize to buffer
@@ -398,8 +398,8 @@ inline bool Sec51a::Test(int64_t n) {
   }
 #endif
 
-  VerifierInput verifier_input(com_pub, x_g_offset, y_g_offset, z_g_offset);
-  bool success = Verify(proof, seed, verifier_input);
+  VerifyInput verify_input(com_pub, x_g_offset, y_g_offset, z_g_offset);
+  bool success = Verify(proof, seed, verify_input);
   std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success
             << "\n\n\n\n\n\n";
   return success;

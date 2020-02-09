@@ -3,9 +3,9 @@
 #include <map>
 #include <memory>
 
+#include "groth09/details.h"
 #include "groth09/sec51b.h"
 #include "groth09/sec51c.h"
-#include "groth09/details.h"
 #include "utils/fst.h"
 
 // t: public vector<Fr>, size = n
@@ -62,9 +62,9 @@ struct Sec53b {
     }
   };
 
-  struct VerifierInput {
-    VerifierInput(std::vector<Fr> const& t, CommitmentPub const& com_pub,
-                  int64_t x_g_offset, int64_t y_g_offset, int64_t z_g_offset)
+  struct VerifyInput {
+    VerifyInput(std::vector<Fr> const& t, CommitmentPub const& com_pub,
+                int64_t x_g_offset, int64_t y_g_offset, int64_t z_g_offset)
         : t(t),
           com_pub(com_pub),
           x_g_offset(x_g_offset),
@@ -82,7 +82,7 @@ struct Sec53b {
     int64_t const z_g_offset;
   };
 
-  struct ProverInput {
+  struct ProveInput {
     std::vector<std::vector<Fr>> x;
     std::vector<std::vector<Fr>> y;
     std::vector<Fr> const& t;
@@ -95,10 +95,10 @@ struct Sec53b {
     int64_t m() const { return x.size(); }
     int64_t n() const { return x[0].size(); }
 
-    ProverInput(std::vector<std::vector<Fr>> ix,
-                std::vector<std::vector<Fr>> iy, std::vector<Fr> const& it,
-                std::vector<std::vector<Fr>> iyt, Fr const& z,
-                int64_t x_g_offset, int64_t y_g_offset, int64_t z_g_offset)
+    ProveInput(std::vector<std::vector<Fr>> ix, std::vector<std::vector<Fr>> iy,
+               std::vector<Fr> const& it, std::vector<std::vector<Fr>> iyt,
+               Fr const& z, int64_t x_g_offset, int64_t y_g_offset,
+               int64_t z_g_offset)
         : x(std::move(ix)),
           y(std::move(iy)),
           t(it),
@@ -188,6 +188,14 @@ struct Sec53b {
     bool operator!=(CommitmentExtPub const& right) const {
       return !(*this == right);
     }
+    template <typename Ar>
+    void serialize(Ar& ar) const {
+      ar& YAS_OBJECT_NVP("53b.cep", ("cl", cl), ("cu", cu));
+    }
+    template <typename Ar>
+    void serialize(Ar& ar) {
+      ar& YAS_OBJECT_NVP("53b.cep", ("cl", cl), ("cu", cu));
+    }
   };
 
   struct Proof {
@@ -202,9 +210,18 @@ struct Sec53b {
     }
 
     bool operator!=(Proof const& right) const { return !(*this == right); }
+
+    template <typename Ar>
+    void serialize(Ar& ar) const {
+      ar& YAS_OBJECT_NVP("53.pf", ("c", com_ext_pub), ("r", proof_51));
+    }
+    template <typename Ar>
+    void serialize(Ar& ar) {
+      ar& YAS_OBJECT_NVP("53.pf", ("c", com_ext_pub), ("r", proof_51));
+    }
   };
 
-  static void ComputeCom(ProverInput const& input, CommitmentPub* com_pub,
+  static void ComputeCom(ProveInput const& input, CommitmentPub* com_pub,
                          CommitmentSec const& com_sec) {
     // Tick tick(__FUNCTION__);
     auto const m = input.m();
@@ -224,7 +241,7 @@ struct Sec53b {
     com_pub->c = PcComputeCommitmentG(input.z_g_offset, input.z, com_sec.t);
   }
 
-  static void ComputeCom(ProverInput const& input, CommitmentPub* com_pub,
+  static void ComputeCom(ProveInput const& input, CommitmentPub* com_pub,
                          CommitmentSec* com_sec) {
     // Tick tick(__FUNCTION__);
     auto const m = input.m();
@@ -240,14 +257,14 @@ struct Sec53b {
   }
 
   static void ProveFinal(Proof& proof, h256_t const& seed,
-                         ProverInput const& input, CommitmentPub const& com_pub,
+                         ProveInput const& input, CommitmentPub const& com_pub,
                          CommitmentSec const& com_sec) {
     // Tick tick(__FUNCTION__);
     assert(input.m() == 1);
 
-    typename Sec51::ProverInput input_51(input.x[0], input.y[0], input.t,
-                                         input.yt[0], input.z, input.x_g_offset,
-                                         input.y_g_offset, input.z_g_offset);
+    typename Sec51::ProveInput input_51(input.x[0], input.y[0], input.t,
+                                        input.yt[0], input.z, input.x_g_offset,
+                                        input.y_g_offset, input.z_g_offset);
 
     typename Sec51::CommitmentPub com_pub_51(com_pub.a[0], com_pub.b[0],
                                              com_pub.c);
@@ -256,7 +273,7 @@ struct Sec53b {
     Sec51::Prove(proof.proof_51, seed, input_51, com_pub_51, com_sec_51);
   }
 
-  static void ComputeSigmaXY(ProverInput const& input, Fr* sigma_xy1,
+  static void ComputeSigmaXY(ProveInput const& input, Fr* sigma_xy1,
                              Fr* sigma_xy2) {
     // Tick tick(__FUNCTION__);
     int64_t m = input.m();
@@ -332,7 +349,7 @@ struct Sec53b {
   }
 
   // pad some trivial value
-  static void AlignData(ProverInput& input, CommitmentPub& com_pub,
+  static void AlignData(ProveInput& input, CommitmentPub& com_pub,
                         CommitmentSec& com_sec) {
     // Tick tick(__FUNCTION__);
     input.Align();
@@ -340,7 +357,7 @@ struct Sec53b {
     com_pub.Align();
   }
 
-  static void ProveRecursive(Proof& proof, h256_t& seed, ProverInput& input,
+  static void ProveRecursive(Proof& proof, h256_t& seed, ProveInput& input,
                              CommitmentPub& com_pub, CommitmentSec& com_sec) {
     // Tick tick(__FUNCTION__);
     assert(input.m() > 1);
@@ -374,7 +391,7 @@ struct Sec53b {
 #endif
   }
 
-  static void Prove(Proof& proof, h256_t seed, ProverInput input,
+  static void Prove(Proof& proof, h256_t seed, ProveInput input,
                     CommitmentPub com_pub, CommitmentSec com_sec) {
     Tick tick(__FUNCTION__);
     assert(PcBase::kGSize >= input.n());
@@ -386,7 +403,7 @@ struct Sec53b {
   }
 
   static bool Verify(Proof const& proof, h256_t seed,
-                     VerifierInput const& input) {
+                     VerifyInput const& input) {
     // Tick tick(__FUNCTION__);
     if (!proof.CheckFormat(input.m())) {
       assert(false);
@@ -428,7 +445,7 @@ struct Sec53b {
 
     typename Sec51::CommitmentPub com_pub_51(com_pub.a[0], com_pub.b[0],
                                              com_pub.c);
-    typename Sec51::VerifierInput verifier_input_51(
+    typename Sec51::VerifyInput verifier_input_51(
         input.t, com_pub_51, input.x_g_offset, input.y_g_offset,
         input.z_g_offset);
     return Sec51::Verify(proof.proof_51, seed, verifier_input_51);
@@ -436,54 +453,6 @@ struct Sec53b {
 
   static bool Test(int64_t m, int64_t n);
 };
-
-// save to bin
-template <typename Ar>
-void serialize(Ar& ar, typename Sec53b<Sec51b>::CommitmentExtPub const& t) {
-  ar& YAS_OBJECT_NVP("53b.cep", ("cl", t.cl), ("cu", t.cu));
-}
-
-// load from bin
-template <typename Ar>
-void serialize(Ar& ar, typename Sec53b<Sec51b>::CommitmentExtPub& t) {
-  ar& YAS_OBJECT_NVP("53b.cep", ("cl", t.cl), ("cu", t.cu));
-}
-
-// save to bin
-template <typename Ar>
-void serialize(Ar& ar, typename Sec53b<Sec51c>::CommitmentExtPub const& t) {
-  ar& YAS_OBJECT_NVP("53b.cep", ("cl", t.cl), ("cu", t.cu));
-}
-
-// load from bin
-template <typename Ar>
-void serialize(Ar& ar, typename Sec53b<Sec51c>::CommitmentExtPub& t) {
-  ar& YAS_OBJECT_NVP("53b.cep", ("cl", t.cl), ("cu", t.cu));
-}
-
-// save to bin
-template <typename Ar>
-void serialize(Ar& ar, typename Sec53b<Sec51b>::Proof const& t) {
-  ar& YAS_OBJECT_NVP("53.pf", ("c", t.com_ext_pub), ("r", t.proof_51));
-}
-
-// load from bin
-template <typename Ar>
-void serialize(Ar& ar, typename Sec53b<Sec51b>::Proof& t) {
-  ar& YAS_OBJECT_NVP("53.pf", ("c", t.com_ext_pub), ("r", t.proof_51));
-}
-
-// save to bin
-template <typename Ar>
-void serialize(Ar& ar, typename Sec53b<Sec51c>::Proof const& t) {
-  ar& YAS_OBJECT_NVP("53.pf", ("c", t.com_ext_pub), ("r", t.proof_51));
-}
-
-// load from bin
-template <typename Ar>
-void serialize(Ar& ar, typename Sec53b<Sec51c>::Proof& t) {
-  ar& YAS_OBJECT_NVP("53.pf", ("c", t.com_ext_pub), ("r", t.proof_51));
-}
 
 template <typename Sec51>
 bool Sec53b<Sec51>::Test(int64_t m, int64_t n) {
@@ -518,16 +487,16 @@ bool Sec53b<Sec51>::Test(int64_t m, int64_t n) {
   int64_t y_g_offset = 450;
   int64_t z_g_offset = -1;
 
-  ProverInput prover_input(std::move(x), std::move(y), t, std::move(yt), z,
-                           x_g_offset, y_g_offset, z_g_offset);
+  ProveInput prove_input(std::move(x), std::move(y), t, std::move(yt), z,
+                         x_g_offset, y_g_offset, z_g_offset);
   CommitmentPub com_pub;
   CommitmentSec com_sec;
-  ComputeCom(prover_input, &com_pub, &com_sec);
+  ComputeCom(prove_input, &com_pub, &com_sec);
 
-  AlignData(prover_input, com_pub, com_sec);
+  AlignData(prove_input, com_pub, com_sec);
 
   Proof proof;
-  Prove(proof, seed, prover_input, com_pub, com_sec);
+  Prove(proof, seed, prove_input, com_pub, com_sec);
 
 #ifndef DISABLE_SERIALIZE_CHECK
   // serialize to buffer
@@ -547,8 +516,8 @@ bool Sec53b<Sec51>::Test(int64_t m, int64_t n) {
   }
 #endif
 
-  VerifierInput verifier_input(t, com_pub, x_g_offset, y_g_offset, z_g_offset);
-  bool success = Verify(proof, seed, verifier_input);
+  VerifyInput verify_input(t, com_pub, x_g_offset, y_g_offset, z_g_offset);
+  bool success = Verify(proof, seed, verify_input);
   std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success
             << "\n\n\n\n\n\n";
   return success;

@@ -15,12 +15,6 @@
     <None Include="..\public\groth09\readme.md">
       <Filter>public\groth09</Filter>
     </None>
-    <None Include="..\public\vrs\readme.md">
-      <Filter>public\vrs</Filter>
-    </None>
-    <None Include="..\public\pod\readme.md">
-      <Filter>public\pod</Filter>
-    </None>
     <None Include="..\public\ecc\readme.md">
       <Filter>public\ecc</Filter>
     </None>
@@ -41,12 +35,6 @@
     <Filter Include="public\groth09">
       <UniqueIdentifier>{08e16878-f652-4232-a09b-b9dca8ecf588}</UniqueIdentifier>
     </Filter>
-    <Filter Include="public\vrs">
-      <UniqueIdentifier>{a4f59d37-64da-4879-bc25-6b230340acef}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="public\pod">
-      <UniqueIdentifier>{74fe56ff-7ff1-4f3f-abc4-d1c2aa8f5d18}</UniqueIdentifier>
-    </Filter>
     <Filter Include="public\ecc">
       <UniqueIdentifier>{d068ad51-7c03-46b9-beb0-491b6b6b2011}</UniqueIdentifier>
     </Filter>
@@ -55,9 +43,6 @@
     </Filter>
     <Filter Include="public\misc">
       <UniqueIdentifier>{365f472e-8dc7-4932-8c82-cafa3873c0fc}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="public\vrf">
-      <UniqueIdentifier>{350ebf85-3a32-45c7-86d5-aaf55e949137}</UniqueIdentifier>
     </Filter>
     <Filter Include="public\parallel">
       <UniqueIdentifier>{2ca67127-05c3-4e8e-b55a-1d8b902009e6}</UniqueIdentifier>
@@ -68,14 +53,14 @@
     <Filter Include="public\utils">
       <UniqueIdentifier>{aee3c612-9901-4062-baf3-bf2f11a1c79c}</UniqueIdentifier>
     </Filter>
-    <Filter Include="public\scheme">
-      <UniqueIdentifier>{e56836b7-0f34-4eb5-b152-cd82a5d075ff}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="public\pc_utils">
-      <UniqueIdentifier>{8dcc0487-5525-4474-90e2-0dca51d01f8e}</UniqueIdentifier>
-    </Filter>
     <Filter Include="public\cmd">
       <UniqueIdentifier>{d3313012-ed5d-4498-b69d-3c7184744d01}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="public\circuit">
+      <UniqueIdentifier>{c4339a5a-3126-4b85-994f-22becd93ef03}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="public\clink">
+      <UniqueIdentifier>{8dcc0487-5525-4474-90e2-0dca51d01f8e}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -97,44 +82,11 @@
     <ClInclude Include="..\public\hyrax\hyrax.h">
       <Filter>public\hyrax</Filter>
     </ClInclude>
-    <ClInclude Include="..\public\groth09\test.h">
-      <Filter>public\groth09</Filter>
-    </ClInclude>
     <ClInclude Include="..\public\groth09\details.h">
       <Filter>public\groth09</Filter>
     </ClInclude>
     <ClInclude Include="..\public\groth09\groth09.h">
       <Filter>public\groth09</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\vrs\test.h">
-      <Filter>public\vrs</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\vrs\vrs.h">
-      <Filter>public\vrs</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\vrs\cache.h">
-      <Filter>public\vrs</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\vrs\large.h">
-      <Filter>public\vrs</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\vrs\mimc5_gadget.h">
-      <Filter>public\vrs</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\vrs\misc.h">
-      <Filter>public\vrs</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\vrs\notary.h">
-      <Filter>public\vrs</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\vrs\prover.h">
-      <Filter>public\vrs</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\vrs\types.h">
-      <Filter>public\vrs</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\vrs\verifier.h">
-      <Filter>public\vrs</Filter>
     </ClInclude>
     <ClInclude Include="..\public\ecc\ecc.h">
       <Filter>public\ecc</Filter>
@@ -184,15 +136,6 @@
     <ClInclude Include="..\public\misc\msvc_hack.h">
       <Filter>public\misc</Filter>
     </ClInclude>
-    <ClInclude Include="..\public\vrf\vrf.h">
-      <Filter>public\vrf</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\vrf\details.h">
-      <Filter>public\vrf</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\vrf\test.h">
-      <Filter>public\vrf</Filter>
-    </ClInclude>
     <ClInclude Include="..\public\parallel\parallel.h">
       <Filter>public\parallel</Filter>
     </ClInclude>
@@ -210,24 +153,6 @@
     </ClInclude>
     <ClInclude Include="..\public\utils\mkl_tree.h">
       <Filter>public\utils</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\scheme\public_misc.h">
-      <Filter>public\scheme</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\scheme\plain_misc.h">
-      <Filter>public\scheme</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\scheme\table_misc.h">
-      <Filter>public\scheme</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\scheme\vrf_meta.h">
-      <Filter>public\scheme</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\scheme\bulletin_plain.h">
-      <Filter>public\scheme</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\scheme\bulletin_table.h">
-      <Filter>public\scheme</Filter>
     </ClInclude>
     <ClInclude Include="..\public\groth09\sec51b.h">
       <Filter>public\groth09</Filter>
@@ -253,52 +178,7 @@
     <ClInclude Include="..\public\groth09\sec43b.h">
       <Filter>public\groth09</Filter>
     </ClInclude>
-    <ClInclude Include="..\public\pc_utils\details.h">
-      <Filter>public\pc_utils</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\pc_utils\divide.h">
-      <Filter>public\pc_utils</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\pc_utils\equal_ip.h">
-      <Filter>public\pc_utils</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\pc_utils\match.h">
-      <Filter>public\pc_utils</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\pc_utils\matchpack.h">
-      <Filter>public\pc_utils</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\pc_utils\matrix.h">
-      <Filter>public\pc_utils</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\pc_utils\overlap.h">
-      <Filter>public\pc_utils</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\pc_utils\pack.h">
-      <Filter>public\pc_utils</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\pc_utils\parallel_r1cs.h">
-      <Filter>public\pc_utils</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\pc_utils\pc_utils.h">
-      <Filter>public\pc_utils</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\pc_utils\substr.h">
-      <Filter>public\pc_utils</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\pc_utils\substrpack.h">
-      <Filter>public\pc_utils</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\pc_utils\test.h">
-      <Filter>public\pc_utils</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\pc_utils\types.h">
-      <Filter>public\pc_utils</Filter>
-    </ClInclude>
     <ClInclude Include="..\public\cmd\cmd.h">
-      <Filter>public\cmd</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\cmd\details.h">
       <Filter>public\cmd</Filter>
     </ClInclude>
     <ClInclude Include="..\public\cmd\match_query.h">
@@ -306,42 +186,6 @@
     </ClInclude>
     <ClInclude Include="..\public\cmd\substr_query.h">
       <Filter>public\cmd</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\cmd\test.h">
-      <Filter>public\cmd</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\vrs\mimc5.h">
-      <Filter>public\vrs</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\vrs\sha256c.h">
-      <Filter>public\vrs</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\vrs\sha256c_gadget.h">
-      <Filter>public\vrs</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\vrs\split_task.h">
-      <Filter>public\vrs</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\pod\details.h">
-      <Filter>public\pod</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\pod\notary.h">
-      <Filter>public\pod</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\pod\pod.h">
-      <Filter>public\pod</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\pod\prover.h">
-      <Filter>public\pod</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\pod\test.h">
-      <Filter>public\pod</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\pod\types.h">
-      <Filter>public\pod</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\pod\verifier.h">
-      <Filter>public\pod</Filter>
     </ClInclude>
     <ClInclude Include="..\public\bp\protocol2.h">
       <Filter>public\bp</Filter>
@@ -358,10 +202,80 @@
     <ClInclude Include="..\public\groth09\policy.h">
       <Filter>public\groth09</Filter>
     </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <Text Include="..\public\vrf\readme.md">
-      <Filter>public\vrf</Filter>
-    </Text>
+    <ClInclude Include="..\public\circuit\mimc5.h">
+      <Filter>public\circuit</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\circuit\mimc5_gadget.h">
+      <Filter>public\circuit</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\circuit\sha256c.h">
+      <Filter>public\circuit</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\circuit\sha256c_gadget.h">
+      <Filter>public\circuit</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\circuit\match_gadget.h">
+      <Filter>public\circuit</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\circuit\has0_gadget.h">
+      <Filter>public\circuit</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\circuit\substr_gadget.h">
+      <Filter>public\circuit</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\clink\details.h">
+      <Filter>public\clink</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\clink\divide.h">
+      <Filter>public\clink</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\clink\equal_ip.h">
+      <Filter>public\clink</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\clink\match.h">
+      <Filter>public\clink</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\clink\matchpack.h">
+      <Filter>public\clink</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\clink\matrix.h">
+      <Filter>public\clink</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\clink\overlap.h">
+      <Filter>public\clink</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\clink\pack.h">
+      <Filter>public\clink</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\clink\parallel_r1cs.h">
+      <Filter>public\clink</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\clink\pod.h">
+      <Filter>public\clink</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\clink\substr.h">
+      <Filter>public\clink</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\clink\substrpack.h">
+      <Filter>public\clink</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\clink\vrs_basic.h">
+      <Filter>public\clink</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\clink\vrs_cache.h">
+      <Filter>public\clink</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\clink\vrs_large.h">
+      <Filter>public\clink</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\clink\vrs_pub.h">
+      <Filter>public\clink</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\clink\vrs_scheme.h">
+      <Filter>public\clink</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\clink\clink.h">
+      <Filter>public\clink</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

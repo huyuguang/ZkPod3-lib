@@ -73,9 +73,20 @@ struct Sec43b {
              proof_a2 == right.proof_a2;
     }
     bool operator!=(Proof const& right) const { return !(*this == right); }
+
+    template <typename Ar>
+    void serialize(Ar& ar) const {
+      ar& YAS_OBJECT_NVP("43b.pf", ("c", c), ("53p", proof_53),
+                         ("a2p", proof_a2));
+    }
+    template <typename Ar>
+    void serialize(Ar& ar) {
+      ar& YAS_OBJECT_NVP("43b.pf", ("c", c), ("53p", proof_53),
+                         ("a2p", proof_a2));
+    }
   };
 
-  struct ProverInput {
+  struct ProveInput {
     int64_t const original_m;
     std::vector<std::vector<Fr>> x;  // m*n
     std::vector<std::vector<Fr>> y;
@@ -94,10 +105,10 @@ struct Sec43b {
       oz = std::move(z);
     }
 
-    ProverInput(int64_t original_m, std::vector<std::vector<Fr>>&& ix,
-                std::vector<std::vector<Fr>>&& iy,
-                std::vector<std::vector<Fr>>&& iz, int64_t x_g_offset,
-                int64_t y_g_offset, int64_t z_g_offset)
+    ProveInput(int64_t original_m, std::vector<std::vector<Fr>>&& ix,
+               std::vector<std::vector<Fr>>&& iy,
+               std::vector<std::vector<Fr>>&& iz, int64_t x_g_offset,
+               int64_t y_g_offset, int64_t z_g_offset)
         : original_m(original_m),
           x(std::move(ix)),
           y(std::move(iy)),
@@ -142,7 +153,7 @@ struct Sec43b {
   };
 
   static void ComputeCom(CommitmentPub& com_pub, CommitmentSec& com_sec,
-                         ProverInput const& input) {
+                         ProveInput const& input) {
     // Tick tick(__FUNCTION__);
     auto const m = input.m();
     com_sec.r.resize(m);
@@ -189,7 +200,7 @@ struct Sec43b {
   }
 
   // pad some trivial value
-  static void AlignData(ProverInput& input, CommitmentPub& com_pub,
+  static void AlignData(ProveInput& input, CommitmentPub& com_pub,
                         CommitmentSec& com_sec) {
     Tick tick(__FUNCTION__);
     input.Align();
@@ -197,7 +208,7 @@ struct Sec43b {
     com_sec.Align();
   }
 
-  static void Prove(Proof& proof, h256_t seed, ProverInput input,
+  static void Prove(Proof& proof, h256_t seed, ProveInput input,
                     CommitmentPub com_pub, CommitmentSec com_sec) {
     Tick tick(__FUNCTION__);
     auto m = input.m();
@@ -247,7 +258,7 @@ struct Sec43b {
 
       auto input_53_z_g_offset = SelectSec53Zoffset(
           input.x_g_offset, input.y_g_offset, input.z_g_offset);
-      typename Sec53::ProverInput input_53(
+      typename Sec53::ProveInput input_53(
           std::move(input_x), std::move(input_y), t, std::move(input_yt), z,
           input.x_g_offset, input.y_g_offset, input_53_z_g_offset);
 
@@ -302,7 +313,7 @@ struct Sec43b {
       auto input_a2_y_g_offset = SelectSec53Zoffset(
           input.x_g_offset, input.y_g_offset, input.z_g_offset);
 
-      typename HyraxA::ProverInput input_hy(
+      typename HyraxA::ProveInput input_hy(
           x_hy, t, input_53_z, input_a2_x_g_offset, input_a2_y_g_offset);
 
       com_sec_hy.r_xi = InnerProduct(com_sec.t, k);
@@ -325,9 +336,9 @@ struct Sec43b {
     }
   }
 
-  struct VerifierInput {
-    VerifierInput(int64_t m, int64_t n, CommitmentPub const& com_pub,
-                  int64_t x_g_offset, int64_t y_g_offset, int64_t z_g_offset)
+  struct VerifyInput {
+    VerifyInput(int64_t m, int64_t n, CommitmentPub const& com_pub,
+                int64_t x_g_offset, int64_t y_g_offset, int64_t z_g_offset)
         : m(misc::Pow2UB(m)),
           n(n),
           com_pub(com_pub),
@@ -343,7 +354,7 @@ struct Sec43b {
   };
 
   static bool Verify(Proof const& proof, h256_t seed,
-                     VerifierInput const& input) {
+                     VerifyInput const& input) {
     // Tick tick(__FUNCTION__);
     auto m = input.m;
     auto n = input.n;
@@ -369,9 +380,9 @@ struct Sec43b {
       auto intput_53_z_g_offset = SelectSec53Zoffset(
           input.x_g_offset, input.y_g_offset, input.z_g_offset);
 
-      typename Sec53::VerifierInput input_53(t, com_pub_53, input.x_g_offset,
-                                             input.y_g_offset,
-                                             intput_53_z_g_offset);
+      typename Sec53::VerifyInput input_53(t, com_pub_53, input.x_g_offset,
+                                           input.y_g_offset,
+                                           intput_53_z_g_offset);
       ret_53 = Sec53::Verify(proof.proof_53, seed, input_53);
       assert(ret_53);
     };
@@ -383,8 +394,8 @@ struct Sec43b {
       auto input_a2_x_g_offset = input.z_g_offset;
       auto input_a2_y_g_offset = SelectSec53Zoffset(
           input.x_g_offset, input.y_g_offset, input.z_g_offset);
-      typename HyraxA::VerifierInput input_hy(
-          t, com_pub_hy, input_a2_x_g_offset, input_a2_y_g_offset);
+      typename HyraxA::VerifyInput input_hy(t, com_pub_hy, input_a2_x_g_offset,
+                                            input_a2_y_g_offset);
       ret_a2 = HyraxA::Verify(proof.proof_a2, seed, input_hy);
       assert(ret_a2);
     };
@@ -400,36 +411,6 @@ struct Sec43b {
 
   static bool Test(int64_t m, int64_t n);
 };
-
-// save to bin
-template <typename Ar>
-void serialize(Ar& ar,
-               typename Sec43b<Sec53b<Sec51b>, hyrax::A2>::Proof const& t) {
-  ar& YAS_OBJECT_NVP("43b.pf", ("c", t.c), ("53p", t.proof_53),
-                     ("a2p", t.proof_a2));
-}
-
-// load from bin
-template <typename Ar>
-void serialize(Ar& ar, typename Sec43b<Sec53b<Sec51b>, hyrax::A2>::Proof& t) {
-  ar& YAS_OBJECT_NVP("43b.pf", ("c", t.c), ("53p", t.proof_53),
-                     ("a2p", t.proof_a2));
-}
-
-// save to bin
-template <typename Ar>
-void serialize(Ar& ar,
-               typename Sec43b<Sec53b<Sec51c>, hyrax::A3>::Proof const& t) {
-  ar& YAS_OBJECT_NVP("43b.pf", ("c", t.c), ("53p", t.proof_53),
-                     ("a2p", t.proof_a2));
-}
-
-// load from bin
-template <typename Ar>
-void serialize(Ar& ar, typename Sec43b<Sec53b<Sec51c>, hyrax::A3>::Proof& t) {
-  ar& YAS_OBJECT_NVP("43b.pf", ("c", t.c), ("53p", t.proof_53),
-                     ("a2p", t.proof_a2));
-}
 
 template <typename Sec53, typename HyraxA>
 bool Sec43b<Sec53, HyraxA>::Test(int64_t m, int64_t n) {
@@ -459,16 +440,16 @@ bool Sec43b<Sec53, HyraxA>::Test(int64_t m, int64_t n) {
   int64_t y_g_offset = 0;
   int64_t z_g_offset = 0;
 
-  ProverInput prover_input(m, std::move(x), std::move(y), std::move(z),
-                           x_g_offset, y_g_offset, z_g_offset);
+  ProveInput prove_input(m, std::move(x), std::move(y), std::move(z),
+                         x_g_offset, y_g_offset, z_g_offset);
   CommitmentPub com_pub;
   CommitmentSec com_sec;
-  ComputeCom(com_pub, com_sec, prover_input);
+  ComputeCom(com_pub, com_sec, prove_input);
 
-  AlignData(prover_input, com_pub, com_sec);
+  AlignData(prove_input, com_pub, com_sec);
 
   Proof proof;
-  Prove(proof, seed, prover_input, com_pub, com_sec);
+  Prove(proof, seed, prove_input, com_pub, com_sec);
 
 #ifndef DISABLE_SERIALIZE_CHECK
   // serialize to buffer
@@ -488,9 +469,8 @@ bool Sec43b<Sec53, HyraxA>::Test(int64_t m, int64_t n) {
   }
 #endif
 
-  VerifierInput verifier_input(m, n, com_pub, x_g_offset, y_g_offset,
-                               z_g_offset);
-  bool success = Verify(proof, seed, verifier_input);
+  VerifyInput verify_input(m, n, com_pub, x_g_offset, y_g_offset, z_g_offset);
+  bool success = Verify(proof, seed, verify_input);
   std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success
             << "\n\n\n\n\n\n";
   return success;

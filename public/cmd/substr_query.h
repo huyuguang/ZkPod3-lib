@@ -1,27 +1,39 @@
 #pragma once
 
-#include "pc_utils/pc_utils.h"
-#include "pod/pod.h"
+#include "clink/clink.h"
 
-// substr query and pod
+// substr query and Pod
 
 namespace cmd {
 
 template <typename Policy>
 struct SubstrQuery {
+  using Pod = typename clink::Pod<clink::VrsMimc5Scheme, Policy>;
+  using SubstrPack = typename clink::SubstrPack<Policy>;
+
   struct Proof {
-    pod::ProvedData<Policy> pod_proved_data;
-    std::vector<typename pc_utils::SubstrPack<Policy>::Proof> sp_proofs;
+    typename Pod::ProvedData pod_proved_data;
+    std::vector<typename SubstrPack::Proof> sp_proofs;
     bool operator==(Proof const& b) const {
       return pod_proved_data == b.pod_proved_data && sp_proofs == b.sp_proofs;
     }
 
     bool operator!=(Proof const& b) const { return !(*this == b); }
+
+    template <typename Ar>
+    void serialize(Ar& ar) const {
+      ar& YAS_OBJECT_NVP("sq.p", ("Pod", pod_proved_data), ("sp", sp_proofs));
+    }
+
+    template <typename Ar>
+    void serialize(Ar& ar) {
+      ar& YAS_OBJECT_NVP("sq.p", ("Pod", pod_proved_data), ("sp", sp_proofs));
+    }
   };
 
   struct ProveOutput {
-    pod::ProveOutput<vrs::Mimc5Scheme, Policy> pod_output;
-    std::vector<typename pc_utils::SubstrPack<Policy>::ProveOutput> sp_outputs;
+    typename Pod::ProveOutput pod_output;
+    std::vector<typename SubstrPack::ProveOutput> sp_outputs;
 
     Proof BuildProof() const {
       Proof ret;
@@ -44,9 +56,9 @@ struct SubstrQuery {
     hash.Final(seed.data());
   }
 
-  struct ProverInput {
-    ProverInput(std::string const& key, pod::CommitedData const& data_x,
-                int64_t x_g_offset, std::string const& vrs_cache_dir = "")
+  struct ProveInput {
+    ProveInput(std::string const& key, typename Pod::CommitedData const& data_x,
+               int64_t x_g_offset, std::string const& vrs_cache_dir = "")
         : key(key),
           data_x(data_x),
           x_g_offset(x_g_offset),
@@ -54,16 +66,16 @@ struct SubstrQuery {
           n(data_x.n),
           s(data_x.s) {}
     std::string const& key;
-    pod::CommitedData const& data_x;
+    typename Pod::CommitedData const& data_x;
     int64_t const x_g_offset;
-    int64_t const py_g_offset = 0;  // must be 0 because of pod
+    int64_t const py_g_offset = 0;  // must be 0 because of Pod
     std::string vrs_cache_dir;
     int64_t const n;
     int64_t const s;
   };
 
   static void ProveLine(ProveOutput& output, h256_t seed,
-                        ProverInput const& input, int64_t i) {
+                        ProveInput const& input, int64_t i) {
     auto& sp_output = output.sp_outputs[i];
 
     std::vector<Fr> x(input.s);
@@ -74,14 +86,13 @@ struct SubstrQuery {
     G1 com_x = input.data_x.get_com(i);
     Fr com_x_r = input.data_x.get_r(i);
 
-    typename pc_utils::SubstrPack<Policy>::ProverInput s_input(
+    typename clink::SubstrPack<Policy>::ProveInput s_input(
         input.key, x, com_x, com_x_r, input.x_g_offset, input.py_g_offset);
 
-    pc_utils::SubstrPack<Policy>::Prove(sp_output, seed, s_input);
+    clink::SubstrPack<Policy>::Prove(sp_output, seed, s_input);
   }
 
-  static void Prove(ProveOutput& output, h256_t seed,
-                    ProverInput const& input) {
+  static void Prove(ProveOutput& output, h256_t seed, ProveInput const& input) {
     Tick tick(__FUNCTION__);
     int64_t n = input.n;
     int64_t s = input.s;
@@ -100,10 +111,10 @@ struct SubstrQuery {
       assert((int64_t)i.pack_y.size() == (s + 252LL) / 253LL);
     }
 
-    // pod y to bob
+    // Pod y to bob
     auto pod_n = n;
     auto pod_s = (s + 252) / 253;
-    pod::CommitedData data_y;
+    typename Pod::CommitedData data_y;
     data_y.n = pod_n;
     data_y.s = pod_s;
     data_y.get_m = [&output](int64_t i, int64_t j) -> Fr const& {
@@ -116,13 +127,12 @@ struct SubstrQuery {
       return output.sp_outputs[i].com_pack_y_r;
     };
 
-    pod::EncryptAndProve<vrs::Mimc5Scheme>(output.pod_output, seed, data_y,
-                                           input.vrs_cache_dir);
+    Pod::EncryptAndProve(output.pod_output, seed, data_y, input.vrs_cache_dir);
   }
 
-  struct VerifierInput {
-    VerifierInput(std::string const& key, int64_t s,
-                  std::vector<G1> const& com_x, int64_t x_g_offset)
+  struct VerifyInput {
+    VerifyInput(std::string const& key, int64_t s, std::vector<G1> const& com_x,
+                int64_t x_g_offset)
         : key(key),
           s(s),
           com_x(com_x),
@@ -132,12 +142,12 @@ struct SubstrQuery {
     int64_t const s;
     std::vector<G1> const& com_x;
     int64_t const x_g_offset;
-    int64_t const py_g_offset = 0;  // must be 0 because of pod use 0
+    int64_t const py_g_offset = 0;  // must be 0 because of Pod use 0
     int64_t const n;
   };
 
-  static bool Verify(Proof const& proof, h256_t seed,
-                     VerifierInput const& input, pod::VerifyOutput& output) {
+  static bool Verify(Proof const& proof, h256_t seed, VerifyInput const& input,
+                     typename Pod::VerifyOutput& output) {
     Tick tick(__FUNCTION__);
     int64_t n = input.n;
     int64_t s = input.s;
@@ -159,9 +169,9 @@ struct SubstrQuery {
     bool all_success = false;
     auto parallel_f = [&proof, &seed, s, &input](int64_t i) {
       auto const& sp_proof = proof.sp_proofs[i];
-      typename pc_utils::SubstrPack<Policy>::VerifierInput s_input(
+      typename clink::SubstrPack<Policy>::VerifyInput s_input(
           s, input.key, input.x_g_offset, input.py_g_offset);
-      return pc_utils::SubstrPack<Policy>::Verify(sp_proof, seed, s_input);
+      return clink::SubstrPack<Policy>::Verify(sp_proof, seed, s_input);
     };
     parallel::For(&all_success, n, parallel_f);
 
@@ -175,8 +185,8 @@ struct SubstrQuery {
     };
     auto pod_n = n;
     auto pod_s = (s + 252) / 253;
-    if (!pod::VerifyAndSign<vrs::Mimc5Scheme>(output, seed, pod_n, pod_s,
-                                              get_com, proof.pod_proved_data)) {
+    if (!Pod::VerifyAndSign(output, seed, pod_n, pod_s, get_com,
+                            proof.pod_proved_data)) {
       assert(false);
       return false;
     }
@@ -184,14 +194,14 @@ struct SubstrQuery {
   }
 
   static bool DecryptData(int64_t n, int64_t s,
-                          pod::ProvedData<Policy> const& proved_data,
-                          pod::Secret const& secret,
-                          pod::VerifyOutput const& verify_output,
+                          typename Pod::ProvedData const& proved_data,
+                          typename Pod::Secret const& secret,
+                          typename Pod::VerifyOutput const& verify_output,
                           std::vector<boost::dynamic_bitset<uint8_t>>& rets) {
     Tick tick(__FUNCTION__);
     int64_t pack_s = (s + 252) / 253;
     std::vector<Fr> m;
-    if (!pod::DecryptData(n, pack_s, proved_data.em, secret, verify_output,
+    if (!Pod::DecryptData(n, pack_s, proved_data.em, secret, verify_output,
                           m)) {
       assert(false);
       return false;
@@ -213,38 +223,14 @@ struct SubstrQuery {
   static bool Test(int64_t n, int64_t s, std::string const& key);
 };
 
-// save to bin
-template <typename Ar>
-void serialize(Ar& ar, typename SubstrQuery<groth09::OrdinaryPolicy>::Proof const& t) {
-  ar& YAS_OBJECT_NVP("sq.p", ("pod", t.pod_proved_data), ("sp", t.sp_proofs));
-}
-
-// load from bin
-template <typename Ar>
-void serialize(Ar& ar, typename SubstrQuery<groth09::OrdinaryPolicy>::Proof& t) {
-  ar& YAS_OBJECT_NVP("sq.p", ("pod", t.pod_proved_data), ("sp", t.sp_proofs));
-}
-
-// save to bin
-template <typename Ar>
-void serialize(Ar& ar, typename SubstrQuery<groth09::SuccinctPolicy>::Proof const& t) {
-  ar& YAS_OBJECT_NVP("sq.p", ("pod", t.pod_proved_data), ("sp", t.sp_proofs));
-}
-
-// load from bin
-template <typename Ar>
-void serialize(Ar& ar, typename SubstrQuery<groth09::SuccinctPolicy>::Proof& t) {
-  ar& YAS_OBJECT_NVP("sq.p", ("pod", t.pod_proved_data), ("sp", t.sp_proofs));
-}
-
 template <typename Policy>
 bool SubstrQuery<Policy>::Test(int64_t n, int64_t s, std::string const& key) {
   if (key.size() > 31) {
     std::cout << "invalid parameter: k.size() must <= 31.\n";
     return false;
   }
-  if (s >= PcBase::kGSize/2) {
-    std::cout << "invalid parameter: s must < " << PcBase::kGSize/2 << "\n";
+  if (s >= PcBase::kGSize / 2) {
+    std::cout << "invalid parameter: s must < " << PcBase::kGSize / 2 << "\n";
     return false;
   }
 
@@ -268,11 +254,11 @@ bool SubstrQuery<Policy>::Test(int64_t n, int64_t s, std::string const& key) {
   parallel::For(n, parallel_f);
 
   if (key.size() == 31) {
-    x[rand() % n][rand()%s] = PackStrToFr(key.c_str());
-    x[rand() % n][rand()%s] = PackStrToFr(key.c_str());
+    x[rand() % n][rand() % s] = PackStrToFr(key.c_str());
+    x[rand() % n][rand() % s] = PackStrToFr(key.c_str());
   } else {
-    x[rand() % n][rand()%s] = PackStrToFr((key+'a').c_str());
-    x[rand() % n][rand()%s] = PackStrToFr((std::string("b") + key).c_str());
+    x[rand() % n][rand() % s] = PackStrToFr((key + 'a').c_str());
+    x[rand() % n][rand() % s] = PackStrToFr((std::string("b") + key).c_str());
   }
 
   std::vector<boost::dynamic_bitset<uint8_t>> check_rets(n);
@@ -295,17 +281,17 @@ bool SubstrQuery<Policy>::Test(int64_t n, int64_t s, std::string const& key) {
 
   Tick tick(__FUNCTION__);
 
-  pod::CommitedData data_x;
+  typename Pod::CommitedData data_x;
   data_x.n = n;
   data_x.s = s;
   data_x.get_com = [&com_x](int64_t i) -> G1 const& { return com_x[i]; };
   data_x.get_r = [&com_x_r](int64_t i) -> Fr const& { return com_x_r[i]; };
   data_x.get_m = [&x](int64_t i, int64_t j) -> Fr const& { return x[i][j]; };
 
-  ProverInput prover_input(key, data_x, x_g_offset);
+  ProveInput prove_input(key, data_x, x_g_offset);
 
   ProveOutput prove_output;
-  Prove(prove_output, seed, prover_input);
+  Prove(prove_output, seed, prove_input);
   Proof proof = prove_output.BuildProof();
 
 #ifndef DISABLE_SERIALIZE_CHECK
@@ -326,9 +312,9 @@ bool SubstrQuery<Policy>::Test(int64_t n, int64_t s, std::string const& key) {
   }
 #endif
 
-  VerifierInput verifier_input(key, s, com_x, x_g_offset);
-  pod::VerifyOutput verify_output;
-  if (!Verify(proof, seed, verifier_input, verify_output)) {
+  VerifyInput verify_input(key, s, com_x, x_g_offset);
+  typename Pod::VerifyOutput verify_output;
+  if (!Verify(proof, seed, verify_input, verify_output)) {
     assert(false);
     return false;
   }
@@ -339,7 +325,7 @@ bool SubstrQuery<Policy>::Test(int64_t n, int64_t s, std::string const& key) {
     return false;
   }
 
-  prove_output.pod_output.auto_cache->SetLeaked();
+  prove_output.pod_output.cache->SetLeaked();
 
   std::vector<boost::dynamic_bitset<uint8_t>> rets;
   if (!DecryptData(n, s, proof.pod_proved_data, prove_output.pod_output.secret,
@@ -349,7 +335,8 @@ bool SubstrQuery<Policy>::Test(int64_t n, int64_t s, std::string const& key) {
   }
 
   bool success = check_rets == rets;
-  std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success << "\n\n\n\n\n\n";
+  std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success
+            << "\n\n\n\n\n\n";
 
   return success;
 }

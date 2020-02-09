@@ -1,7 +1,6 @@
 #pragma once
 
-#include "pc_utils/pc_utils.h"
-#include "pod/pod.h"
+#include "clink/clink.h"
 
 // match query and pod
 
@@ -9,19 +8,32 @@ namespace cmd {
 
 template <typename Policy>
 struct MatchQuery {
+  using Pod = typename clink::Pod<clink::VrsMimc5Scheme, Policy>;
+  using MatchPack = typename clink::MatchPack<Policy>;
+
   struct Proof {
-    pod::ProvedData<Policy> pod_proved_data;
-    std::vector<typename pc_utils::MatchPack<Policy>::Proof> mp_proofs;
-    bool operator==(Proof const& b) {
+    typename Pod::ProvedData pod_proved_data;
+    std::vector<typename MatchPack::Proof> mp_proofs;
+    bool operator==(Proof const& b) const {
       return pod_proved_data == b.pod_proved_data && mp_proofs == b.mp_proofs;
     }
 
-    bool operator!=(Proof const& b) { return !(*this == b); }
+    bool operator!=(Proof const& b) const { return !(*this == b); }
+
+    template <typename Ar>
+    void serialize(Ar& ar) const {
+      ar& YAS_OBJECT_NVP("mq.p", ("pod", pod_proved_data), ("sp", mp_proofs));
+    }
+
+    template <typename Ar>
+    void serialize(Ar& ar) {
+      ar& YAS_OBJECT_NVP("mq.p", ("pod", pod_proved_data), ("sp", mp_proofs));
+    }
   };
 
   struct ProveOutput {
-    pod::ProveOutput<vrs::Mimc5Scheme, Policy> pod_output;
-    std::vector<typename pc_utils::MatchPack<Policy>::ProveOutput> mp_outputs;
+    typename Pod::ProveOutput pod_output;
+    std::vector<typename MatchPack::ProveOutput> mp_outputs;
 
     Proof BuildProof() const {
       Proof ret;
@@ -43,8 +55,8 @@ struct MatchQuery {
     hash.Final(seed.data());
   }
 
-  struct ProverInput {
-    ProverInput(Fr const& key, pod::CommitedData const& data_x,
+  struct ProveInput {
+    ProveInput(Fr const& key, typename Pod::CommitedData const& data_x,
                 int64_t x_g_offset, std::string const& vrs_cache_dir = "")
         : key(key),
           data_x(data_x),
@@ -53,7 +65,7 @@ struct MatchQuery {
           n(data_x.n),
           s(data_x.s) {}
     Fr const& key;
-    pod::CommitedData const& data_x;
+    typename Pod::CommitedData const& data_x;
     int64_t const x_g_offset;
     int64_t const py_g_offset = 0;  // must be 0 because of pod
     std::string vrs_cache_dir;
@@ -62,7 +74,7 @@ struct MatchQuery {
   };
 
   static void ProveLine(ProveOutput& output, h256_t seed,
-                        ProverInput const& input, int64_t i) {
+                        ProveInput const& input, int64_t i) {
     auto& sp_output = output.mp_outputs[i];
 
     std::vector<Fr> x(input.s);
@@ -73,13 +85,13 @@ struct MatchQuery {
     G1 com_x = input.data_x.get_com(i);
     Fr com_x_r = input.data_x.get_r(i);
 
-    typename pc_utils::MatchPack<Policy>::ProverInput m_input(
+    typename clink::MatchPack<Policy>::ProveInput m_input(
         input.key, x, com_x, com_x_r, input.x_g_offset, input.py_g_offset);
-    pc_utils::MatchPack<Policy>::Prove(sp_output, seed, m_input);
+    clink::MatchPack<Policy>::Prove(sp_output, seed, m_input);
   }
 
   static void Prove(ProveOutput& output, h256_t seed,
-                    ProverInput const& input) {
+                    ProveInput const& input) {
     Tick tick(__FUNCTION__);
     int64_t n = input.n;
     int64_t s = input.s;
@@ -101,7 +113,7 @@ struct MatchQuery {
     // pod y to bob
     auto pod_n = n;
     auto pod_s = (s + 252) / 253;
-    pod::CommitedData data_y;
+    typename Pod::CommitedData data_y;
     data_y.n = pod_n;
     data_y.s = pod_s;
     data_y.get_m = [&output](int64_t i, int64_t j) -> Fr const& {
@@ -114,12 +126,12 @@ struct MatchQuery {
       return output.mp_outputs[i].com_pack_y_r;
     };
 
-    pod::EncryptAndProve<vrs::Mimc5Scheme>(output.pod_output, seed, data_y,
+    Pod::EncryptAndProve(output.pod_output, seed, data_y,
                                            input.vrs_cache_dir);
   }
 
-  struct VerifierInput {
-    VerifierInput(Fr const& key, int64_t s, std::vector<G1> const& com_x,
+  struct VerifyInput {
+    VerifyInput(Fr const& key, int64_t s, std::vector<G1> const& com_x,
                   int64_t x_g_offset)
         : key(key),
           s(s),
@@ -135,7 +147,7 @@ struct MatchQuery {
   };
 
   static bool Verify(Proof const& proof, h256_t seed,
-                     VerifierInput const& input, pod::VerifyOutput& output) {
+                     VerifyInput const& input, typename Pod::VerifyOutput& output) {
     Tick tick(__FUNCTION__);
     int64_t n = input.n;
     int64_t s = input.s;
@@ -157,9 +169,9 @@ struct MatchQuery {
     bool all_success = false;
     auto parallel_f = [&proof, &seed, s, &input](int64_t i) {
       auto const& sp_proof = proof.mp_proofs[i];
-      typename pc_utils::MatchPack<Policy>::VerifierInput m_input(
+      typename clink::MatchPack<Policy>::VerifyInput m_input(
           s, input.key, input.x_g_offset, input.py_g_offset);
-      return pc_utils::MatchPack<Policy>::Verify(sp_proof, seed, m_input);
+      return clink::MatchPack<Policy>::Verify(sp_proof, seed, m_input);
     };
     parallel::For(&all_success, n, parallel_f);
 
@@ -173,7 +185,7 @@ struct MatchQuery {
     };
     auto pod_n = n;
     auto pod_s = (s + 252) / 253;
-    if (!pod::VerifyAndSign<vrs::Mimc5Scheme>(output, seed, pod_n, pod_s,
+    if (!Pod::VerifyAndSign(output, seed, pod_n, pod_s,
                                               get_com, proof.pod_proved_data)) {
       assert(false);
       return false;
@@ -182,15 +194,15 @@ struct MatchQuery {
   }
 
   static bool DecryptData(int64_t n, int64_t s,
-                          pod::ProvedData<Policy> const& proved_data,
-                          pod::Secret const& secret,
-                          pod::VerifyOutput const& verify_output,
+                          typename Pod::ProvedData const& proved_data,
+                          typename Pod::Secret const& secret,
+                          typename Pod::VerifyOutput const& verify_output,
                           std::vector<boost::dynamic_bitset<uint8_t>>& rets) {
     Tick tick(__FUNCTION__);
     int64_t pack_s = (s + 252) / 253;
     std::vector<Fr> m;
-    if (!pod::DecryptData(n, pack_s, proved_data.em, secret, verify_output,
-                          m)) {
+    if (!Pod::DecryptData(n, pack_s, proved_data.em, secret,
+                                            verify_output, m)) {
       assert(false);
       return false;
     }
@@ -210,30 +222,6 @@ struct MatchQuery {
 
   static bool Test(int64_t n, int64_t s, std::string const& key);
 };
-
-// save to bin
-template <typename Ar>
-void serialize(Ar& ar, MatchQuery<groth09::OrdinaryPolicy>::Proof const& t) {
-  ar& YAS_OBJECT_NVP("mq.p", ("pod", t.pod_proved_data), ("sp", t.mp_proofs));
-}
-
-// load from bin
-template <typename Ar>
-void serialize(Ar& ar, MatchQuery<groth09::OrdinaryPolicy>::Proof& t) {
-  ar& YAS_OBJECT_NVP("mq.p", ("pod", t.pod_proved_data), ("sp", t.mp_proofs));
-}
-
-// save to bin
-template <typename Ar>
-void serialize(Ar& ar, MatchQuery<groth09::SuccinctPolicy>::Proof const& t) {
-  ar& YAS_OBJECT_NVP("mq.p", ("pod", t.pod_proved_data), ("sp", t.mp_proofs));
-}
-
-// load from bin
-template <typename Ar>
-void serialize(Ar& ar, MatchQuery<groth09::SuccinctPolicy>::Proof& t) {
-  ar& YAS_OBJECT_NVP("mq.p", ("pod", t.pod_proved_data), ("sp", t.mp_proofs));
-}
 
 template <typename Policy>
 bool MatchQuery<Policy>::Test(int64_t n, int64_t s, std::string const& key) {
@@ -279,17 +267,17 @@ bool MatchQuery<Policy>::Test(int64_t n, int64_t s, std::string const& key) {
 
   Tick tick(__FUNCTION__);
 
-  pod::CommitedData data_x;
+  typename Pod::CommitedData data_x;
   data_x.n = n;
   data_x.s = s;
   data_x.get_com = [&com_x](int64_t i) -> G1 const& { return com_x[i]; };
   data_x.get_r = [&com_x_r](int64_t i) -> Fr const& { return com_x_r[i]; };
   data_x.get_m = [&x](int64_t i, int64_t j) -> Fr const& { return x[i][j]; };
 
-  ProverInput prover_input(fr_key, data_x, x_g_offset);
+  ProveInput prove_input(fr_key, data_x, x_g_offset);
 
   ProveOutput prove_output;
-  Prove(prove_output, seed, prover_input);
+  Prove(prove_output, seed, prove_input);
   Proof proof = prove_output.BuildProof();
 
 #ifndef DISABLE_SERIALIZE_CHECK
@@ -310,9 +298,9 @@ bool MatchQuery<Policy>::Test(int64_t n, int64_t s, std::string const& key) {
   }
 #endif
 
-  VerifierInput verifier_input(fr_key, s, com_x, x_g_offset);
-  pod::VerifyOutput verify_output;
-  if (!Verify(proof, seed, verifier_input, verify_output)) {
+  VerifyInput verify_input(fr_key, s, com_x, x_g_offset);
+  typename Pod::VerifyOutput verify_output;
+  if (!Verify(proof, seed, verify_input, verify_output)) {
     assert(false);
     return false;
   }
@@ -323,11 +311,12 @@ bool MatchQuery<Policy>::Test(int64_t n, int64_t s, std::string const& key) {
     return false;
   }
 
-  prove_output.pod_output.auto_cache->SetLeaked();
+  prove_output.pod_output.cache->SetLeaked();
 
   std::vector<boost::dynamic_bitset<uint8_t>> rets;
-  if (!DecryptData(n, s, proof.pod_proved_data, prove_output.pod_output.secret,
-                   verify_output, rets)) {
+  if (!DecryptData(n, s, proof.pod_proved_data,
+                                     prove_output.pod_output.secret,
+                                     verify_output, rets)) {
     assert(false);
     return false;
   }

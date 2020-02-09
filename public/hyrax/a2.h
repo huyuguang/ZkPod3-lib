@@ -12,9 +12,9 @@
 // verify cost: mulexp(n)
 namespace hyrax {
 struct A2 {
-  struct ProverInput {
-    ProverInput(std::vector<Fr> const& x, std::vector<Fr> const& a, Fr const& y,
-                int64_t x_g_offset, int64_t y_g_offset)
+  struct ProveInput {
+    ProveInput(std::vector<Fr> const& x, std::vector<Fr> const& a, Fr const& y,
+               int64_t x_g_offset, int64_t y_g_offset)
         : x(x), a(a), y(y), x_g_offset(x_g_offset), y_g_offset(y_g_offset) {
       assert(y == InnerProduct(x, a));
     }
@@ -91,9 +91,9 @@ struct A2 {
     bool operator!=(Proof const& right) const { return !(*this == right); }
   };
 
-  struct VerifierInput {
-    VerifierInput(std::vector<Fr> const& a, CommitmentPub const& com_pub,
-                  int64_t x_g_offset, int64_t y_g_offset)
+  struct VerifyInput {
+    VerifyInput(std::vector<Fr> const& a, CommitmentPub const& com_pub,
+                int64_t x_g_offset, int64_t y_g_offset)
         : a(a),
           com_pub(com_pub),
           x_g_offset(x_g_offset),
@@ -105,7 +105,7 @@ struct A2 {
   };
 
   // com(n) + com(1) + ip(n)
-  static bool VerifyInternal(VerifierInput const& input, Fr const& challenge,
+  static bool VerifyInternal(VerifyInput const& input, Fr const& challenge,
                              CommitmentExtPub const& com_ext_pub,
                              SubProof const& sub_proof) {
     // Tick tick(__FUNCTION__);
@@ -141,7 +141,7 @@ struct A2 {
   }
 
   static void ComputeCom(CommitmentPub& com_pub, CommitmentSec const& com_sec,
-                         ProverInput const& input) {
+                         ProveInput const& input) {
     // Tick tick(__FUNCTION__);
     std::array<parallel::Task, 2> tasks;
     tasks[0] = [&com_pub, &input, &com_sec]() {
@@ -158,7 +158,7 @@ struct A2 {
   // com(n) + com(1) + ip(n)
   static void ComputeCommitmentExt(CommitmentExtPub& com_ext_pub,
                                    CommitmentExtSec& com_ext_sec,
-                                   ProverInput const& input) {
+                                   ProveInput const& input) {
     // Tick tick(__FUNCTION__);
     auto n = input.n();
     com_ext_sec.d.resize(n);
@@ -193,7 +193,7 @@ struct A2 {
     hash.Final(seed.data());
   }
 
-  static void ComputeSubProof(SubProof& sub_proof, ProverInput const& input,
+  static void ComputeSubProof(SubProof& sub_proof, ProveInput const& input,
                               CommitmentSec const& com_sec,
                               CommitmentExtSec const& com_ext_sec,
                               Fr const& challenge) {
@@ -203,7 +203,7 @@ struct A2 {
     sub_proof.z_beta = challenge * com_sec.r_tau + com_ext_sec.r_beta;
   }
 
-  static void Prove(Proof& proof, h256_t seed, ProverInput const& input,
+  static void Prove(Proof& proof, h256_t seed, ProveInput const& input,
                     CommitmentPub com_pub, CommitmentSec com_sec) {
     Tick tick(__FUNCTION__);
 
@@ -219,7 +219,7 @@ struct A2 {
   }
 
   static bool Verify(Proof const& proof, h256_t seed,
-                     VerifierInput const& input) {
+                     VerifyInput const& input) {
     // Tick tick(__FUNCTION__);
     assert(PcBase::kGSize >= proof.n());
     if (input.a.size() != proof.sub_proof.z.size() || input.a.empty())
@@ -297,14 +297,14 @@ bool A2::Test(int64_t n) {
   int64_t x_g_offset = 30;
   int64_t y_g_offset = -1;
   auto z = InnerProduct(x, a);
-  ProverInput prover_input(x, a, z, x_g_offset, y_g_offset);
+  ProveInput prove_input(x, a, z, x_g_offset, y_g_offset);
 
   CommitmentPub com_pub;
   CommitmentSec com_sec(FrRand(), FrRand());
-  ComputeCom(com_pub, com_sec, prover_input);
+  ComputeCom(com_pub, com_sec, prove_input);
 
   Proof proof;
-  Prove(proof, UpdateSeed, prover_input, com_pub, com_sec);
+  Prove(proof, UpdateSeed, prove_input, com_pub, com_sec);
 
 #ifndef DISABLE_SERIALIZE_CHECK
   // serialize to buffer
@@ -324,8 +324,8 @@ bool A2::Test(int64_t n) {
   }
 #endif
 
-  VerifierInput verifier_input(a, com_pub, x_g_offset, y_g_offset);
-  bool success = Verify(proof, UpdateSeed, verifier_input);
+  VerifyInput verify_input(a, com_pub, x_g_offset, y_g_offset);
+  bool success = Verify(proof, UpdateSeed, verify_input);
   std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success
             << "\n\n\n\n\n\n";
   return success;

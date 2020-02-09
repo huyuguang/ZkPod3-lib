@@ -3,7 +3,7 @@
 #include "bp/bp.h"
 #include "groth09/details.h"
 #include "hyrax/a3.h"
-#include "pc_utils/equal_ip.h"
+#include "clink/equal_ip.h"
 #include "utils/fst.h"
 
 // NOTE: it does not exist in gro09 paper, just use the name.
@@ -19,7 +19,7 @@
 namespace groth09 {
 
 struct Sec51c {
-  struct ProverInput {
+  struct ProveInput {
     std::vector<Fr> const& x;   // size = n
     std::vector<Fr> const& y;   // size = n
     std::vector<Fr> const& t;   // size = n
@@ -30,10 +30,9 @@ struct Sec51c {
     int64_t const z_g_offset;
 
     int64_t n() const { return (int64_t)x.size(); }
-    ProverInput(std::vector<Fr> const& x, std::vector<Fr> const& y,
-                std::vector<Fr> const& t, std::vector<Fr> const& yt,
-                Fr const& z, int64_t x_g_offset, int64_t y_g_offset,
-                int64_t z_g_offset)
+    ProveInput(std::vector<Fr> const& x, std::vector<Fr> const& y,
+               std::vector<Fr> const& t, std::vector<Fr> const& yt, Fr const& z,
+               int64_t x_g_offset, int64_t y_g_offset, int64_t z_g_offset)
         : x(x),
           y(y),
           t(t),
@@ -69,7 +68,7 @@ struct Sec51c {
 
   struct Proof {
     G1 com_yt;
-    pc_utils::EqualIp<hyrax::A3>::Proof proof_eip;
+    clink::EqualIp<hyrax::A3>::Proof proof_eip;
     bp::p3::Proof proof_bp;
     bool CheckFormat() const { return true; }
     bool operator==(Proof const& right) const {
@@ -80,7 +79,7 @@ struct Sec51c {
     bool operator!=(Proof const& right) const { return !(*this == right); }
   };
 
-  static void Prove(Proof& proof, h256_t seed, ProverInput const& input,
+  static void Prove(Proof& proof, h256_t seed, ProveInput const& input,
                     CommitmentPub const& com_pub,
                     CommitmentSec const& com_sec) {
     UpdateSeed(seed, com_pub, input.t);
@@ -96,9 +95,9 @@ struct Sec51c {
     std::vector<G1> g2 = GetPcBase().CopyG(yt_g_offset, input.n());
     std::vector<Fr> x_copy = input.x;
     std::vector<Fr> yt_copy = input.yt;
-    bp::p3::ProverInput input_bp(std::move(g1), std::move(g2), PcH(),
-                                 PcG(input.z_g_offset), std::move(x_copy),
-                                 std::move(yt_copy), input.z);
+    bp::p3::ProveInput input_bp(std::move(g1), std::move(g2), PcH(),
+                                PcG(input.z_g_offset), std::move(x_copy),
+                                std::move(yt_copy), input.z);
     bp::p3::CommitmentPub com_pub_bp;
     bp::p3::CommitmentSec com_sec_bp;
     com_sec_bp.alpha = com_sec.r + com_yt_r;
@@ -109,9 +108,9 @@ struct Sec51c {
                   com_sec_bp);
   }
 
-  struct VerifierInput {
-    VerifierInput(std::vector<Fr> const& t, CommitmentPub const& com_pub,
-                  int64_t x_g_offset, int64_t y_g_offset, int64_t z_g_offset)
+  struct VerifyInput {
+    VerifyInput(std::vector<Fr> const& t, CommitmentPub const& com_pub,
+                int64_t x_g_offset, int64_t y_g_offset, int64_t z_g_offset)
         : t(t),
           com_pub(com_pub),
           x_g_offset(x_g_offset),
@@ -126,19 +125,19 @@ struct Sec51c {
   };
 
   static bool VerifyYt(Proof const& proof, h256_t seed,
-                       VerifierInput const& input, int64_t yt_g_offset) {
+                       VerifyInput const& input, int64_t yt_g_offset) {
     std::vector<Fr> e(input.n());
     ComputeFst1(seed, "sec51c", e);
     auto et = HadamardProduct(e, input.t);
 
-    using eip = pc_utils::EqualIp<hyrax::A3>;
-    eip::VerifierInput input_eip(e, proof.com_yt, yt_g_offset, et,
-                                 input.com_pub.b, input.y_g_offset);
+    using eip = clink::EqualIp<hyrax::A3>;
+    eip::VerifyInput input_eip(e, proof.com_yt, yt_g_offset, et,
+                               input.com_pub.b, input.y_g_offset);
     return eip::Verify(seed, proof.proof_eip, input_eip);
   }
 
   static bool Verify(Proof const& proof, h256_t seed,
-                     VerifierInput const& input) {
+                     VerifyInput const& input) {
     UpdateSeed(seed, input.com_pub, input.t);
 
     int64_t yt_g_offset = SelectYtOffset(input.n(), input.x_g_offset);
@@ -152,14 +151,14 @@ struct Sec51c {
     bp::p3::CommitmentPub com_pub_bp;
     com_pub_bp.p = input.com_pub.a + proof.com_yt;
     com_pub_bp.q = input.com_pub.c;
-    bp::p3::VerifierInput input_p3(std::move(g1), std::move(g2), PcH(),
-                                   PcG(input.z_g_offset), com_pub_bp);
+    bp::p3::VerifyInput input_p3(std::move(g1), std::move(g2), PcH(),
+                                 PcG(input.z_g_offset), com_pub_bp);
 
     return bp::p3::Verify(proof.proof_bp, seed, std::move(input_p3));
   }
 
   static void ComputeCom(CommitmentPub& com_pub, CommitmentSec& com_sec,
-                         ProverInput const& input) {
+                         ProveInput const& input) {
     // Tick tick(__FUNCTION__);
     com_sec.r = FrRand();
     com_sec.s = FrRand();
@@ -202,7 +201,7 @@ struct Sec51c {
     hash.Final(seed.data());
   }
 
-  static void ProveYt(Proof& proof, h256_t seed, ProverInput const& input,
+  static void ProveYt(Proof& proof, h256_t seed, ProveInput const& input,
                       CommitmentPub const& com_pub,
                       CommitmentSec const& com_sec, Fr const& com_yt_r,
                       int64_t yt_g_offset) {
@@ -214,10 +213,10 @@ struct Sec51c {
     assert(yte == InnerProduct(input.y, et));
 
     // prove <yt, e> == <y, et>
-    using eip = pc_utils::EqualIp<hyrax::A3>;
-    eip::ProverInput input_eip(input.yt, e, proof.com_yt, com_yt_r, yt_g_offset,
-                               input.y, et, com_pub.b, com_sec.s,
-                               input.y_g_offset, yte);
+    using eip = clink::EqualIp<hyrax::A3>;
+    eip::ProveInput input_eip(input.yt, e, proof.com_yt, com_yt_r, yt_g_offset,
+                              input.y, et, com_pub.b, com_sec.s,
+                              input.y_g_offset, yte);
     eip::Prove(proof.proof_eip, seed, input_eip);
   }
 };
@@ -253,14 +252,14 @@ bool Sec51c::Test(int64_t n) {
   std::vector<Fr> yt(n);
   yt = HadamardProduct(y, t);
   Fr z = InnerProduct(x, yt);
-  ProverInput prover_input(x, y, t, yt, z, x_g_offset, y_g_offset, z_g_offset);
+  ProveInput prove_input(x, y, t, yt, z, x_g_offset, y_g_offset, z_g_offset);
 
   CommitmentPub com_pub;
   CommitmentSec com_sec;
-  ComputeCom(com_pub, com_sec, prover_input);
+  ComputeCom(com_pub, com_sec, prove_input);
 
   Proof proof;
-  Prove(proof, seed, prover_input, com_pub, com_sec);
+  Prove(proof, seed, prove_input, com_pub, com_sec);
 
 #ifndef DISABLE_SERIALIZE_CHECK
   // serialize to buffer
@@ -280,8 +279,8 @@ bool Sec51c::Test(int64_t n) {
   }
 #endif
 
-  VerifierInput verifier_input(t, com_pub, x_g_offset, y_g_offset, z_g_offset);
-  bool success = Verify(proof, seed, verifier_input);
+  VerifyInput verify_input(t, com_pub, x_g_offset, y_g_offset, z_g_offset);
+  bool success = Verify(proof, seed, verify_input);
   std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success
             << "\n\n\n\n\n\n";
   return success;

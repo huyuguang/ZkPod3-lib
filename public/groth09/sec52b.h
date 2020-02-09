@@ -3,8 +3,8 @@
 #include <map>
 #include <memory>
 
-#include "./sec51b.h"
 #include "./details.h"
+#include "./sec51b.h"
 #include "utils/fst.h"
 
 // t is a public vector which size = n
@@ -29,9 +29,9 @@ struct Sec52b {
     Fr t;
   };
 
-  struct VerifierInput {
-    VerifierInput(std::vector<Fr> const& t, CommitmentPub const& com_pub,
-                  int64_t x_g_offset, int64_t y_g_offset, int64_t z_g_offset)
+  struct VerifyInput {
+    VerifyInput(std::vector<Fr> const& t, CommitmentPub const& com_pub,
+                int64_t x_g_offset, int64_t y_g_offset, int64_t z_g_offset)
         : t(t),
           com_pub(com_pub),
           x_g_offset(x_g_offset),
@@ -49,7 +49,7 @@ struct Sec52b {
     int64_t const z_g_offset;
   };
 
-  struct ProverInput {
+  struct ProveInput {
     std::vector<std::vector<Fr>> const& x;   // m*n
     std::vector<std::vector<Fr>> const& y;   // m*n
     std::vector<Fr> const& t;                // n
@@ -63,10 +63,10 @@ struct Sec52b {
     int64_t m() const { return x.size(); }
     int64_t n() const { return x[0].size(); }
 
-    ProverInput(std::vector<std::vector<Fr>> const& x,
-                std::vector<std::vector<Fr>> const& y, std::vector<Fr> const& t,
-                std::vector<std::vector<Fr>> const& yt, Fr const& z,
-                int64_t x_g_offset, int64_t y_g_offset, int64_t z_g_offset)
+    ProveInput(std::vector<std::vector<Fr>> const& x,
+               std::vector<std::vector<Fr>> const& y, std::vector<Fr> const& t,
+               std::vector<std::vector<Fr>> const& yt, Fr const& z,
+               int64_t x_g_offset, int64_t y_g_offset, int64_t z_g_offset)
         : x(x),
           y(y),
           t(t),
@@ -142,7 +142,7 @@ struct Sec52b {
   };
 
   static void ComputeCom(CommitmentPub& com_pub, CommitmentSec& com_sec,
-                         ProverInput const& input) {
+                         ProveInput const& input) {
     Tick tick(__FUNCTION__);
     auto const m = input.m();
     // auto const n = input.n();
@@ -170,7 +170,7 @@ struct Sec52b {
 
   static void ComputeComExt(CommitmentExtPub& com_ext_pub,
                             CommitmentExtSec& com_ext_sec,
-                            ProverInput const& input,
+                            ProveInput const& input,
                             CommitmentPub const& com_pub,
                             CommitmentSec const& com_sec) {
     Tick tick(__FUNCTION__);
@@ -206,7 +206,7 @@ struct Sec52b {
     hash.Final(seed.data());
   }
 
-  static void Prove(Proof& proof, h256_t seed, ProverInput const& input,
+  static void Prove(Proof& proof, h256_t seed, ProveInput const& input,
                     CommitmentPub const& com_pub,
                     CommitmentSec const& com_sec) {
     Tick tick(__FUNCTION__);
@@ -247,8 +247,8 @@ struct Sec52b {
     auto const& t = input.t;
     std::vector<Fr> yt = HadamardProduct(y, t);
     auto z = InnerProduct(x, yt);
-    Sec51b::ProverInput input_51(x, y, t, yt, z, input.x_g_offset,
-                                 input.y_g_offset, input.z_g_offset);
+    Sec51b::ProveInput input_51(x, y, t, yt, z, input.x_g_offset,
+                                input.y_g_offset, input.z_g_offset);
 
     assert(z == InnerProduct(input.sum_xy, e_pow));
 
@@ -289,7 +289,7 @@ struct Sec52b {
   }
 
   static bool Verify(Proof const& proof, h256_t seed,
-                     VerifierInput const& input) {
+                     VerifyInput const& input) {
     auto m = proof.m();
     assert(PcBase::kGSize >= proof.n());
 
@@ -319,8 +319,8 @@ struct Sec52b {
     };
     parallel::Invoke(tasks);
 
-    Sec51b::VerifierInput input_51(input.t, com_pub_51, input.x_g_offset,
-                                   input.y_g_offset, input.z_g_offset);
+    Sec51b::VerifyInput input_51(input.t, com_pub_51, input.x_g_offset,
+                                 input.y_g_offset, input.z_g_offset);
     return Sec51b::Verify(proof.proof_51, seed, input_51);
   }
 
@@ -356,18 +356,16 @@ struct Sec52b {
       z += InnerProduct(x[i], yt[i]);
     }
 
-    ProverInput prover_input(x, y, t, yt, z, x_g_offset, y_g_offset,
-                             z_g_offset);
+    ProveInput prove_input(x, y, t, yt, z, x_g_offset, y_g_offset, z_g_offset);
     CommitmentPub com_pub;
     CommitmentSec com_sec;
-    ComputeCom(com_pub, com_sec, prover_input);
+    ComputeCom(com_pub, com_sec, prove_input);
 
     Proof proof;
-    Prove(proof, seed, prover_input, com_pub, com_sec);
+    Prove(proof, seed, prove_input, com_pub, com_sec);
 
-    VerifierInput verifier_input(t, com_pub, x_g_offset, y_g_offset,
-                                 z_g_offset);
-    bool success = Verify(proof, seed, verifier_input);
+    VerifyInput verify_input(t, com_pub, x_g_offset, y_g_offset, z_g_offset);
+    bool success = Verify(proof, seed, verify_input);
     std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success
               << "\n\n\n\n\n\n";
     return success;
