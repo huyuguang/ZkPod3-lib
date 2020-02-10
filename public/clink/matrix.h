@@ -16,9 +16,9 @@ struct Matrix {
 
   struct ProveInput {
     ProveInput(GetMatrix get_m, std::vector<G1> const& com_rows,
-                std::vector<Fr> const& com_row_rs, int64_t r_g_offset,
-                std::vector<G1> const& com_cols,
-                std::vector<Fr> const& com_col_rs, int64_t c_g_offset)
+               std::vector<Fr> const& com_row_rs, int64_t r_g_offset,
+               std::vector<G1> const& com_cols,
+               std::vector<Fr> const& com_col_rs, int64_t c_g_offset)
         : get_m(get_m),
           com_rows(com_rows),
           com_row_rs(com_row_rs),
@@ -103,15 +103,15 @@ struct Matrix {
     Fr z = InnerProduct(v, e);
     assert(z == InnerProduct(w, d));
 
-    typename EqualIp<HyraxA>::ProveInput eip_input(v, e, com_v, com_v_r,
-                                           input.r_g_offset, w, d, com_w,
-                                           com_w_r, input.c_g_offset, z);
+    typename EqualIp<HyraxA>::ProveInput eip_input(
+        v, e, com_v, com_v_r, input.r_g_offset, w, d, com_w, com_w_r,
+        input.c_g_offset, z);
     EqualIp<HyraxA>::Prove(proof, seed, eip_input);
   }
 
   struct VerifyInput {
     VerifyInput(std::vector<G1> const& com_rows, int64_t r_g_offset,
-                  std::vector<G1> const& com_cols, int64_t c_g_offset)
+                std::vector<G1> const& com_cols, int64_t c_g_offset)
         : com_rows(com_rows),
           r_g_offset(r_g_offset),
           com_cols(com_cols),
@@ -150,8 +150,8 @@ struct Matrix {
 
     parallel::Invoke(tasks);
 
-    typename EqualIp<HyraxA>::VerifyInput eip_input(e, com_v, input.r_g_offset, d,
-                                             com_w, input.c_g_offset);
+    typename EqualIp<HyraxA>::VerifyInput eip_input(e, com_v, input.r_g_offset,
+                                                    d, com_w, input.c_g_offset);
 
     return EqualIp<HyraxA>::Verify(seed, proof, eip_input);
   }
@@ -190,7 +190,7 @@ bool Matrix<HyraxA>::Test(int64_t n, int64_t s) {
   };
 
   ProveInput prove_input(std::move(get_m), com_rows, com_row_rs, r_g_offset,
-                           com_cols, com_col_rs, c_g_offset);
+                         com_cols, com_col_rs, c_g_offset);
 
   Proof proof;
   Prove(proof, seed, prove_input);
@@ -215,7 +215,8 @@ bool Matrix<HyraxA>::Test(int64_t n, int64_t s) {
 
   VerifyInput verify_input(com_rows, r_g_offset, com_cols, c_g_offset);
   bool success = Verify(seed, verify_input, proof);
-  std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success << "\n\n\n\n\n\n";
+  std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success
+            << "\n\n\n\n\n\n";
   return success;
 }
 

@@ -1,9 +1,10 @@
 #pragma once
 
+#include <assert.h>
+
 #include <chrono>
 #include <iostream>
 #include <string>
-#include <assert.h>
 
 struct Tick {
   Tick(std::string const& desc) : desc_(desc) {

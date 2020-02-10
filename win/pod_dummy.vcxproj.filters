@@ -139,9 +139,6 @@
     <ClInclude Include="..\public\parallel\parallel.h">
       <Filter>public\parallel</Filter>
     </ClInclude>
-    <ClInclude Include="..\public\misc\tick.h">
-      <Filter>public\log</Filter>
-    </ClInclude>
     <ClInclude Include="..\public\log\log.h">
       <Filter>public\log</Filter>
     </ClInclude>
@@ -276,6 +273,9 @@
     </ClInclude>
     <ClInclude Include="..\public\clink\clink.h">
       <Filter>public\clink</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\log\tick.h">
+      <Filter>public\log</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

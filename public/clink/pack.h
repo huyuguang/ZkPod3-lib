@@ -20,8 +20,8 @@ struct Pack {
 
   struct ProveInput {
     ProveInput(std::vector<Fr> const& x, G1 const& com_x, Fr const& com_x_r,
-                int64_t x_g_offset, std::vector<Fr> const& y, G1 const& com_y,
-                Fr const& com_y_r, int64_t y_g_offset)
+               int64_t x_g_offset, std::vector<Fr> const& y, G1 const& com_y,
+               Fr const& com_y_r, int64_t y_g_offset)
         : x(x),
           com_x(com_x),
           com_x_r(com_x_r),
@@ -92,7 +92,7 @@ struct Pack {
 
   struct VerifyInput {
     VerifyInput(int64_t xn, G1 const& com_x, int64_t x_g_offset,
-                  G1 const& com_y, int64_t y_g_offset)
+                G1 const& com_y, int64_t y_g_offset)
         : xn(xn),
           yn((xn + 252) / 253),
           com_x(com_x),
@@ -135,12 +135,12 @@ struct Pack {
     }
     a.resize(xn);
 
-    typename EqualIp<HyraxA>::VerifyInput eip_input(a, input.com_x, input.x_g_offset,
-                                             b, input.com_y, input.y_g_offset);
+    typename EqualIp<HyraxA>::VerifyInput eip_input(
+        a, input.com_x, input.x_g_offset, b, input.com_y, input.y_g_offset);
     return EqualIp<HyraxA>::Verify(seed, proof, eip_input);
   }
 
-  static bool Test();
+  static bool Test(int64_t xn);
 
  private:
   static void UpdateSeed(h256_t& seed, G1 const& c1, G1 const& c2, int64_t n) {
@@ -154,11 +154,10 @@ struct Pack {
 };
 
 template <typename HyraxA>
-bool Pack<HyraxA>::Test() {
+bool Pack<HyraxA>::Test(int64_t xn) {
   int64_t x_g_offset = 2990;
   int64_t y_g_offset = 670;
   auto seed = misc::RandH256();
-  int64_t xn = 1000;
   std::vector<Fr> x(xn);
   for (auto& i : x) i = rand() % 2;
   auto y = FrBitsToFrs(x);
@@ -168,7 +167,7 @@ bool Pack<HyraxA>::Test() {
   auto com_y = PcComputeCommitmentG(y_g_offset, y, com_y_r);
 
   ProveInput prove_input(x, com_x, com_x_r, x_g_offset, y, com_y, com_y_r,
-                           y_g_offset);
+                         y_g_offset);
   Proof proof;
   Prove(proof, seed, prove_input);
 
@@ -192,7 +191,8 @@ bool Pack<HyraxA>::Test() {
 
   VerifyInput verify_input(xn, com_x, x_g_offset, com_y, y_g_offset);
   bool success = Verify(proof, seed, verify_input);
-  std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success << "\n\n\n\n\n\n";
+  std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success
+            << "\n\n\n\n\n\n";
   return success;
 }
 }  // namespace clink

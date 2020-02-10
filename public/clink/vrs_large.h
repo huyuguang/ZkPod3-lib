@@ -8,11 +8,11 @@ template <typename Scheme, typename Policy>
 struct VrsLarge {
   using R1cs = typename clink::ParallelR1cs<Policy>;
   using HyraxA = typename Policy::HyraxA;
-  using ProveInput = typename VrsBasic<Scheme,Policy>::ProveInput;
-  using Proof = typename VrsBasic<Scheme,Policy>::Proof;
-  using ProveOutput = typename VrsBasic<Scheme,Policy>::ProveOutput;
-  using VerifyInput = typename VrsBasic<Scheme,Policy>::VerifyInput;
-  using VerifyOutput = typename VrsBasic<Scheme,Policy>::VerifyOutput;
+  using ProveInput = typename VrsBasic<Scheme, Policy>::ProveInput;
+  using Proof = typename VrsBasic<Scheme, Policy>::Proof;
+  using ProveOutput = typename VrsBasic<Scheme, Policy>::ProveOutput;
+  using VerifyInput = typename VrsBasic<Scheme, Policy>::VerifyInput;
+  using VerifyOutput = typename VrsBasic<Scheme, Policy>::VerifyOutput;
 
   typedef std::unique_ptr<ProveInput> ProveInputUPtr;
   typedef std::unique_ptr<VerifyInput> VerifyInputUPtr;
@@ -81,7 +81,7 @@ struct VrsLarge {
   }
 
   static bool Verify(VerifyOutput& output, std::vector<Proof> const& proofs,
-              h256_t seed, VerifyInput&& input) {
+                     h256_t seed, VerifyInput&& input) {
     auto items = VrsPub<Scheme>::SplitLargeTask(input.n);
     auto size = (int64_t)items.size();
     if (proofs.size() != items.size()) {
@@ -130,7 +130,6 @@ struct VrsLarge {
   static bool Test(int64_t n);
 
  private:
-
   static std::vector<Fr> SplitFr(Fr const& fr, int64_t n) {
     std::vector<Fr> ret(n);
     if (n == 1) {
@@ -208,8 +207,8 @@ bool VrsLarge<Scheme, Policy>::Test(int64_t n) {
     assert(prove_output.g == verify_output.g);
     assert(prove_output.h == verify_output.h);
     assert(prove_output.key_com == verify_output.key_com);
-    success = VrsPub<Scheme>::VerifySecret(prove_output.h, prove_output.g, prove_output.key_com,
-                           k_com_r, k);
+    success = VrsPub<Scheme>::VerifySecret(prove_output.h, prove_output.g,
+                                           prove_output.key_com, k_com_r, k);
   }
   std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success
             << "\n\n\n\n\n\n";

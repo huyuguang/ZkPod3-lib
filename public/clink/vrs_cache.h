@@ -259,7 +259,7 @@ struct VrsCache {
   }
 
   static bool LoadFile(std::string const& pathname, FileData& cache,
-                        bool check_name) {
+                       bool check_name) {
     Tick tick(__FUNCTION__);
     try {
       yas::file_istream is(pathname.c_str());
@@ -291,7 +291,7 @@ struct VrsCache {
   }
 
   static bool SaveFileData(std::string const& dir, FileData const& cache,
-                        std::string& output) {
+                           std::string& output) {
     Tick tick(__FUNCTION__);
     if (cache.max_unit_per_zkp != Scheme::kMaxUnitPerZkp ||
         cache.type != Scheme::type()) {
@@ -520,6 +520,6 @@ struct VrsCache {
     int64_t count_;
     std::string cache_file_;
     bool leaked_{false};
-  };  
+  };
 };
 }  // namespace clink

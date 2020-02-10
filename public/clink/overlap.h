@@ -34,9 +34,9 @@ struct Overlap {
 
   struct ProveInput {
     ProveInput(std::vector<Fr> const& x, std::vector<Fr> const& y,
-                std::vector<OverlapPosition> const& overlap, G1 const& com_x,
-                G1 const& com_y, Fr const& com_x_r, Fr const& com_y_r,
-                int64_t x_g_offset, int64_t y_g_offset)
+               std::vector<OverlapPosition> const& overlap, G1 const& com_x,
+               G1 const& com_y, Fr const& com_x_r, Fr const& com_y_r,
+               int64_t x_g_offset, int64_t y_g_offset)
         : x(x),
           y(y),
           overlap(overlap),
@@ -87,8 +87,8 @@ struct Overlap {
 
   struct VerifyInput {
     VerifyInput(int64_t xn, G1 const& com_x, int64_t x_g_offset, int64_t yn,
-                  G1 const& com_y, int64_t y_g_offset,
-                  std::vector<OverlapPosition> const& overlap)
+                G1 const& com_y, int64_t y_g_offset,
+                std::vector<OverlapPosition> const& overlap)
         : xn(xn),
           com_x(com_x),
           x_g_offset(x_g_offset),
@@ -120,8 +120,8 @@ struct Overlap {
       b[o.y] += c[i];
     }
 
-    typename EqualIp<HyraxA>::VerifyInput eip_input(a, input.com_x, input.x_g_offset,
-                                             b, input.com_y, input.y_g_offset);
+    typename EqualIp<HyraxA>::VerifyInput eip_input(
+        a, input.com_x, input.x_g_offset, b, input.com_y, input.y_g_offset);
     return EqualIp<HyraxA>::Verify(seed, proof, eip_input);
   }
 
@@ -164,7 +164,7 @@ bool Overlap<HyraxA>::Test() {
   G1 com_y = PcComputeCommitmentG(y_g_offset, y, com_y_r);
 
   ProveInput prove_input(x, y, overlap, com_x, com_y, com_x_r, com_y_r,
-                           x_g_offset, y_g_offset);
+                         x_g_offset, y_g_offset);
 
   Proof proof;
   Prove(proof, seed, prove_input);
@@ -190,9 +190,10 @@ bool Overlap<HyraxA>::Test() {
   auto xn = (int64_t)x.size();
   auto yn = (int64_t)y.size();
   VerifyInput verify_input(xn, com_x, x_g_offset, yn, com_y, y_g_offset,
-                               overlap);
+                           overlap);
   bool success = Verify(seed, verify_input, proof);
-  std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success << "\n\n\n\n\n\n";
+  std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success
+            << "\n\n\n\n\n\n";
   return success;
 }
 }  // namespace clink

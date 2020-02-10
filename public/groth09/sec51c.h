@@ -1,9 +1,9 @@
 #pragma once
 
 #include "bp/bp.h"
+#include "clink/equal_ip.h"
 #include "groth09/details.h"
 #include "hyrax/a3.h"
-#include "clink/equal_ip.h"
 #include "utils/fst.h"
 
 // NOTE: it does not exist in gro09 paper, just use the name.

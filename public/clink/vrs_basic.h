@@ -30,9 +30,7 @@ struct VrsBasic {
           vw_g_offset(vw_g_offset),
           pb(scheme.pb),
           n(n),
-          m(scheme.num_variables()),
-          pc_sigma_g(PcComputeSigmaG(kR1csGOffset, n)) {      
-    }
+          m(scheme.num_variables()) {}
 
     std::vector<std::vector<Fr>> EvaluateAndCommit(
         std::vector<G1>&& icached_var_coms,
@@ -61,6 +59,8 @@ struct VrsBasic {
       return vars;
     }
 
+    G1 ComputeSigmaG() const { return PcComputeSigmaG(kR1csGOffset, n); }
+
     // hardcode as 0 because cache always use 0
     Fr const& k;
     Fr const& k_com_r;
@@ -72,7 +72,6 @@ struct VrsBasic {
     libsnark::protoboard<Fr>& pb;
     int64_t const n;
     int64_t const m;
-    G1 const pc_sigma_g;
     std::vector<G1> var_coms;
     std::vector<Fr> var_coms_r;
 
@@ -81,7 +80,7 @@ struct VrsBasic {
                       std::vector<G1>&& icached_var_coms,
                       std::vector<Fr>&& icached_var_coms_r) {
       auto constexpr kPrimaryInputSize = Scheme::kPrimaryInputSize;
-      
+
       assert(icached_var_coms.size() == icached_var_coms_r.size());
 
       if ((int64_t)icached_var_coms.size() == m) {
@@ -153,15 +152,13 @@ struct VrsBasic {
     bool operator!=(Proof const& right) const { return !(*this == right); }
     template <typename Ar>
     void serialize(Ar& ar) const {
-      ar& YAS_OBJECT_NVP("vrs.pf", ("var_coms", var_coms),
-                         ("vw_com", vw_com), ("r1cs_proof", r1cs_proof),
-                         ("ip_proof", ip_proof));
+      ar& YAS_OBJECT_NVP("vrs.pf", ("var_coms", var_coms), ("vw_com", vw_com),
+                         ("r1cs_proof", r1cs_proof), ("ip_proof", ip_proof));
     }
     template <typename Ar>
     void serialize(Ar& ar) {
-      ar& YAS_OBJECT_NVP("vrs.pf", ("var_coms", var_coms),
-                         ("vw_com", vw_com), ("r1cs_proof", r1cs_proof),
-                         ("ip_proof", ip_proof));
+      ar& YAS_OBJECT_NVP("vrs.pf", ("var_coms", var_coms), ("vw_com", vw_com),
+                         ("r1cs_proof", r1cs_proof), ("ip_proof", ip_proof));
     }
   };
 
@@ -212,7 +209,7 @@ struct VrsBasic {
     proof.var_coms = input.var_coms;
     proof.vw_com = vw_com;
 
-    output.g = input.pc_sigma_g;
+    output.g = input.ComputeSigmaG();
     output.h = PcH();
     output.key_com = input.var_coms[1];
     return vw;
@@ -225,8 +222,8 @@ struct VrsBasic {
           vw_g_offset(vw_g_offset),
           pb(scheme.pb),
           n(n),
-          m(scheme.num_variables()),
-          pc_sigma_g(PcComputeSigmaG(kR1csGOffset, n)) {}
+          m(scheme.num_variables()) {}
+    G1 ComputeSigmaG() const { return PcComputeSigmaG(kR1csGOffset, n); }
     GetP get_p;
     GetW get_w;
     int64_t const vw_g_offset;
@@ -234,7 +231,6 @@ struct VrsBasic {
     libsnark::protoboard<Fr>& pb;
     int64_t const n;
     int64_t const m;
-    G1 const pc_sigma_g;
   };
 
   struct VerifyOutput {
@@ -281,7 +277,7 @@ struct VrsBasic {
       return false;
     }
 
-    output.g = input.pc_sigma_g;
+    output.g = input.ComputeSigmaG();
     output.h = PcH();
     output.key_com = proof.var_coms[1];
     return true;
@@ -340,8 +336,8 @@ bool VrsBasic<Scheme, Policy>::Test(int64_t n) {
     assert(prove_output.g == verify_output.g);
     assert(prove_output.h == verify_output.h);
     assert(prove_output.key_com == verify_output.key_com);
-    success = VrsPub<Scheme>::VerifySecret(prove_output.h, prove_output.g, prove_output.key_com,
-                           k_com_r, k);
+    success = VrsPub<Scheme>::VerifySecret(prove_output.h, prove_output.g,
+                                           prove_output.key_com, k_com_r, k);
   }
   std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success
             << "\n\n\n\n\n\n";

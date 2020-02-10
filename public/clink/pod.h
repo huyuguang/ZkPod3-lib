@@ -19,7 +19,7 @@ struct Pod {
 
   typedef std::function<Fr const&(int64_t i, int64_t j)> GetMatrix;
   typedef std::function<Fr const&(int64_t i)> GetR;
-  typedef std::function<G1 const&(int64_t i)> GetCom;  
+  typedef std::function<G1 const&(int64_t i)> GetCom;
 
   constexpr static int64_t kVwGOffset = -1;
 
@@ -124,7 +124,8 @@ struct Pod {
     // generate vrs plain by vrs_plain_seed
     std::vector<Fr> plain((n + 1) * (s + 1));
     auto parallel_f_p = [&plain, &output](uint64_t i) {
-      VrsPub<Scheme>::GeneratePlain(&plain[i], output.proved_data.vrs_plain_seed, i);
+      VrsPub<Scheme>::GeneratePlain(&plain[i],
+                                    output.proved_data.vrs_plain_seed, i);
     };
     parallel::For(plain.size(), parallel_f_p);
 
@@ -285,7 +286,7 @@ struct Pod {
 
   static bool VerifySecret(Receipt const& receipt, Secret const& secret) {
     return VrsPub<Scheme>::VerifySecret(receipt.h, receipt.g, receipt.key_com,
-                                  secret.key_com_r, secret.key);
+                                        secret.key_com_r, secret.key);
   }
 
   static bool Test(int64_t n, int64_t s);
@@ -327,8 +328,8 @@ struct Pod {
                                   kVwGOffset);
     VrsProveOutput vrs_output;
     Vrs::Prove(output.proved_data.vrs_proofs, vrs_output, seed,
-                    std::move(vrs_prove_input), std::move(cached_var_coms),
-                    std::move(cached_var_coms_r));
+               std::move(vrs_prove_input), std::move(cached_var_coms),
+               std::move(cached_var_coms_r));
 
     // generate wanted receipt
     output.receipt.h = vrs_output.h;
@@ -341,7 +342,8 @@ struct Pod {
                         VrsVerifyOutput& vrs_output) {
     output.plain.resize((n + 1) * (s + 1));
     auto parallel_f = [&output, &proved_data](int64_t i) {
-      VrsPub<Scheme>::GeneratePlain(&output.plain[i], proved_data.vrs_plain_seed, i);
+      VrsPub<Scheme>::GeneratePlain(&output.plain[i],
+                                    proved_data.vrs_plain_seed, i);
     };
     parallel::For((int64_t)output.plain.size(), parallel_f);
 
@@ -354,7 +356,7 @@ struct Pod {
                              std::move(get_w), kVwGOffset);
 
     if (!Vrs::Verify(vrs_output, proved_data.vrs_proofs, seed,
-                          std::move(vrs_input))) {
+                     std::move(vrs_input))) {
       assert(false);
       return false;
     }

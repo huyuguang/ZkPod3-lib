@@ -14,7 +14,7 @@
 namespace clink {
 
 template <typename Policy>
-struct ParallelR1cs {       
+struct ParallelR1cs {
   using Sec53 = typename Policy::Sec53;
   using HyraxA = typename Policy::HyraxA;
   using Sec43 = typename Policy::Sec43;
@@ -22,8 +22,8 @@ struct ParallelR1cs {
 
   struct ProveInput {
     ProveInput(libsnark::protoboard<Fr> const& pb,
-                std::vector<std::vector<Fr>>&& w, std::vector<G1> const& com_w,
-                std::vector<Fr> const& com_w_r, int64_t g_offset)
+               std::vector<std::vector<Fr>>&& w, std::vector<G1> const& com_w,
+               std::vector<Fr> const& com_w_r, int64_t g_offset)
         : pb(pb),
           com_w(com_w),
           com_w_r(com_w_r),
@@ -93,26 +93,25 @@ struct ParallelR1cs {
     UpdateSeed(seed, input.com_w);
 
     // prove hadamard product
-    typename Sec43::ProveInput input_43(m, std::move(input.x), std::move(input.y),
-                                 std::move(input.z), input.g_offset,
-                                 input.g_offset, input.g_offset);
+    typename Sec43::ProveInput input_43(
+        m, std::move(input.x), std::move(input.y), std::move(input.z),
+        input.g_offset, input.g_offset, input.g_offset);
 
     typename Sec43::CommitmentPub com_pub;
     typename Sec43::CommitmentSec com_sec;
     BuildHpCom(m, n, input.com_w, input.com_w_r, input.constraints,
-                        input.g_offset, com_pub, com_sec);
+               input.g_offset, com_pub, com_sec);
     DebugCheckHpCom(m, input_43, com_pub, com_sec);
 
     Sec43::AlignData(input_43, com_pub, com_sec);
     Sec43::Prove(proof, seed, std::move(input_43), std::move(com_pub),
-                  std::move(com_sec));
+                 std::move(com_sec));
   }
 
   struct VerifyInput {
     VerifyInput(int64_t n, libsnark::protoboard<Fr> const& pb,
-                  std::vector<G1> const& com_w,
-                  std::vector<std::vector<Fr>> const& public_w,
-                  int64_t g_offset)
+                std::vector<G1> const& com_w,
+                std::vector<std::vector<Fr>> const& public_w, int64_t g_offset)
         : n(n),
           pb(pb),
           com_w(com_w),
@@ -177,11 +176,12 @@ struct ParallelR1cs {
     UpdateSeed(seed, input.com_w);
 
     typename Sec43::CommitmentPub com_pub;
-    BuildHpCom(input.m, input.n, input.com_w, input.constraints,
-                        input.g_offset, com_pub);
+    BuildHpCom(input.m, input.n, input.com_w, input.constraints, input.g_offset,
+               com_pub);
     com_pub.Align();
-    typename Sec43::VerifyInput input_43(input.m, input.n, com_pub, input.g_offset,
-                                   input.g_offset, input.g_offset);
+    typename Sec43::VerifyInput input_43(input.m, input.n, com_pub,
+                                         input.g_offset, input.g_offset,
+                                         input.g_offset);
     return Sec43::Verify(proof, seed, input_43);
   }
 
@@ -244,7 +244,8 @@ struct ParallelR1cs {
     parallel::For(m, parallel_f);
   }
 
-  static void DebugCheckHpCom(int64_t m, typename Sec43::ProveInput const& input,
+  static void DebugCheckHpCom(int64_t m,
+                              typename Sec43::ProveInput const& input,
                               typename Sec43::CommitmentPub const& com_pub,
                               typename Sec43::CommitmentSec const& com_sec) {
 #ifdef _DEBUG

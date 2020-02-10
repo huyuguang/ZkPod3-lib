@@ -57,7 +57,7 @@ struct MatchQuery {
 
   struct ProveInput {
     ProveInput(Fr const& key, typename Pod::CommitedData const& data_x,
-                int64_t x_g_offset, std::string const& vrs_cache_dir = "")
+               int64_t x_g_offset, std::string const& vrs_cache_dir = "")
         : key(key),
           data_x(data_x),
           x_g_offset(x_g_offset),
@@ -90,8 +90,7 @@ struct MatchQuery {
     clink::MatchPack<Policy>::Prove(sp_output, seed, m_input);
   }
 
-  static void Prove(ProveOutput& output, h256_t seed,
-                    ProveInput const& input) {
+  static void Prove(ProveOutput& output, h256_t seed, ProveInput const& input) {
     Tick tick(__FUNCTION__);
     int64_t n = input.n;
     int64_t s = input.s;
@@ -126,13 +125,12 @@ struct MatchQuery {
       return output.mp_outputs[i].com_pack_y_r;
     };
 
-    Pod::EncryptAndProve(output.pod_output, seed, data_y,
-                                           input.vrs_cache_dir);
+    Pod::EncryptAndProve(output.pod_output, seed, data_y, input.vrs_cache_dir);
   }
 
   struct VerifyInput {
     VerifyInput(Fr const& key, int64_t s, std::vector<G1> const& com_x,
-                  int64_t x_g_offset)
+                int64_t x_g_offset)
         : key(key),
           s(s),
           com_x(com_x),
@@ -146,8 +144,8 @@ struct MatchQuery {
     int64_t const n;
   };
 
-  static bool Verify(Proof const& proof, h256_t seed,
-                     VerifyInput const& input, typename Pod::VerifyOutput& output) {
+  static bool Verify(Proof const& proof, h256_t seed, VerifyInput const& input,
+                     typename Pod::VerifyOutput& output) {
     Tick tick(__FUNCTION__);
     int64_t n = input.n;
     int64_t s = input.s;
@@ -185,8 +183,8 @@ struct MatchQuery {
     };
     auto pod_n = n;
     auto pod_s = (s + 252) / 253;
-    if (!Pod::VerifyAndSign(output, seed, pod_n, pod_s,
-                                              get_com, proof.pod_proved_data)) {
+    if (!Pod::VerifyAndSign(output, seed, pod_n, pod_s, get_com,
+                            proof.pod_proved_data)) {
       assert(false);
       return false;
     }
@@ -201,8 +199,8 @@ struct MatchQuery {
     Tick tick(__FUNCTION__);
     int64_t pack_s = (s + 252) / 253;
     std::vector<Fr> m;
-    if (!Pod::DecryptData(n, pack_s, proved_data.em, secret,
-                                            verify_output, m)) {
+    if (!Pod::DecryptData(n, pack_s, proved_data.em, secret, verify_output,
+                          m)) {
       assert(false);
       return false;
     }
@@ -314,9 +312,8 @@ bool MatchQuery<Policy>::Test(int64_t n, int64_t s, std::string const& key) {
   prove_output.pod_output.cache->SetLeaked();
 
   std::vector<boost::dynamic_bitset<uint8_t>> rets;
-  if (!DecryptData(n, s, proof.pod_proved_data,
-                                     prove_output.pod_output.secret,
-                                     verify_output, rets)) {
+  if (!DecryptData(n, s, proof.pod_proved_data, prove_output.pod_output.secret,
+                   verify_output, rets)) {
     assert(false);
     return false;
   }

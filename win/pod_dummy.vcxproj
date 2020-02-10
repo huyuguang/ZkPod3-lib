@@ -175,6 +175,7 @@
     <ClInclude Include="..\public\hyrax\details.h" />
     <ClInclude Include="..\public\hyrax\hyrax.h" />
     <ClInclude Include="..\public\log\log.h" />
+    <ClInclude Include="..\public\log\tick.h" />
     <ClInclude Include="..\public\misc\funcs.h" />
     <ClInclude Include="..\public\misc\func_alias.h" />
     <ClInclude Include="..\public\misc\misc.h" />
@@ -182,7 +183,6 @@
     <ClInclude Include="..\public\misc\msvc_hack.h" />
     <ClInclude Include="..\public\misc\rng.h" />
     <ClInclude Include="..\public\misc\serialize.h" />
-    <ClInclude Include="..\public\misc\tick.h" />
     <ClInclude Include="..\public\misc\types.h" />
     <ClInclude Include="..\public\misc\vectorop.h" />
     <ClInclude Include="..\public\parallel\parallel.h" />
