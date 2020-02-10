@@ -150,9 +150,9 @@ struct Pod {
     std::vector<Fr> w(n + 1);
     ComputeFst(seed, "pod", w);
 
-    // mij' = vij + mij * wi
+    // mij' = vij + mij
     output.proved_data.em.resize(n * (s + 1));
-    auto parallel_f_m = [&output, &commited_data, s, &v, &w](uint64_t i) {
+    auto parallel_f_m = [&output, &commited_data, s, &v](uint64_t i) {
       auto get_rm = [&commited_data](int64_t i, int64_t j) -> Fr const& {
         assert(j < (commited_data.s + 1) && i < commited_data.n);
         if (!j) return commited_data.get_r(i);
@@ -161,7 +161,7 @@ struct Pod {
 
       for (int64_t j = 0; j < s + 1; ++j) {
         auto ij = i * (s + 1) + j;
-        output.proved_data.em[ij] = v[ij] + w[i] * get_rm(i, j);
+        output.proved_data.em[ij] = v[ij] + get_rm(i, j);
       }
     };
     parallel::For(n, parallel_f_m);
@@ -209,9 +209,14 @@ struct Pod {
     // check consistency of the encrypted m, vm and k.
     tasks[0] = [&ret, &get_com, &proved_data, &output, n, s]() {
       Tick tick("Check consistency of the encrypted m, vm and k.");
+      G1 left1 = G1Zero();
+      for (int64_t i = 0; i < n; ++i) {
+        left1 += get_com(i);
+      }
       auto const& k = proved_data.k;
-      G1 left1 = MultiExpBdlo12<G1>(get_com, output.w, n);
-      left1 = parallel::Accumulate(k.begin(), k.begin() + n, left1);
+      for (int64_t i = 0; i < n; ++i) {
+        left1 += k[i];
+      }
       auto get_g = [s](int64_t ij) -> G1 const& { return PcHG(ij % (s + 1)); };
       // MultiExp(n*(s+1))! 70% of the time here.
       G1 right1 = MultiExpBdlo12<G1>(get_g, proved_data.em, n * (s + 1));
@@ -270,14 +275,12 @@ struct Pod {
 #endif
 
     // decrypt m
-    std::vector<Fr> inv_w = output.w;
-    FrInv(inv_w.data(), inv_w.size());
     decrypted_m.resize(n * s);
-    auto parallel_f2 = [&v, &inv_w, &decrypted_m, &encrypted_m, s](int64_t i) {
+    auto parallel_f2 = [&v, &decrypted_m, &encrypted_m, s](int64_t i) {
       for (int64_t j = 0; j < s; ++j) {
         auto d_ij = i * s + j;
         auto e_ij = i * (s + 1) + j + 1;
-        decrypted_m[d_ij] = (encrypted_m[e_ij] - v[e_ij]) * inv_w[i];
+        decrypted_m[d_ij] = encrypted_m[e_ij] - v[e_ij];
       }
     };
     parallel::For(n, parallel_f2);
