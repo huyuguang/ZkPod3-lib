@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ecc/parallel_multiexp.h"
 #include "./vrs_cache.h"
 #include "./vrs_large.h"
 
@@ -217,9 +218,11 @@ struct Pod {
       for (int64_t i = 0; i < n; ++i) {
         left1 += k[i];
       }
-      auto get_g = [s](int64_t ij) -> G1 const& { return PcHG(ij % (s + 1)); };
+
       // MultiExp(n*(s+1))! 70% of the time here.
-      G1 right1 = MultiExpBdlo12<G1>(get_g, proved_data.em, n * (s + 1));
+      auto get_g = [s](int64_t ij) -> G1 const& { return PcHG(ij % (s + 1)); };
+      G1 right1 =
+          ParallelMultiExpBdlo12<G1>(get_g, proved_data.em, n * (s + 1));
       if (left1 != right1) return;
 
       G1 left2 = MultiExpBdlo12(proved_data.k, output.w);

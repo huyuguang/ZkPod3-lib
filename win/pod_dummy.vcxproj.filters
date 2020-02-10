@@ -277,5 +277,8 @@
     <ClInclude Include="..\public\log\tick.h">
       <Filter>public\log</Filter>
     </ClInclude>
+    <ClInclude Include="..\public\ecc\parallel_multiexp.h">
+      <Filter>public\ecc</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

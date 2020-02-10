@@ -155,6 +155,7 @@
     <ClInclude Include="..\public\ecc\ecc_pub.h" />
     <ClInclude Include="..\public\ecc\funcs.h" />
     <ClInclude Include="..\public\ecc\multiexp.h" />
+    <ClInclude Include="..\public\ecc\parallel_multiexp.h" />
     <ClInclude Include="..\public\ecc\pc_base.h" />
     <ClInclude Include="..\public\ecc\serialize.h" />
     <ClInclude Include="..\public\ecc\types.h" />

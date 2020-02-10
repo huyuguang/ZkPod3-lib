@@ -207,11 +207,7 @@ int main(int argc, char** argv) {
     return -1;
   }
 
-  int tbb_thread_num =
-      thread_num ? (int)thread_num : tbb::task_scheduler_init::automatic;
-  tbb::task_scheduler_init init(tbb_thread_num);
-
-  parallel::CheckAllocationHook();
+  parallel::InitTbb((int)thread_num);
 
   if (!InitAll(data_dir)) {
     std::cerr << "Init failed\n";

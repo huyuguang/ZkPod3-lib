@@ -57,6 +57,18 @@ inline void CheckAllocationHook() {
 #endif
 }
 
+inline static int tbb_thread_num = 1;
+
+inline void InitTbb(int thread_num) {
+  using namespace tbb;
+  thread_num = thread_num > 0 ? thread_num : task_scheduler_init::automatic;
+  task_scheduler_init init(thread_num);
+  tbb_thread_num = thread_num > 0 ? thread_num : init.default_num_threads();
+
+  CheckAllocationHook();
+}
+
+
 typedef std::function<void()> Task;
 
 template <typename T, typename F>
