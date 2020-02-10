@@ -17,16 +17,14 @@ G ParallelMultiExpBdlo12(GET_G const& get_g, GET_F const& get_f, size_t n,
     G1 ret;
   };
 
-  auto size = (n + thread_num - 1) / thread_num;
+  auto size = n / thread_num;
   std::vector<Item> items(thread_num);
   for (int i = 0; i < thread_num; ++i) {
     auto& item = items[i];
     item.begin = i * size;
     item.end = item.begin + size;
-    if (item.end > n) {
-      item.end = n;
-    }
   }
+  items.back().end = n;
 
   auto f = [check_01, &items, &get_g, &get_f](int64_t i) {
     auto& item = items[i];

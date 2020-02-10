@@ -92,6 +92,8 @@ inline std::istream& operator>>(std::istream& in, Param2IntStr& t) {
   return in;
 }
 
+std::unique_ptr<tbb::task_scheduler_init> tbb_init;
+
 int main(int argc, char** argv) {
   setlocale(LC_ALL, "");
   std::string data_dir;
@@ -207,7 +209,7 @@ int main(int argc, char** argv) {
     return -1;
   }
 
-  parallel::InitTbb((int)thread_num);
+  tbb_init = parallel::InitTbb((int)thread_num);
 
   if (!InitAll(data_dir)) {
     std::cerr << "Init failed\n";

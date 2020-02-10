@@ -17,6 +17,19 @@ struct VrsLarge {
   typedef std::unique_ptr<ProveInput> ProveInputUPtr;
   typedef std::unique_ptr<VerifyInput> VerifyInputUPtr;
 
+  static ProveInput CreateSubProveInput(ProveInput const& input,
+                                   typename VrsPub<Scheme>::Item const& item,
+                                   Fr const& k_com_r, Fr const& vw_com_r) {
+    auto sub_get_p = [&input, &item](int64_t j) -> Fr const& {
+      return input.get_p(item.begin + j);
+    };
+    auto sub_get_w = [&input, &item](int64_t j) -> Fr const& {
+      return input.get_w(item.begin + j);
+    };
+    return ProveInput(item.n(), input.k, k_com_r, std::move(sub_get_p),
+                      std::move(sub_get_w), vw_com_r, input.vw_g_offset);
+  }
+
   static Fr Prove(std::vector<Proof>& proofs, ProveOutput& output, h256_t seed,
                   ProveInput&& input,
                   std::vector<std::vector<G1>>&& cached_var_coms,
@@ -25,7 +38,6 @@ struct VrsLarge {
 
     auto items = VrsPub<Scheme>::SplitLargeTask(input.n);
     auto size = (int64_t)items.size();
-    std::vector<ProveInputUPtr> sub_inputs(size);
     std::vector<Fr> vw_com_rs = SplitFr(input.vw_com_r, size);
     std::vector<Fr> k_com_rs(size);
 
@@ -41,27 +53,17 @@ struct VrsLarge {
              input.k_com_r);
     }
 
-    for (int64_t i = 0; i < size; ++i) {
-      auto const& item = items[i];
-      auto sub_get_p = [&input, &item](int64_t j) -> Fr const& {
-        return input.get_p(item.begin + j);
-      };
-      auto sub_get_w = [&input, &item](int64_t j) -> Fr const& {
-        return input.get_w(item.begin + j);
-      };
-      sub_inputs[i].reset(new ProveInput(
-          items[i].n(), input.k, k_com_rs[i], std::move(sub_get_p),
-          std::move(sub_get_w), vw_com_rs[i], input.vw_g_offset));
-    }
-
     proofs.resize(size);
     std::vector<ProveOutput> outputs(size);
     std::vector<Fr> vws(size);
     cached_var_coms.resize(size);
     cached_var_coms_r.resize(size);
-    auto parallel_f = [&sub_inputs, &vws, &seed, &proofs, &outputs,
-                       &cached_var_coms, &cached_var_coms_r](int64_t i) {
-      auto& sub_input = *sub_inputs[i];
+    auto parallel_f = [&input, &items, &k_com_rs, &vw_com_rs, &vws, &seed,
+                       &proofs, &outputs, &cached_var_coms,
+                       &cached_var_coms_r](int64_t i) {
+      auto sub_input =
+          CreateSubProveInput(input, items[i], k_com_rs[i], vw_com_rs[i]);
+
       vws[i] = VrsBasic<Scheme, Policy>::Prove(
           proofs[i], outputs[i], seed, std::move(sub_input),
           std::move(cached_var_coms[i]), std::move(cached_var_coms_r[i]));
@@ -80,6 +82,18 @@ struct VrsLarge {
     return vw;
   }
 
+  static VerifyInput CreateSubVerifyInput(
+      VerifyInput const& input, typename VrsPub<Scheme>::Item const& item) {
+    auto sub_get_p = [&input, &item](int64_t j) -> Fr const& {
+      return input.get_p(item.begin + j);
+    };
+    auto sub_get_w = [&input, &item](int64_t j) -> Fr const& {
+      return input.get_w(item.begin + j);
+    };
+    return VerifyInput(item.n(), std::move(sub_get_p), std::move(sub_get_w),
+                       input.vw_g_offset);
+  }
+
   static bool Verify(VerifyOutput& output, std::vector<Proof> const& proofs,
                      h256_t seed, VerifyInput&& input) {
     auto items = VrsPub<Scheme>::SplitLargeTask(input.n);
@@ -89,24 +103,11 @@ struct VrsLarge {
       return false;
     }
 
-    std::vector<VerifyInputUPtr> sub_inputs(size);
-    for (int64_t i = 0; i < size; ++i) {
-      auto const& item = items[i];
-      auto sub_get_p = [&input, &item](int64_t j) -> Fr const& {
-        return input.get_p(item.begin + j);
-      };
-      auto sub_get_w = [&input, &item](int64_t j) -> Fr const& {
-        return input.get_w(item.begin + j);
-      };
-      sub_inputs[i].reset(new VerifyInput(items[i].n(), std::move(sub_get_p),
-                                          std::move(sub_get_w),
-                                          input.vw_g_offset));
-    }
-
     bool all_success = false;
     std::vector<VerifyOutput> outputs(size);
-    auto parallel_f = [&sub_inputs, &seed, &proofs, &outputs](int64_t i) {
-      auto& sub_input = *sub_inputs[i];
+    auto parallel_f = [&seed, &proofs, &outputs, &input, &items](int64_t i) {
+      auto const& item = items[i];
+      auto sub_input = CreateSubVerifyInput(input, item);
       return VrsBasic<Scheme, Policy>::Verify(outputs[i], proofs[i], seed,
                                               std::move(sub_input));
     };
