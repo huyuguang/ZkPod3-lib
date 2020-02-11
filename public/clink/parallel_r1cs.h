@@ -30,9 +30,7 @@ struct ParallelR1cs {
           g_offset(g_offset),
           m((int64_t)pb.num_constraints()),
           s((int64_t)pb.num_variables()),
-          n((int64_t)w[0].size()),
-          constraint_system(pb.get_constraint_system()),
-          constraints(constraint_system.constraints) {
+          n((int64_t)w[0].size()) {
 #ifdef _DEBUG
       assert((int64_t)w.size() == s);
       assert((int64_t)com_w.size() == s);
@@ -40,7 +38,7 @@ struct ParallelR1cs {
       for (int64_t i = 0; i < s; ++i) {
         assert(com_w[i] == PcComputeCommitmentG(g_offset, w[i], com_w_r[i]));
       }
-      for (size_t i = 0; i < constraint_system.primary_input_size; ++i) {
+      for (size_t i = 0; i < constraint_system().primary_input_size; ++i) {
         assert(com_w_r[i] == 0);
       }
 #endif
@@ -60,7 +58,7 @@ struct ParallelR1cs {
           witness[i] = w[i][j];
         }
         for (int64_t i = 0; i < m; ++i) {
-          auto const& constraint = constraints[i];
+          auto const& constraint = constraints()[i];
           x[i][j] = constraint.a.evaluate(witness);
           y[i][j] = constraint.b.evaluate(witness);
           z[i][j] = constraint.c.evaluate(witness);
@@ -70,6 +68,14 @@ struct ParallelR1cs {
       parallel::For(n, parallel_f);
     }
 
+    libsnark::r1cs_constraint_system<Fr> const& constraint_system() const {
+      return pb.get_constraint_system_ref();
+    }
+
+    std::vector<libsnark::r1cs_constraint<Fr>> const& constraints() const {
+      return constraint_system().constraints;
+    }
+
     libsnark::protoboard<Fr> const& pb;
     std::vector<G1> const& com_w;
     std::vector<Fr> const& com_w_r;
@@ -77,8 +83,6 @@ struct ParallelR1cs {
     int64_t const m;
     int64_t const s;
     int64_t const n;
-    libsnark::r1cs_constraint_system<Fr> constraint_system;
-    std::vector<libsnark::r1cs_constraint<Fr>> const& constraints;
     std::vector<std::vector<Fr>> x;
     std::vector<std::vector<Fr>> y;
     std::vector<std::vector<Fr>> z;
@@ -99,7 +103,7 @@ struct ParallelR1cs {
 
     typename Sec43::CommitmentPub com_pub;
     typename Sec43::CommitmentSec com_sec;
-    BuildHpCom(m, n, input.com_w, input.com_w_r, input.constraints,
+    BuildHpCom(m, n, input.com_w, input.com_w_r, input.constraints(),
                input.g_offset, com_pub, com_sec);
     DebugCheckHpCom(m, input_43, com_pub, com_sec);
 
@@ -118,9 +122,15 @@ struct ParallelR1cs {
           public_w(public_w),
           g_offset(g_offset),
           m((int64_t)pb.num_constraints()),
-          s((int64_t)pb.num_variables()),
-          constraint_system(pb.get_constraint_system()),
-          constraints(constraint_system.constraints) {}
+          s((int64_t)pb.num_variables()) {}
+
+    libsnark::r1cs_constraint_system<Fr> const& constraint_system() const {
+      return pb.get_constraint_system_ref();
+    }
+
+    std::vector<libsnark::r1cs_constraint<Fr>> const& constraints() const {
+      return constraint_system().constraints;
+    }
 
     bool Check() const {
       if ((int64_t)com_w.size() != s) {
@@ -135,7 +145,7 @@ struct ParallelR1cs {
         }
       }
       // check public_w
-      if (public_w.size() != constraint_system.primary_input_size) {
+      if (public_w.size() != constraint_system().primary_input_size) {
         assert(false);
         return false;
       }
@@ -159,9 +169,7 @@ struct ParallelR1cs {
     std::vector<std::vector<Fr>> const& public_w;
     int64_t const g_offset;
     int64_t const m;
-    int64_t const s;
-    libsnark::r1cs_constraint_system<Fr> constraint_system;
-    std::vector<libsnark::r1cs_constraint<Fr>> const& constraints;
+    int64_t const s;        
   };
 
   static bool Verify(Proof const& proof, h256_t seed,
@@ -176,7 +184,7 @@ struct ParallelR1cs {
     UpdateSeed(seed, input.com_w);
 
     typename Sec43::CommitmentPub com_pub;
-    BuildHpCom(input.m, input.n, input.com_w, input.constraints, input.g_offset,
+    BuildHpCom(input.m, input.n, input.com_w, input.constraints(), input.g_offset,
                com_pub);
     com_pub.Align();
     typename Sec43::VerifyInput input_43(input.m, input.n, com_pub,

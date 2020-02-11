@@ -208,7 +208,7 @@ struct Sec43b {
     com_sec.Align();
   }
 
-  static void Prove(Proof& proof, h256_t seed, ProveInput input,
+  static void Prove(Proof& proof, h256_t seed, ProveInput&& input,
                     CommitmentPub com_pub, CommitmentSec com_sec) {
     Tick tick(__FUNCTION__);
     auto m = input.m();
@@ -449,7 +449,7 @@ bool Sec43b<Sec53, HyraxA>::Test(int64_t m, int64_t n) {
   AlignData(prove_input, com_pub, com_sec);
 
   Proof proof;
-  Prove(proof, seed, prove_input, com_pub, com_sec);
+  Prove(proof, seed, std::move(prove_input), com_pub, com_sec);
 
 #ifndef DISABLE_SERIALIZE_CHECK
   // serialize to buffer
