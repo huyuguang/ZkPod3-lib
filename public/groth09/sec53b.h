@@ -95,10 +95,10 @@ struct Sec53b {
     int64_t m() const { return x.size(); }
     int64_t n() const { return x[0].size(); }
 
-    ProveInput(std::vector<std::vector<Fr>> ix, std::vector<std::vector<Fr>> iy,
-               std::vector<Fr> const& it, std::vector<std::vector<Fr>> iyt,
-               Fr const& z, int64_t x_g_offset, int64_t y_g_offset,
-               int64_t z_g_offset)
+    ProveInput(std::vector<std::vector<Fr>>&& ix,
+               std::vector<std::vector<Fr>>&& iy, std::vector<Fr> const& it,
+               std::vector<std::vector<Fr>>&& iyt, Fr const& z,
+               int64_t x_g_offset, int64_t y_g_offset, int64_t z_g_offset)
         : x(std::move(ix)),
           y(std::move(iy)),
           t(it),
