@@ -207,7 +207,7 @@ struct Sec52a {
 
     std::vector<Fr> e_pow;
     std::vector<Fr> e_pow_reverse;
-    details::ComputePowOfE(e, m, e_pow, e_pow_reverse);
+    ComputePowOfE(e, m, e_pow, e_pow_reverse);
 
     std::vector<Fr> x(n);
     std::fill(x.begin(), x.end(), FrZero());
@@ -284,7 +284,7 @@ struct Sec52a {
 
     std::vector<Fr> e_pow;
     std::vector<Fr> e_pow_reverse;
-    details::ComputePowOfE(e, m, e_pow, e_pow_reverse);
+    ComputePowOfE(e, m, e_pow, e_pow_reverse);
 
     std::cout << Tick::GetIndentString() << "2 multiexp(" << m << ")\n";
     std::cout << Tick::GetIndentString() << "multiexp(" << 2 * m - 1 << ")\n";
@@ -348,6 +348,22 @@ struct Sec52a {
     std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success
               << "\n\n\n\n\n\n";
     return success;
+  }
+
+ private:
+  static void ComputePowOfE(Fr const& e, int64_t m, std::vector<Fr>& vec,
+                            std::vector<Fr>& rev) {
+    // Tick tick(__FUNCTION__, std::to_string(m));
+    vec.resize(m * 2 - 1);
+    rev.resize(m);
+
+    vec[0] = FrOne();
+    for (int64_t i = 1; i < m * 2 - 1; ++i) {
+      vec[i] = e * vec[i - 1];
+    }
+    for (int64_t i = 0; i < m; ++i) {
+      rev[i] = vec[m - i - 1];
+    }
   }
 };
 

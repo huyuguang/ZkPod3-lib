@@ -290,7 +290,7 @@ struct VrsCache {
     return true;
   }
 
-  static bool SaveFileData(std::string const& dir, FileData const& cache,
+  static bool SaveFileData(std::string const& cache_dir, FileData const& cache,
                            std::string& output) {
     Tick tick(__FUNCTION__);
     if (cache.max_unit_per_zkp != Scheme::kMaxUnitPerZkp ||
@@ -303,8 +303,8 @@ struct VrsCache {
     std::string base_name =
         std::to_string(cache.count) + "_" + misc::HexToStr(cache.seed);
     std::string temp_name = base_name + ".tmp";
-    std::string temp_path_name = dir + "/" + temp_name;
-    output = dir + "/" + base_name;
+    std::string temp_path_name = cache_dir + "/" + temp_name;
+    output = cache_dir + "/" + base_name;
 
     try {
       yas::file_ostream os(temp_path_name.c_str());
@@ -331,9 +331,9 @@ struct VrsCache {
     return true;
   }
 
-  static std::string SelectFile(std::string const& dir, int64_t count) {
+  static std::string SelectFile(std::string const& cache_dir, int64_t count) {
     boost::system::error_code ec;
-    if (!fs::is_directory(dir, ec)) return "";
+    if (!fs::is_directory(cache_dir, ec)) return "";
 
     auto get_count_from_name = [](std::string const& name) -> int64_t {
       auto pos = name.find("_");
@@ -356,7 +356,8 @@ struct VrsCache {
     };
 
     std::vector<Item> files;
-    auto range = boost::make_iterator_range(fs::directory_iterator(dir), {});
+    auto range =
+        boost::make_iterator_range(fs::directory_iterator(cache_dir), {});
     for (auto& entry : range) {
       auto basename = fs::basename(entry);
       auto extension = fs::extension(entry);
@@ -391,7 +392,7 @@ struct VrsCache {
       }
 
       // try to change the selected file extension
-      auto ori_name = dir + "/" + it->name;
+      auto ori_name = cache_dir + "/" + it->name;
       auto using_name = ori_name + kExtensionUsing;
       // auto using_name = fs::change_extension(ori_name, "use");
 
@@ -482,6 +483,28 @@ struct VrsCache {
     cache.count = count;
 
     assert(CheckFileData(cache));
+  }
+
+  static bool CreateAndSave(std::string const& data_dir, int64_t count) {
+    std::string cache_dir = data_dir + "/vrs_cache/";
+    cache_dir += Scheme::type();
+
+    fs::create_directories(cache_dir);
+    if (!fs::is_directory(cache_dir)) {
+      std::cerr << "create directory failed: " << cache_dir << "\n";
+      return false;
+    }
+    auto cache = CreateFileData(count);
+    std::string cache_file;
+    bool ret = SaveFileData(cache_dir, cache, cache_file);
+    if (ret) {
+      std::cout << "Create vrs cache Success: cache_file: " << cache_file
+                << "\n";
+    } else {
+      assert(false);
+      std::cout << "Save vrs cache failed: " << cache_file << "\n";
+    }
+    return ret;
   }
 
   class AutoFile : boost::noncopyable {

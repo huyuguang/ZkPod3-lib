@@ -130,12 +130,7 @@ struct Pod {
     };
     parallel::For(plain.size(), parallel_f_p);
 
-    // v = mimc_enc(plain, key)
-    std::vector<Fr> v((n + 1) * (s + 1));
-    auto parallel_f_v = [&v, &plain, &output](uint64_t i) {
-      v[i] = Scheme::Generate(plain[i], output.secret.key);
-    };
-    parallel::For(v.size(), parallel_f_v);
+    auto v = GenerateV(plain, output.secret.key);
 
     // k=com(v)
     output.proved_data.k.resize(n + 1);
@@ -251,6 +246,17 @@ struct Pod {
     return true;
   }
 
+  static std::vector<Fr> GenerateV(std::vector<Fr> const& plain,
+                                   Fr const& key) {
+    // ex: v = mimc_enc(plain, key)
+    std::vector<Fr> v(plain.size());
+    auto parallel_f = [&v, &plain, &key](uint64_t i) {
+      v[i] = Scheme::Generate(plain[i], key);
+    };
+    parallel::For(v.size(), parallel_f);
+    return v;
+  }
+
   static bool DecryptData(int64_t n, int64_t s,
                           std::vector<Fr> const& encrypted_m,
                           Secret const& secret, VerifyOutput const& output,
@@ -263,11 +269,7 @@ struct Pod {
     }
 
     // compute v
-    std::vector<Fr> v(output.plain.size());
-    auto parallel_f = [&secret, &output, &v](int64_t i) {
-      v[i] = Scheme::Generate(output.plain[i], secret.key);
-    };
-    parallel::For((int64_t)output.plain.size(), parallel_f);
+    auto v = GenerateV(output.plain, secret.key);
 
 #ifdef _DEBUG
     Fr check_sigma_vw = FrZero();

@@ -172,6 +172,7 @@ struct VrsBasic {
   static Fr Prove(Proof& proof, ProveOutput& output, h256_t seed,
                   ProveInput&& input, std::vector<G1>&& icached_var_coms,
                   std::vector<Fr>&& icached_var_coms_r) {
+    auto constexpr kPrimaryInputSize = Scheme::kPrimaryInputSize;
     auto vars = input.EvaluateAndCommit(std::move(icached_var_coms),
                                         std::move(icached_var_coms_r));
 
@@ -212,7 +213,7 @@ struct VrsBasic {
 
     output.g = input.ComputeSigmaG();
     output.h = PcH();
-    output.key_com = input.var_coms[1];
+    output.key_com = input.var_coms[kPrimaryInputSize];
     return vw;
   }
 

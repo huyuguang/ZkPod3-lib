@@ -3,11 +3,11 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LocalDebuggerWorkingDirectory>$(OutDir)</LocalDebuggerWorkingDirectory>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
-    <LocalDebuggerCommandArguments>--pod=5*10</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>--vrs_basic=10 --vrs_scheme=2</LocalDebuggerCommandArguments>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LocalDebuggerWorkingDirectory>$(OutDir)</LocalDebuggerWorkingDirectory>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
-    <LocalDebuggerCommandArguments>--pod=767*1023</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>--vrs_basic=10 --vrs_scheme=2</LocalDebuggerCommandArguments>
   </PropertyGroup>
 </Project>

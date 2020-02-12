@@ -16,11 +16,7 @@
 // pedersen commitment base H&G
 class PcBase : boost::noncopyable {
  public:
-#ifdef _DEBUG
   static inline int64_t const kGSize = 1024 * 128;
-#else
-  static inline int64_t const kGSize = 1024 * 128;
-#endif
 
   PcBase(std::string const& file) {
     LoadInternal(file);

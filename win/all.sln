@@ -13,8 +13,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "pod_dummy", "pod_dummy.vcxproj", "{F1BB4665-60E3-48F5-A9E6-BED17C0D36E2}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "vrs_cache", "vrs_cache.vcxproj", "{A5FEC057-6980-4E61-A86A-12A4942F06EA}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -29,14 +27,6 @@ Global
 		{F1BB4665-60E3-48F5-A9E6-BED17C0D36E2}.Release|x64.ActiveCfg = Release|x64
 		{F1BB4665-60E3-48F5-A9E6-BED17C0D36E2}.Release|x64.Build.0 = Release|x64
 		{F1BB4665-60E3-48F5-A9E6-BED17C0D36E2}.ReleaseDll|x64.ActiveCfg = Release|x64
-		{A5FEC057-6980-4E61-A86A-12A4942F06EA}.Debug|x64.ActiveCfg = Debug|x64
-		{A5FEC057-6980-4E61-A86A-12A4942F06EA}.Debug|x64.Build.0 = Debug|x64
-		{A5FEC057-6980-4E61-A86A-12A4942F06EA}.DebugDll|x64.ActiveCfg = Debug|x64
-		{A5FEC057-6980-4E61-A86A-12A4942F06EA}.DebugDll|x64.Build.0 = Debug|x64
-		{A5FEC057-6980-4E61-A86A-12A4942F06EA}.Release|x64.ActiveCfg = Release|x64
-		{A5FEC057-6980-4E61-A86A-12A4942F06EA}.Release|x64.Build.0 = Release|x64
-		{A5FEC057-6980-4E61-A86A-12A4942F06EA}.ReleaseDll|x64.ActiveCfg = Release|x64
-		{A5FEC057-6980-4E61-A86A-12A4942F06EA}.ReleaseDll|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

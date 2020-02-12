@@ -199,18 +199,6 @@
     <ClInclude Include="..\public\groth09\policy.h">
       <Filter>public\groth09</Filter>
     </ClInclude>
-    <ClInclude Include="..\public\circuit\mimc5.h">
-      <Filter>public\circuit</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\circuit\mimc5_gadget.h">
-      <Filter>public\circuit</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\circuit\sha256c.h">
-      <Filter>public\circuit</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\circuit\sha256c_gadget.h">
-      <Filter>public\circuit</Filter>
-    </ClInclude>
     <ClInclude Include="..\public\circuit\match_gadget.h">
       <Filter>public\circuit</Filter>
     </ClInclude>
@@ -279,6 +267,24 @@
     </ClInclude>
     <ClInclude Include="..\public\ecc\parallel_multiexp.h">
       <Filter>public\ecc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\circuit\poseidon_gadget.h">
+      <Filter>public\circuit</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\circuit\poseidon.h">
+      <Filter>public\circuit</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\circuit\mimc5.h">
+      <Filter>public\circuit</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\circuit\mimc5_gadget.h">
+      <Filter>public\circuit</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\circuit\sha256c.h">
+      <Filter>public\circuit</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\circuit\sha256c_gadget.h">
+      <Filter>public\circuit</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

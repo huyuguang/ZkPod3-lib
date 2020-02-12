@@ -7,7 +7,7 @@ template <typename G, typename GET_G, typename GET_F>
 G ParallelMultiExpBdlo12(GET_G const& get_g, GET_F const& get_f, size_t n,
                          bool check_01 = false) {
   auto thread_num = parallel::tbb_thread_num;
-  if (thread_num <= 1 || n < thread_num) {
+  if (thread_num <= 1 || (int64_t)n < thread_num) {
     return MultiExpBdlo12<G, GET_G, GET_F>(get_g, get_f, n, check_01);
   }
 

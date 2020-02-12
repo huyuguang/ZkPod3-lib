@@ -163,4 +163,21 @@ inline std::string RandString(size_t max_len) {
   }
   return ret;
 }
+
+inline void PrintVector(std::vector<Fr> const& a) {
+  std::cout << "\n";
+  for (auto const& i : a) {
+    std::cout << i << "\n";
+  }
+  std::cout << "\n";
+}
+
+template<size_t N>
+void PrintArray(std::array<Fr, N> const& a) {
+  std::cout << "\n";
+  for (auto const& i : a) {
+    std::cout << i << "\n";
+  }
+  std::cout << "\n";
+}
 }  // namespace misc

@@ -169,7 +169,7 @@ struct ParallelR1cs {
     std::vector<std::vector<Fr>> const& public_w;
     int64_t const g_offset;
     int64_t const m;
-    int64_t const s;        
+    int64_t const s;
   };
 
   static bool Verify(Proof const& proof, h256_t seed,
@@ -184,8 +184,8 @@ struct ParallelR1cs {
     UpdateSeed(seed, input.com_w);
 
     typename Sec43::CommitmentPub com_pub;
-    BuildHpCom(input.m, input.n, input.com_w, input.constraints(), input.g_offset,
-               com_pub);
+    BuildHpCom(input.m, input.n, input.com_w, input.constraints(),
+               input.g_offset, com_pub);
     com_pub.Align();
     typename Sec43::VerifyInput input_43(input.m, input.n, com_pub,
                                          input.g_offset, input.g_offset,

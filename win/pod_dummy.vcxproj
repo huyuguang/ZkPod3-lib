@@ -127,6 +127,8 @@
     <ClInclude Include="..\public\circuit\match_gadget.h" />
     <ClInclude Include="..\public\circuit\mimc5.h" />
     <ClInclude Include="..\public\circuit\mimc5_gadget.h" />
+    <ClInclude Include="..\public\circuit\poseidon.h" />
+    <ClInclude Include="..\public\circuit\poseidon_gadget.h" />
     <ClInclude Include="..\public\circuit\sha256c.h" />
     <ClInclude Include="..\public\circuit\sha256c_gadget.h" />
     <ClInclude Include="..\public\circuit\substr_gadget.h" />

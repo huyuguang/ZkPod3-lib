@@ -6,6 +6,7 @@
 #include <iostream>
 
 #include "bp/bp.h"
+#include "circuit/poseidon_gadget.h"
 #include "clink/clink.h"
 #include "cmd/cmd.h"
 #include "ecc/ecc.h"
@@ -32,7 +33,7 @@ bool InitAll(std::string const& data_dir) {
   return true;
 }
 
-enum VrsSchemeType { kMimic5 = 0, kSha256c = 1 };
+enum VrsSchemeType { kMimic5 = 0, kSha256c = 1, kPoseidon = 2 };
 enum PolicyType { kOrdinary = 0, kSuccinct = 1 };
 
 struct ParamIntPair {
@@ -128,6 +129,7 @@ int main(int argc, char** argv) {
   int64_t bp_p1_n = 0;
   int64_t bp_p2_n = 0;
   int64_t bp_p3_n = 0;
+  int64_t vrs_cache_n = 0;
 
   try {
     po::options_description options("command line options");
@@ -137,10 +139,11 @@ int main(int argc, char** argv) {
         "thread_num", po::value<uint32_t>(&thread_num)->default_value(0),
         "Provide the number of the parallel thread, 1: disable, 0: default.")(
         "vrs_scheme", po::value<int>(&vrs_scheme)->default_value(kMimic5),
-        "Provide the scheme type, 0: mimc5, 1:sha256c")(
+        "Provide the scheme type, 0: mimc5, 1:sha256c, 2:poseidon")(
         "policy", po::value<int>(&policy)->default_value(kOrdinary),
         "Provide the policy type, 0: ordinary(fast with large proof size), "
-        "1:succinct(slow with small proof size)")("hyrax_a1", "")(
+        "1:succinct(slow with small proof size)")(
+        "vrs_cache", po::value<int64_t>(&vrs_cache_n), "")("hyrax_a1", "")(
         "hyrax_a2", po::value<int64_t>(&hyrax_a2_n), "")(
         "hyrax_a3", po::value<int64_t>(&hyrax_a3_n), "")(
         "gro09_51a", po::value<int64_t>(&gro09_51a_n), "")(
@@ -178,7 +181,8 @@ int main(int argc, char** argv) {
       return -1;
     }
 
-    if (vrs_scheme != kMimic5 && vrs_scheme != kSha256c) {
+    if (vrs_scheme != kMimic5 && vrs_scheme != kSha256c &&
+        vrs_scheme != kPoseidon) {
       std::cout << options << std::endl;
       return -1;
     }
@@ -216,7 +220,36 @@ int main(int argc, char** argv) {
     return -1;
   }
 
+  //for (int i = 0; i < 100; ++i) {
+  //  auto p = FrRand();
+  //  auto k = FrRand();
+  //  auto a1 = circuit::VrsPoseidon::permute(p, k);
+  //  auto a2 = circuit::Poseidon<5, 1, 6, 52, 2, 1>(std::array<Fr,2>{{p, k}});
+  //  if (a1 != a2[0]) {
+  //    std::cout << "oops\n";
+  //    return -1;
+  //  }    
+  //}
+  //std::cout << "ok\n";
+  //return 0;
+
   std::map<std::string, bool> rets;
+
+  if (vrs_cache_n) {
+    if (vrs_scheme == VrsSchemeType::kMimic5) {
+      using VrsCache = clink::VrsCache<clink::VrsMimc5Scheme>;
+      rets["vrs_cache"] = VrsCache::CreateAndSave(data_dir, vrs_cache_n);
+    } else if (vrs_scheme == VrsSchemeType::kSha256c) {
+      using VrsCache = clink::VrsCache<clink::VrsSha256cScheme>;
+      rets["vrs_cache"] = VrsCache::CreateAndSave(data_dir, vrs_cache_n);
+    } else if (vrs_scheme == VrsSchemeType::kPoseidon) {
+      using VrsCache = clink::VrsCache<clink::VrsPoseidonScheme>;
+      rets["vrs_cache"] = VrsCache::CreateAndSave(data_dir, vrs_cache_n);
+    } else {
+      assert(false);
+      rets["vrs_cache"] = false;
+    }
+  }
 
   if (bp_p1_n) {
     rets["bp::p1"] = bp::p1::Test(bp_p1_n);
@@ -411,7 +444,7 @@ int main(int argc, char** argv) {
             clink::VrsBasic<clink::VrsMimc5Scheme,
                             groth09::SuccinctPolicy>::Test(vrs_basic_n);
       }
-    } else {
+    } else if (vrs_scheme == VrsSchemeType::kSha256c) {
       if (policy == PolicyType::kOrdinary) {
         rets["vrs::basic(sha256c+ordinary)"] =
             clink::VrsBasic<clink::VrsSha256cScheme,
@@ -421,6 +454,18 @@ int main(int argc, char** argv) {
             clink::VrsBasic<clink::VrsSha256cScheme,
                             groth09::SuccinctPolicy>::Test(vrs_basic_n);
       }
+    } else if (vrs_scheme == VrsSchemeType::kPoseidon) {
+      if (policy == PolicyType::kOrdinary) {
+        rets["vrs::basic(poseidon+ordinary)"] =
+            clink::VrsBasic<clink::VrsPoseidonScheme,
+                            groth09::OrdinaryPolicy>::Test(vrs_basic_n);
+      } else {
+        rets["vrs::basic(poseidon+succinct)"] =
+            clink::VrsBasic<clink::VrsPoseidonScheme,
+                            groth09::SuccinctPolicy>::Test(vrs_basic_n);
+      }
+    } else {
+      assert(false);
     }
   }
 
@@ -435,7 +480,7 @@ int main(int argc, char** argv) {
             clink::VrsLarge<clink::VrsMimc5Scheme,
                             groth09::SuccinctPolicy>::Test(vrs_large_n);
       }
-    } else {
+    } else if (vrs_scheme == VrsSchemeType::kSha256c) {
       if (policy == PolicyType::kOrdinary) {
         rets["vrs::basic(sha256c+ordinary)"] =
             clink::VrsLarge<clink::VrsSha256cScheme,
@@ -445,6 +490,18 @@ int main(int argc, char** argv) {
             clink::VrsLarge<clink::VrsSha256cScheme,
                             groth09::SuccinctPolicy>::Test(vrs_large_n);
       }
+    } else if (vrs_scheme == VrsSchemeType::kPoseidon) {
+      if (policy == PolicyType::kOrdinary) {
+        rets["vrs::basic(poseidon+ordinary)"] =
+            clink::VrsLarge<clink::VrsPoseidonScheme,
+                            groth09::OrdinaryPolicy>::Test(vrs_large_n);
+      } else {
+        rets["vrs::basic(poseidon+succinct)"] =
+            clink::VrsLarge<clink::VrsPoseidonScheme,
+                            groth09::SuccinctPolicy>::Test(vrs_large_n);
+      }
+    } else {
+      assert(false);
     }
   }
 
@@ -459,7 +516,7 @@ int main(int argc, char** argv) {
             clink::Pod<clink::VrsMimc5Scheme, groth09::SuccinctPolicy>::Test(
                 pod.x, pod.y);
       }
-    } else {
+    } else if (vrs_scheme == VrsSchemeType::kSha256c) {
       if (policy == PolicyType::kOrdinary) {
         rets["pod(sha256c+ordinary)"] =
             clink::Pod<clink::VrsSha256cScheme, groth09::OrdinaryPolicy>::Test(
@@ -469,6 +526,18 @@ int main(int argc, char** argv) {
             clink::Pod<clink::VrsSha256cScheme, groth09::SuccinctPolicy>::Test(
                 pod.x, pod.y);
       }
+    } else if (vrs_scheme == VrsSchemeType::kPoseidon) {
+      if (policy == PolicyType::kOrdinary) {
+        rets["pod(poseidon+ordinary)"] =
+            clink::Pod<clink::VrsPoseidonScheme, groth09::OrdinaryPolicy>::Test(
+                pod.x, pod.y);
+      } else {
+        rets["pod(poseidon+succinct)"] =
+            clink::Pod<clink::VrsPoseidonScheme, groth09::SuccinctPolicy>::Test(
+                pod.x, pod.y);
+      }
+    } else {
+      assert(false);
     }
   }
 
