@@ -2,8 +2,8 @@
 
 #include "./details.h"
 #include "circuit/mimc5_gadget.h"
-#include "circuit/sha256c_gadget.h"
 #include "circuit/poseidon_gadget.h"
+#include "circuit/sha256c_gadget.h"
 
 namespace clink {
 

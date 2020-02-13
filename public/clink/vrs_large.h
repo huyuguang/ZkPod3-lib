@@ -17,9 +17,9 @@ struct VrsLarge {
   typedef std::unique_ptr<ProveInput> ProveInputUPtr;
   typedef std::unique_ptr<VerifyInput> VerifyInputUPtr;
 
-  static ProveInput CreateSubProveInput(ProveInput const& input,
-                                   typename VrsPub<Scheme>::Item const& item,
-                                   Fr const& k_com_r, Fr const& vw_com_r) {
+  static ProveInput CreateSubProveInput(
+      ProveInput const& input, typename VrsPub<Scheme>::Item const& item,
+      Fr const& k_com_r, Fr const& vw_com_r) {
     auto sub_get_p = [&input, &item](int64_t j) -> Fr const& {
       return input.get_p(item.begin + j);
     };

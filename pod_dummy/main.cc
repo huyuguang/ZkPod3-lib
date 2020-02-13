@@ -220,19 +220,6 @@ int main(int argc, char** argv) {
     return -1;
   }
 
-  //for (int i = 0; i < 100; ++i) {
-  //  auto p = FrRand();
-  //  auto k = FrRand();
-  //  auto a1 = circuit::VrsPoseidon::permute(p, k);
-  //  auto a2 = circuit::Poseidon<5, 1, 6, 52, 2, 1>(std::array<Fr,2>{{p, k}});
-  //  if (a1 != a2[0]) {
-  //    std::cout << "oops\n";
-  //    return -1;
-  //  }    
-  //}
-  //std::cout << "ok\n";
-  //return 0;
-
   std::map<std::string, bool> rets;
 
   if (vrs_cache_n) {

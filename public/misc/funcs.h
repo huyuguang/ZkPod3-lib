@@ -172,7 +172,7 @@ inline void PrintVector(std::vector<Fr> const& a) {
   std::cout << "\n";
 }
 
-template<size_t N>
+template <size_t N>
 void PrintArray(std::array<Fr, N> const& a) {
   std::cout << "\n";
   for (auto const& i : a) {

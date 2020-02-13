@@ -1,8 +1,8 @@
 #pragma once
 
-#include "ecc/parallel_multiexp.h"
 #include "./vrs_cache.h"
 #include "./vrs_large.h"
+#include "ecc/parallel_multiexp.h"
 
 namespace clink {
 template <typename Scheme, typename Policy>

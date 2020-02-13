@@ -15,5 +15,4 @@
 #include "parallel/parallel.h"
 #include "utils/fst.h"
 
-namespace groth09::details {
-}  // namespace groth09::details
+namespace groth09::details {}  // namespace groth09::details

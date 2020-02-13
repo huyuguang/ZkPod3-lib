@@ -62,12 +62,12 @@ inline static int tbb_thread_num = 1;
 inline std::unique_ptr<tbb::task_scheduler_init> InitTbb(int thread_num) {
   CheckAllocationHook();
 
-  thread_num = thread_num > 0 ? thread_num : tbb::task_scheduler_init::automatic;
+  thread_num =
+      thread_num > 0 ? thread_num : tbb::task_scheduler_init::automatic;
   auto init = std::make_unique<tbb::task_scheduler_init>(thread_num);
-  tbb_thread_num = thread_num > 0 ? thread_num : init->default_num_threads();  
+  tbb_thread_num = thread_num > 0 ? thread_num : init->default_num_threads();
   return init;
 }
-
 
 typedef std::function<void()> Task;
 

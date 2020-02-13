@@ -6,6 +6,8 @@
 
 #include "ecc/ecc.h"
 
+// https://github.com/HarryR/ethsnarks/blob/master/ethsnarks/poseidon/permutation.py#L56-L67
+
 namespace circuit {
 struct PoseidonConstants {
   std::vector<Fr> C;  // `t` constants
@@ -78,7 +80,10 @@ const PoseidonConstants& poseidon_params() {
 
 template <unsigned param_t, unsigned nSBox, unsigned nInputs, unsigned nOutputs>
 std::array<Fr, nOutputs> PoseidonRound(const Fr& C_i, const std::vector<Fr>& M,
-                              const std::array<Fr, nInputs>& state) {
+                                       const std::array<Fr, nInputs>& state) {
+  static_assert(nInputs <= param_t, "nInputs <= param_t");
+  static_assert(nOutputs <= param_t, "nInputs <= param_t");
+
   std::array<Fr, nSBox> sbox;
   for (unsigned h = 0; h < nSBox; h++) {
     auto value = C_i;
@@ -129,7 +134,7 @@ std::array<Fr, nOutputs> Poseidon(std::array<Fr, nInputs> const& inputs) {
   // first round
   auto first_round = PoseidonRound<param_t, param_t, nInputs, param_t>(
       constants.C[0], constants.M, inputs);
-  //misc::PrintArray(first_round);
+  // misc::PrintArray(first_round);
 
   // prefix_full_round
   auto prefix_full_round = PoseidonRound<param_t, param_t, param_t, param_t>(
@@ -139,7 +144,7 @@ std::array<Fr, nOutputs> Poseidon(std::array<Fr, nInputs> const& inputs) {
     prefix_full_round = PoseidonRound<param_t, param_t, param_t, param_t>(
         constants.C[i], constants.M, prefix_full_round);
   }
-  //misc::PrintArray(prefix_full_round);
+  // misc::PrintArray(prefix_full_round);
 
   // partial_round
   auto partial_round = PoseidonRound<param_t, param_c, param_t, param_t>(
@@ -149,7 +154,7 @@ std::array<Fr, nOutputs> Poseidon(std::array<Fr, nInputs> const& inputs) {
     partial_round = PoseidonRound<param_t, param_c, param_t, param_t>(
         constants.C[i], constants.M, partial_round);
   }
-  //misc::PrintArray(partial_round);
+  // misc::PrintArray(partial_round);
 
   // suffix_full_round
   auto suffix_full_round = PoseidonRound<param_t, param_t, param_t, param_t>(
@@ -158,7 +163,7 @@ std::array<Fr, nOutputs> Poseidon(std::array<Fr, nInputs> const& inputs) {
     suffix_full_round = PoseidonRound<param_t, param_t, param_t, param_t>(
         constants.C[i], constants.M, suffix_full_round);
   }
-  //misc::PrintArray(suffix_full_round);
+  // misc::PrintArray(suffix_full_round);
 
   // last round
   auto last_round = PoseidonRound<param_t, param_t, param_t, nOutputs>(

@@ -70,7 +70,7 @@ struct VrsBasic {
     GetW get_w;
     Fr const& vw_com_r;
     int64_t const vw_g_offset;
-    std::unique_ptr<Scheme> scheme;    
+    std::unique_ptr<Scheme> scheme;
     int64_t const n;
     int64_t const m;
     std::vector<G1> var_coms;
@@ -233,7 +233,7 @@ struct VrsBasic {
     GetP get_p;
     GetW get_w;
     int64_t const vw_g_offset;
-    std::unique_ptr<Scheme> scheme;    
+    std::unique_ptr<Scheme> scheme;
     int64_t const n;
     int64_t const m;
   };

@@ -191,8 +191,8 @@ class Poseidon_Round : public libsnark::gadget<Fr> {
         state(in_state),
         sboxes(make_sboxes(in_pb, annotation_prefix)),
         outputs(make_outputs(in_pb, in_C_i, in_M, in_state, sboxes)) {
-    assert(nInputs <= param_t);
-    assert(nOutputs <= param_t);
+    static_assert(nInputs <= param_t, "nInputs <= param_t");
+    static_assert(nOutputs <= param_t, "nOutputs <= param_t");
   }
 
   void generate_r1cs_witness() const {
