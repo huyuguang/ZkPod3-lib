@@ -12,10 +12,10 @@
 *.cc text eol=lf
 *.tcc text eol=lf
 
-*.sln text eol=crlf
-*.vcxproj text eol=crlf
-*.vcxproj.filters eol=crlf
-*.vcxproj.user eol=crlf
+#*.sln text eol=crlf
+#*.vcxproj text eol=crlf
+#*.vcxproj.filters eol=crlf
+#*.vcxproj.user eol=crlf
 
 # Denote all files that are truly binary and should not be modified.
 *.png binary
