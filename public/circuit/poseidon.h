@@ -90,8 +90,9 @@ std::array<Fr, nOutputs> PoseidonRound(const Fr& C_i, const std::vector<Fr>& M,
     if (h < nInputs) {
       value += state[h];
     }
-    auto value2 = value * value;
-    sbox[h] = value2 * value2 * value;
+    //auto value2 = value * value;
+    //sbox[h] = value2 * value2 * value;
+    Fr::pow(sbox[h], value, 5);
   }
 
   std::array<Fr, nOutputs> ret;
