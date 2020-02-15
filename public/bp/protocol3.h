@@ -238,7 +238,7 @@ inline bool Verify(Proof const& proof, h256_t seed, VerifyInput&& input) {
 }
 
 inline bool Test(int64_t n) {
-  Tick tick(__FUNCTION__);
+  Tick tick(__FN__);
   h256_t seed = misc::RandH256();
   std::vector<G1> g1(n);
   G1Rand(g1.data(), n);
@@ -290,7 +290,7 @@ inline bool Test(int64_t n) {
   VerifyInput verify_input(std::move(g1_copy), std::move(g2_copy), h, u,
                            com_pub);
   bool success = Verify(proof, seed, std::move(verify_input));
-  std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success
+  std::cout << __FILE__ << " " << __FN__ << ": " << success
             << "\n\n\n\n\n\n";
   return success;
 }

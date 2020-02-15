@@ -8,6 +8,6 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LocalDebuggerWorkingDirectory>$(OutDir)</LocalDebuggerWorkingDirectory>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
-    <LocalDebuggerCommandArguments>--vrs_basic=10 --vrs_scheme=2</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>--pod=767*1023 --vrs_scheme=0</LocalDebuggerCommandArguments>
   </PropertyGroup>
 </Project>

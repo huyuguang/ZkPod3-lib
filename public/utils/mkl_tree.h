@@ -157,7 +157,7 @@ inline bool CalcRoot(std::string const& file, h256_t* root) {
 
 inline bool VerifyPath(uint64_t pos, h256_t value, uint64_t count,
                        h256_t const& root, Path const& path) {
-  // Tick tick(__FUNCTION__);
+  // Tick tick(__FN__);
   auto depth = misc::Log2UB(count);
   assert(path.size() == depth);
   if (path.size() != depth) return false;

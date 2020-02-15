@@ -94,7 +94,7 @@ struct Pod {
   static void EncryptAndProve(ProveOutput& output, h256_t seed,
                               CommitedData const& commited_data,
                               std::string cache_dir = "") {
-    Tick _tick_(__FUNCTION__);
+    Tick _tick_(__FN__);
     auto n = commited_data.n;
     auto s = commited_data.s;
 
@@ -180,7 +180,7 @@ struct Pod {
   static bool VerifyAndSign(VerifyOutput& output, h256_t seed, int64_t n,
                             int64_t s, GetCom const& get_com,
                             ProvedData const& proved_data) {
-    Tick _tick_(__FUNCTION__);
+    Tick _tick_(__FN__);
     if ((int64_t)proved_data.k.size() != (n + 1)) {
       assert(false);
       return false;
@@ -248,6 +248,7 @@ struct Pod {
 
   static std::vector<Fr> GenerateV(std::vector<Fr> const& plain,
                                    Fr const& key) {
+    Tick _tick_(__FN__);
     // ex: v = mimc_enc(plain, key)
     std::vector<Fr> v(plain.size());
     auto parallel_f = [&v, &plain, &key](uint64_t i) {
@@ -261,7 +262,7 @@ struct Pod {
                           std::vector<Fr> const& encrypted_m,
                           Secret const& secret, VerifyOutput const& output,
                           std::vector<Fr>& decrypted_m) {
-    Tick _tick_(__FUNCTION__);
+    Tick _tick_(__FN__);
     // verify the secret opened by prover
     if (!VerifySecret(output.receipt, secret)) {
       assert(false);
@@ -301,7 +302,7 @@ struct Pod {
 
  private:
   static void UpdateSeed(h256_t& seed, std::vector<G1> const& k) {
-    // Tick tick(__FUNCTION__);
+    // Tick tick(__FN__);
     CryptoPP::Keccak_256 hash;
     HashUpdate(hash, seed);
     HashUpdate(hash, k);
@@ -413,7 +414,7 @@ bool Pod<Scheme, Policy>::Test(int64_t n, int64_t s) {
 
   h256_t seed = misc::RandH256();
 
-  Tick tick(__FUNCTION__);
+  Tick tick(__FN__);
   std::cout << "n = " << n << ", s = " << s << "\n";
 
   // prove

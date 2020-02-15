@@ -101,7 +101,7 @@ class EccPub : boost::noncopyable {
   };
 
   void Create() {
-    Tick tick(__FUNCTION__);
+    Tick tick(__FN__);
 
     auto fr_bits = Fr::getBitSize();
 
@@ -128,7 +128,7 @@ class EccPub : boost::noncopyable {
   }
 
   void SaveInternal(std::string const& file) {
-    Tick tick(__FUNCTION__);
+    Tick tick(__FN__);
     FILE* f = fopen(file.c_str(), "wb+");
     if (!f) throw std::runtime_error("Create file failed");
 
@@ -183,7 +183,7 @@ class EccPub : boost::noncopyable {
   }
 
   void LoadInternal(std::string const& file) {
-    Tick tick(__FUNCTION__);
+    Tick tick(__FN__);
     FILE* f = fopen(file.c_str(), "rb");
     if (!f) throw std::runtime_error("Open failed");
 

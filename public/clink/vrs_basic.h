@@ -79,7 +79,7 @@ struct VrsBasic {
    private:
     void BuildVarComs(std::vector<std::vector<Fr>> const& vars,
                       std::vector<G1>&& icached_var_coms,
-                      std::vector<Fr>&& icached_var_coms_r) {
+                      std::vector<Fr>&& icached_var_coms_r) {      
       auto constexpr kPrimaryInputSize = Scheme::kPrimaryInputSize;
 
       assert(icached_var_coms.size() == icached_var_coms_r.size());
@@ -89,6 +89,7 @@ struct VrsBasic {
         var_coms = std::move(icached_var_coms);
         var_coms_r = std::move(icached_var_coms_r);
       } else {
+        Tick _tick_(__FN__);
         assert(icached_var_coms.empty());
         var_coms.resize(m);
         var_coms_r.resize(m);
@@ -172,6 +173,7 @@ struct VrsBasic {
   static Fr Prove(Proof& proof, ProveOutput& output, h256_t seed,
                   ProveInput&& input, std::vector<G1>&& icached_var_coms,
                   std::vector<Fr>&& icached_var_coms_r) {
+    Tick _tick_(__FN__);
     auto constexpr kPrimaryInputSize = Scheme::kPrimaryInputSize;
     auto vars = input.EvaluateAndCommit(std::move(icached_var_coms),
                                         std::move(icached_var_coms_r));
@@ -293,7 +295,7 @@ struct VrsBasic {
 
 template <typename Scheme, typename Policy>
 bool VrsBasic<Scheme, Policy>::Test(int64_t n) {
-  Tick tick(__FUNCTION__);
+  Tick tick(__FN__);
   auto seed = misc::RandH256();
   std::vector<Fr> p(n);
   FrRand(p);
@@ -344,7 +346,7 @@ bool VrsBasic<Scheme, Policy>::Test(int64_t n) {
     success = VrsPub<Scheme>::VerifySecret(prove_output.h, prove_output.g,
                                            prove_output.key_com, k_com_r, k);
   }
-  std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success
+  std::cout << __FILE__ << " " << __FN__ << ": " << success
             << "\n\n\n\n\n\n";
   return success;
 }

@@ -86,7 +86,7 @@ void serialize(Ar& ar, Proof& t) {
 inline void Prove(Proof& proof, h256_t seed, G1 p, G1 const& u,
                   std::vector<G1>&& g1, std::vector<G1>&& g2,
                   std::vector<Fr>&& a, std::vector<Fr>&& b, Fr const& c) {
-  // Tick tick(__FUNCTION__);
+  // Tick tick(__FN__);
   (void)c;
 
   assert(g1.size() == g2.size());
@@ -178,7 +178,7 @@ inline void Prove(Proof& proof, h256_t seed, G1 p, G1 const& u,
 
 bool Verify(h256_t seed, G1 p, G1 const& u, std::vector<G1>&& g1,
             std::vector<G1>&& g2, Proof const& proof) {
-  // Tick tick(__FUNCTION__);
+  // Tick tick(__FN__);
   assert(g1.size() == g2.size());
   UpdateSeed(seed, p, u, g1.size());
 
@@ -255,7 +255,7 @@ bool Verify(h256_t seed, G1 p, G1 const& u, std::vector<G1>&& g1,
 }
 
 inline bool Test(int64_t n) {
-  Tick tick(__FUNCTION__);
+  Tick tick(__FN__);
   h256_t seed = misc::RandH256();
   std::vector<G1> g1(n);
   G1Rand(g1.data(), n);
@@ -299,7 +299,7 @@ inline bool Test(int64_t n) {
 
   bool success =
       Verify(seed, p, u, std::move(g1_copy), std::move(g2_copy), proof);
-  std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success
+  std::cout << __FILE__ << " " << __FN__ << ": " << success
             << "\n\n\n\n\n\n";
   return success;
 }

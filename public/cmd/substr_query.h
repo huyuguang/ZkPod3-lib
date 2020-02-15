@@ -93,7 +93,7 @@ struct SubstrQuery {
   }
 
   static void Prove(ProveOutput& output, h256_t seed, ProveInput const& input) {
-    Tick tick(__FUNCTION__);
+    Tick tick(__FN__);
     int64_t n = input.n;
     int64_t s = input.s;
 
@@ -148,7 +148,7 @@ struct SubstrQuery {
 
   static bool Verify(Proof const& proof, h256_t seed, VerifyInput const& input,
                      typename Pod::VerifyOutput& output) {
-    Tick tick(__FUNCTION__);
+    Tick tick(__FN__);
     int64_t n = input.n;
     int64_t s = input.s;
 
@@ -198,7 +198,7 @@ struct SubstrQuery {
                           typename Pod::Secret const& secret,
                           typename Pod::VerifyOutput const& verify_output,
                           std::vector<boost::dynamic_bitset<uint8_t>>& rets) {
-    Tick tick(__FUNCTION__);
+    Tick tick(__FN__);
     int64_t pack_s = (s + 252) / 253;
     std::vector<Fr> m;
     if (!Pod::DecryptData(n, pack_s, proved_data.em, secret, verify_output,
@@ -279,7 +279,7 @@ bool SubstrQuery<Policy>::Test(int64_t n, int64_t s, std::string const& key) {
   };
   parallel::For(n, parallel_f2);
 
-  Tick tick(__FUNCTION__);
+  Tick tick(__FN__);
 
   typename Pod::CommitedData data_x;
   data_x.n = n;
@@ -335,7 +335,7 @@ bool SubstrQuery<Policy>::Test(int64_t n, int64_t s, std::string const& key) {
   }
 
   bool success = check_rets == rets;
-  std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success
+  std::cout << __FILE__ << " " << __FN__ << ": " << success
             << "\n\n\n\n\n\n";
 
   return success;

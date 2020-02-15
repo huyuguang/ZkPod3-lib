@@ -94,7 +94,7 @@ struct Sec52a {
     }
 
     std::vector<Fr> BuildSumXY() {
-      Tick tick(__FUNCTION__);
+      Tick tick(__FN__);
       std::vector<Fr> ret(m() * 2 - 1);
       auto parallel_f = [this, &ret](int64_t l) { ret[l] = ComputeSumOfXY(l); };
       parallel::For(m() * 2 - 1, parallel_f);
@@ -127,7 +127,7 @@ struct Sec52a {
 
   static void ComputeCom(CommitmentPub& com_pub, CommitmentSec& com_sec,
                          ProveInput const& input) {
-    Tick tick(__FUNCTION__);
+    Tick tick(__FN__);
     auto const m = input.m();
     // auto const n = input.n();
     com_sec.r.resize(m);
@@ -157,7 +157,7 @@ struct Sec52a {
                             ProveInput const& input,
                             CommitmentPub const& com_pub,
                             CommitmentSec const& com_sec) {
-    Tick tick(__FUNCTION__);
+    Tick tick(__FN__);
 
     auto const m = input.m();
     com_ext_sec.tl.resize(m * 2);
@@ -175,7 +175,7 @@ struct Sec52a {
 
     if (com_ext_pub.cl[m - 1] != com_pub.c) {
       assert(false);
-      throw std::runtime_error(__FUNCTION__);
+      throw std::runtime_error(__FN__);
     }
   }
 
@@ -194,7 +194,7 @@ struct Sec52a {
   static void Prove(Proof& proof, h256_t seed, ProveInput const& input,
                     CommitmentPub const& com_pub,
                     CommitmentSec const& com_sec) {
-    Tick tick(__FUNCTION__);
+    Tick tick(__FN__);
     auto m = input.m();
     auto n = input.n();
     assert(PcBase::kGSize >= input.n());
@@ -308,7 +308,7 @@ struct Sec52a {
   }
 
   static bool Test(int64_t m, int64_t n) {
-    Tick tick(__FUNCTION__);
+    Tick tick(__FN__);
     std::cout << "m=" << m << ", n=" << n << "\n";
 
     std::vector<std::vector<Fr>> x(m);
@@ -345,7 +345,7 @@ struct Sec52a {
 
     VerifyInput verify_input(com_pub, x_g_offset, y_g_offset, z_g_offset);
     bool success = Verify(proof, seed, verify_input);
-    std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success
+    std::cout << __FILE__ << " " << __FN__ << ": " << success
               << "\n\n\n\n\n\n";
     return success;
   }

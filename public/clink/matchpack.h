@@ -182,7 +182,7 @@ bool MatchPack<Policy>::Test(int64_t n, std::string const& k) {
 
   VerifyInput verify_input(n, fr_k, x_g_offset, py_g_offset);
   bool success = Verify(proof, seed, verify_input);
-  std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success
+  std::cout << __FILE__ << " " << __FN__ << ": " << success
             << "\n\n\n\n\n\n";
   return success;
 }

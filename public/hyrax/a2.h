@@ -108,7 +108,7 @@ struct A2 {
   static bool VerifyInternal(VerifyInput const& input, Fr const& challenge,
                              CommitmentExtPub const& com_ext_pub,
                              SubProof const& sub_proof) {
-    // Tick tick(__FUNCTION__);
+    // Tick tick(__FN__);
     auto const& com_pub = input.com_pub;
 
     std::array<parallel::Task, 2> tasks;
@@ -142,7 +142,7 @@ struct A2 {
 
   static void ComputeCom(CommitmentPub& com_pub, CommitmentSec const& com_sec,
                          ProveInput const& input) {
-    // Tick tick(__FUNCTION__);
+    // Tick tick(__FN__);
     std::array<parallel::Task, 2> tasks;
     tasks[0] = [&com_pub, &input, &com_sec]() {
       com_pub.xi =
@@ -159,7 +159,7 @@ struct A2 {
   static void ComputeCommitmentExt(CommitmentExtPub& com_ext_pub,
                                    CommitmentExtSec& com_ext_sec,
                                    ProveInput const& input) {
-    // Tick tick(__FUNCTION__);
+    // Tick tick(__FN__);
     auto n = input.n();
     com_ext_sec.d.resize(n);
     FrRand(com_ext_sec.d.data(), n);
@@ -205,7 +205,7 @@ struct A2 {
 
   static void Prove(Proof& proof, h256_t seed, ProveInput const& input,
                     CommitmentPub com_pub, CommitmentSec com_sec) {
-    Tick tick(__FUNCTION__);
+    Tick tick(__FN__);
 
     assert(PcBase::kGSize >= input.n());
 
@@ -220,7 +220,7 @@ struct A2 {
 
   static bool Verify(Proof const& proof, h256_t seed,
                      VerifyInput const& input) {
-    // Tick tick(__FUNCTION__);
+    // Tick tick(__FN__);
     assert(PcBase::kGSize >= proof.n());
     if (input.a.size() != proof.sub_proof.z.size() || input.a.empty())
       return false;
@@ -285,7 +285,7 @@ void serialize(Ar& ar, A2::Proof& t) {
 }
 
 bool A2::Test(int64_t n) {
-  Tick tick(__FUNCTION__);
+  Tick tick(__FN__);
   std::cout << "n = " << n << "\n";
   std::vector<Fr> x(n);
   FrRand(x.data(), n);
@@ -326,7 +326,7 @@ bool A2::Test(int64_t n) {
 
   VerifyInput verify_input(a, com_pub, x_g_offset, y_g_offset);
   bool success = Verify(proof, UpdateSeed, verify_input);
-  std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success
+  std::cout << __FILE__ << " " << __FN__ << ": " << success
             << "\n\n\n\n\n\n";
   return success;
 }

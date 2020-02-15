@@ -107,7 +107,7 @@ struct Sec53a {
 
     // pad some trivial values
     void Align() {
-      // Tick tick(__FUNCTION__);
+      // Tick tick(__FN__);
       int64_t old_m = m();
       int64_t new_m = (int64_t)misc::Pow2UB(old_m);
       if (old_m == new_m) return;
@@ -129,7 +129,7 @@ struct Sec53a {
 
     void Update(Fr const& sigma_xy1, Fr const& sigma_xy2, Fr const& e,
                 Fr const& ee) {
-      // Tick tick(__FUNCTION__);
+      // Tick tick(__FN__);
       auto m2 = m() / 2;
       for (int64_t i = 0; i < m2; ++i) {
         x[i] = x[2 * i + 1] * e + x[2 * i];
@@ -182,7 +182,7 @@ struct Sec53a {
 
   static void ComputeCom(ProveInput const& input, CommitmentPub* com_pub,
                          CommitmentSec const& com_sec) {
-    // Tick tick(__FUNCTION__);
+    // Tick tick(__FN__);
     auto const m = input.m();
     auto const n = input.n();
 
@@ -202,7 +202,7 @@ struct Sec53a {
 
   static void ComputeCom(ProveInput const& input, CommitmentPub* com_pub,
                          CommitmentSec* com_sec) {
-    // Tick tick(__FUNCTION__);
+    // Tick tick(__FN__);
     auto const m = input.m();
     com_sec->r.resize(m);
     FrRand(com_sec->r.data(), m);
@@ -218,7 +218,7 @@ struct Sec53a {
   static void ProveFinal(Proof& proof, h256_t const& seed,
                          ProveInput const& input, CommitmentPub const& com_pub,
                          CommitmentSec const& com_sec) {
-    // Tick tick(__FUNCTION__);
+    // Tick tick(__FN__);
     assert(input.m() == 1);
 
     Sec51a::ProveInput input_51(input.x[0], input.y[0], input.z,
@@ -231,7 +231,7 @@ struct Sec53a {
 
   static void ComputeSigmaXY(ProveInput const& input, Fr* sigma_xy1,
                              Fr* sigma_xy2) {
-    // Tick tick(__FUNCTION__);
+    // Tick tick(__FN__);
     int64_t m = input.m();
     auto m2 = m / 2;
     std::vector<Fr> xy1(m2, FrZero());
@@ -254,7 +254,7 @@ struct Sec53a {
   static void UpdateCom(CommitmentPub& com_pub, CommitmentSec& com_sec,
                         Fr const& tl, Fr const& tu, G1 const& cl, G1 const& cu,
                         Fr const& e, Fr const& ee) {
-    // Tick tick(__FUNCTION__);
+    // Tick tick(__FN__);
     CommitmentPub com_pub2;
     CommitmentSec com_sec2;
     auto m2 = com_pub.a.size() / 2;
@@ -291,7 +291,7 @@ struct Sec53a {
 
   static Fr ComputeChallenge(h256_t const& seed, CommitmentPub const& com_pub,
                              G1 const& cl, G1 const& cu) {
-    // Tick tick(__FUNCTION__);
+    // Tick tick(__FN__);
     CryptoPP::Keccak_256 hash;
     h256_t digest;
     HashUpdate(hash, seed);
@@ -307,7 +307,7 @@ struct Sec53a {
   // pad some trivial value
   static void AlignData(ProveInput& input, CommitmentPub& com_pub,
                         CommitmentSec& com_sec) {
-    // Tick tick(__FUNCTION__);
+    // Tick tick(__FN__);
     input.Align();
     com_sec.Align();
     com_pub.Align();
@@ -315,7 +315,7 @@ struct Sec53a {
 
   static void ProveRecursive(Proof& proof, h256_t& seed, ProveInput& input,
                              CommitmentPub& com_pub, CommitmentSec& com_sec) {
-    // Tick tick(__FUNCTION__);
+    // Tick tick(__FN__);
     assert(input.m() > 1);
 
     Fr sigma_xy1, sigma_xy2;
@@ -349,7 +349,7 @@ struct Sec53a {
 
   static void Prove(Proof& proof, h256_t seed, ProveInput input,
                     CommitmentPub com_pub, CommitmentSec com_sec) {
-    // Tick tick(__FUNCTION__);
+    // Tick tick(__FN__);
     assert(PcBase::kGSize >= input.n());
 
     while (input.m() > 1) {
@@ -360,7 +360,7 @@ struct Sec53a {
 
   static bool Verify(Proof const& proof, h256_t seed,
                      VerifyInput const& input) {
-    // Tick tick(__FUNCTION__);
+    // Tick tick(__FN__);
     if (!proof.CheckFormat(input.m())) {
       assert(false);
       return false;
@@ -433,7 +433,7 @@ void serialize(Ar& ar, Sec53a::Proof& t) {
 }
 
 bool Sec53a::Test(int64_t m, int64_t n) {
-  Tick tick(__FUNCTION__);
+  Tick tick(__FN__);
   std::cout << "m=" << m << ", n=" << n << "\n";
 
   std::vector<std::vector<Fr>> x(m);
@@ -489,7 +489,7 @@ bool Sec53a::Test(int64_t m, int64_t n) {
 
   VerifyInput verify_input(com_pub, x_g_offset, y_g_offset, z_g_offset);
   bool success = Verify(proof, seed, verify_input);
-  std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success
+  std::cout << __FILE__ << " " << __FN__ << ": " << success
             << "\n\n\n\n\n\n";
   return success;
 }

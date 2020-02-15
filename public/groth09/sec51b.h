@@ -122,7 +122,7 @@ struct Sec51b {
 
   static void ComputeCom(CommitmentPub& com_pub, CommitmentSec& com_sec,
                          ProveInput const& input) {
-    // Tick tick(__FUNCTION__);
+    // Tick tick(__FN__);
     com_sec.r = FrRand();
     com_sec.s = FrRand();
     com_sec.t = FrRand();
@@ -143,7 +143,7 @@ struct Sec51b {
   static void ComputeComExt(CommitmentExtPub& com_ext_pub,
                             CommitmentExtSec& com_ext_sec,
                             ProveInput const& input) {
-    // Tick tick(__FUNCTION__);
+    // Tick tick(__FN__);
     auto const n = input.n();
     com_ext_sec.dx.resize(n);
     FrRand(com_ext_sec.dx.data(), n);
@@ -183,7 +183,7 @@ struct Sec51b {
                               CommitmentSec const& com_sec,
                               CommitmentExtSec const& com_ext_sec,
                               Fr const& challenge) {
-    // Tick tick(__FUNCTION__);
+    // Tick tick(__FN__);
     auto n = input.n();
     sub_proof.fx.resize(n);
     sub_proof.fy.resize(n);
@@ -306,7 +306,7 @@ struct Sec51b {
   static void Prove(Proof& proof, h256_t seed, ProveInput const& input,
                     CommitmentPub const& com_pub,
                     CommitmentSec const& com_sec) {
-    // Tick tick(__FUNCTION__);
+    // Tick tick(__FN__);
 
     assert(PcBase::kGSize >= input.n());
 
@@ -321,7 +321,7 @@ struct Sec51b {
 
   static bool Verify(Proof const& proof, h256_t seed,
                      VerifyInput const& input) {
-    // Tick tick(__FUNCTION__);
+    // Tick tick(__FN__);
     assert(PcBase::kGSize >= proof.n());
 
     UpdateSeed(seed, input.com_pub, proof.com_ext_pub);
@@ -374,7 +374,7 @@ void serialize(Ar& ar, Sec51b::Proof& t) {
 }
 
 bool Sec51b::Test(int64_t n) {
-  Tick tick(__FUNCTION__);
+  Tick tick(__FN__);
   std::vector<Fr> x(n);
   FrRand(x.data(), n);
   std::vector<Fr> y(n);
@@ -419,7 +419,7 @@ bool Sec51b::Test(int64_t n) {
 
   VerifyInput verify_input(t, com_pub, x_g_offset, y_g_offset, z_g_offset);
   bool success = Verify(proof, seed, verify_input);
-  std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success
+  std::cout << __FILE__ << " " << __FN__ << ": " << success
             << "\n\n\n\n\n\n";
   return success;
 }

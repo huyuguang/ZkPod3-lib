@@ -155,7 +155,7 @@ struct A3 {
 
   static void ComputeCom(CommitmentPub& com_pub, CommitmentSec const& com_sec,
                          ProveInput const& input) {
-    // Tick tick(__FUNCTION__);
+    // Tick tick(__FN__);
     std::array<parallel::Task, 2> tasks;
     tasks[0] = [&com_pub, &input, &com_sec]() {
       com_pub.xi =
@@ -365,7 +365,7 @@ void serialize(Ar& ar, A3::Proof& t) {
 }
 
 bool A3::Test(int64_t n) {
-  Tick tick(__FUNCTION__);
+  Tick tick(__FN__);
   std::cout << "n = " << n << "\n";
 
   std::vector<Fr> x(n);
@@ -407,7 +407,7 @@ bool A3::Test(int64_t n) {
 
   VerifyInput verify_input(a, com_pub, x_g_offset, y_g_offset);
   bool success = Verify(proof, UpdateSeed, verify_input);
-  std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success
+  std::cout << __FILE__ << " " << __FN__ << ": " << success
             << "\n\n\n\n\n\n";
   return success;
 }

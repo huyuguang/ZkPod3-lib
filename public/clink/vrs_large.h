@@ -160,7 +160,7 @@ struct VrsLarge {
 
 template <typename Scheme, typename Policy>
 bool VrsLarge<Scheme, Policy>::Test(int64_t n) {
-  Tick tick(__FUNCTION__);
+  Tick tick(__FN__);
   auto seed = misc::RandH256();
   std::vector<Fr> p(n);
   FrRand(p);
@@ -211,7 +211,7 @@ bool VrsLarge<Scheme, Policy>::Test(int64_t n) {
     success = VrsPub<Scheme>::VerifySecret(prove_output.h, prove_output.g,
                                            prove_output.key_com, k_com_r, k);
   }
-  std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success
+  std::cout << __FILE__ << " " << __FN__ << ": " << success
             << "\n\n\n\n\n\n";
   return success;
 }

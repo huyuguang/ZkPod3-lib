@@ -88,7 +88,7 @@ struct Match {
   };
 
   static void Prove(Proof& proof, h256_t seed, ProveInput const& input) {
-    Tick tick(__FUNCTION__);
+    Tick tick(__FN__);
 
     std::vector<G1> com_w(input.s);
     std::vector<Fr> com_w_r(input.s);
@@ -135,7 +135,7 @@ struct Match {
 
   static bool Verify(Proof const& proof, h256_t seed,
                      VerifyInput const& input) {
-    Tick tick(__FUNCTION__);
+    Tick tick(__FN__);
 
     if ((int64_t)proof.com_w.size() != input.s) {
       assert(false);
@@ -172,7 +172,7 @@ bool Match<Policy>::Test() {
   Fr com_y_r = FrRand();
   G1 com_y = PcComputeCommitmentG(g_offset, y, com_y_r);
 
-  Tick tick(__FUNCTION__);
+  Tick tick(__FN__);
 
   ProveInput prove_input(k, x, com_x, com_x_r, y, com_y, com_y_r, g_offset);
   Proof proof;
@@ -198,7 +198,7 @@ bool Match<Policy>::Test() {
 
   VerifyInput verify_input(n, k, g_offset);
   bool success = Verify(proof, seed, verify_input);
-  std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success
+  std::cout << __FILE__ << " " << __FN__ << ": " << success
             << "\n\n\n\n\n\n";
   return success;
 }

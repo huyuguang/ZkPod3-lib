@@ -116,7 +116,7 @@ struct Sec43b {
           x_g_offset(x_g_offset),
           y_g_offset(y_g_offset),
           z_g_offset(z_g_offset) {
-      // Tick tick(__FUNCTION__);
+      // Tick tick(__FN__);
       assert(!x.empty());
       assert(x.size() == y.size());
       assert(x.size() == z.size());
@@ -129,7 +129,7 @@ struct Sec43b {
 
     // pad some trivial value
     void Align() {
-      // Tick tick(__FUNCTION__);
+      // Tick tick(__FN__);
       int64_t old_m = m();
       int64_t new_m = (int64_t)misc::Pow2UB(old_m);
       if (old_m == new_m) return;
@@ -154,7 +154,7 @@ struct Sec43b {
 
   static void ComputeCom(CommitmentPub& com_pub, CommitmentSec& com_sec,
                          ProveInput const& input) {
-    // Tick tick(__FUNCTION__);
+    // Tick tick(__FN__);
     auto const m = input.m();
     com_sec.r.resize(m);
     FrRand(com_sec.r.data(), m);
@@ -182,7 +182,7 @@ struct Sec43b {
 
   static void UpdateSeed(h256_t& seed, CommitmentPub const& com_pub, int64_t m,
                          int64_t n) {
-    // Tick tick(__FUNCTION__);
+    // Tick tick(__FN__);
     CryptoPP::Keccak_256 hash;
     HashUpdate(hash, seed);
     HashUpdate(hash, com_pub.a);
@@ -202,7 +202,7 @@ struct Sec43b {
   // pad some trivial value
   static void AlignData(ProveInput& input, CommitmentPub& com_pub,
                         CommitmentSec& com_sec) {
-    Tick tick(__FUNCTION__);
+    Tick tick(__FN__);
     input.Align();
     com_pub.Align();
     com_sec.Align();
@@ -210,7 +210,7 @@ struct Sec43b {
 
   static void Prove(Proof& proof, h256_t seed, ProveInput&& input,
                     CommitmentPub com_pub, CommitmentSec com_sec) {
-    Tick tick(__FUNCTION__);
+    Tick tick(__FN__);
     auto m = input.m();
     auto n = input.n();
     auto original_m = input.original_m;
@@ -355,7 +355,7 @@ struct Sec43b {
 
   static bool Verify(Proof const& proof, h256_t seed,
                      VerifyInput const& input) {
-    // Tick tick(__FUNCTION__);
+    // Tick tick(__FN__);
     auto m = input.m;
     auto n = input.n;
 
@@ -414,7 +414,7 @@ struct Sec43b {
 
 template <typename Sec53, typename HyraxA>
 bool Sec43b<Sec53, HyraxA>::Test(int64_t m, int64_t n) {
-  Tick tick(__FUNCTION__);
+  Tick tick(__FN__);
   std::cout << "old_m=" << m << ", n=" << n << "\n";
 
   std::vector<std::vector<Fr>> x(m);
@@ -471,7 +471,7 @@ bool Sec43b<Sec53, HyraxA>::Test(int64_t m, int64_t n) {
 
   VerifyInput verify_input(m, n, com_pub, x_g_offset, y_g_offset, z_g_offset);
   bool success = Verify(proof, seed, verify_input);
-  std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success
+  std::cout << __FILE__ << " " << __FN__ << ": " << success
             << "\n\n\n\n\n\n";
   return success;
 }

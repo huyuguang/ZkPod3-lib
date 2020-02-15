@@ -195,7 +195,7 @@ bool Divide<HyraxA>::Test() {
 
   VerifyInput verify_input(sn, com_x, x_g_offset, com_s, s_g_offset);
   bool success = Verify(seed, verify_input, proof);
-  std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success
+  std::cout << __FILE__ << " " << __FN__ << ": " << success
             << "\n\n\n\n\n\n";
   return success;
 }

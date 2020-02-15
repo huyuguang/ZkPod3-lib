@@ -191,7 +191,7 @@ bool Pack<HyraxA>::Test(int64_t xn) {
 
   VerifyInput verify_input(xn, com_x, x_g_offset, com_y, y_g_offset);
   bool success = Verify(proof, seed, verify_input);
-  std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success
+  std::cout << __FILE__ << " " << __FN__ << ": " << success
             << "\n\n\n\n\n\n";
   return success;
 }

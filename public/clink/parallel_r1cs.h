@@ -90,7 +90,7 @@ struct ParallelR1cs {
 
   // w: s*n
   static void Prove(Proof& proof, h256_t seed, ProveInput&& input) {
-    Tick tick(__FUNCTION__);
+    Tick tick(__FN__);
     int64_t m = input.m;
     int64_t n = input.n;
 
@@ -157,7 +157,7 @@ struct ParallelR1cs {
       };
       parallel::For(&all_success, (int64_t)public_w.size(), parallel_f);
       if (!all_success) {
-        std::cerr << "ASSERT: " << __FUNCTION__ << ": " << __LINE__ << "\n";
+        std::cerr << "ASSERT: " << __FN__ << ": " << __LINE__ << "\n";
         return false;
       }
       return true;
@@ -174,7 +174,7 @@ struct ParallelR1cs {
 
   static bool Verify(Proof const& proof, h256_t seed,
                      VerifyInput const& input) {
-    Tick tick(__FUNCTION__);
+    Tick tick(__FN__);
 
     if (!input.Check()) {
       assert(false);
@@ -202,7 +202,7 @@ struct ParallelR1cs {
                          std::vector<Fr> const& com_w_r,
                          libsnark::linear_combination<Fr> const& lc,
                          G1& com_pub, Fr& com_sec, G1 const& sigma_g) {
-    // Tick tick(__FUNCTION__);
+    // Tick tick(__FN__);
     for (auto const& term : lc.terms) {
       if (term.index == 0) {  // constants
         com_pub += sigma_g * term.coeff;
@@ -257,7 +257,7 @@ struct ParallelR1cs {
                               typename Sec43::CommitmentPub const& com_pub,
                               typename Sec43::CommitmentSec const& com_sec) {
 #ifdef _DEBUG
-    Tick tick(__FUNCTION__);
+    Tick tick(__FN__);
     for (int64_t i = 0; i < m; ++i) {
       auto& com_pub_a = com_pub.a[i];
       auto& com_pub_b = com_pub.b[i];
@@ -293,7 +293,7 @@ struct ParallelR1cs {
   static void BuildHpCom(std::vector<G1> const& com_w,
                          libsnark::linear_combination<Fr> const& lc,
                          G1& com_pub, G1 const& sigma_g) {
-    // Tick tick(__FUNCTION__);
+    // Tick tick(__FN__);
     for (auto const& term : lc.terms) {
       if (term.index == 0) {  // constants
         com_pub += sigma_g * term.coeff;

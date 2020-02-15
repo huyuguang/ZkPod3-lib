@@ -8,12 +8,16 @@
 
 struct Tick {
   Tick(std::string const& desc) : desc_(desc) {
+    Uniform();
     start_ = std::chrono::steady_clock::now();
     std::cout << GetIndentString(UpdateIndent(1) - 1);
     std::cout << "==> " << desc_ << "\n";
   }
   Tick(std::string const& desc, std::string const& desc2)
-      : desc_(desc + " " + desc2) {
+      : desc_(desc) {
+    Uniform();
+    desc_ += " ";
+    desc_ += desc2;
     start_ = std::chrono::steady_clock::now();
     std::cout << GetIndentString(UpdateIndent(1) - 1);
     std::cout << "==> " << desc_ << "\n";
@@ -46,6 +50,23 @@ struct Tick {
   }
 
  private:
+  void Uniform() {
+#ifdef __GNUC__
+    auto pos = desc_.find_first_of('(');
+    if (pos == std::string::npos) return;
+    desc_.resize(pos);
+    pos = desc_.find_first_of(' ');
+    if (pos == std::string::npos) return;
+    desc_ = desc_.substr(pos + 1);
+#endif
+  }
+
   std::string desc_;
   std::chrono::steady_clock::time_point start_;
 };
+
+#ifdef __GNUC__
+#define __FN__ __PRETTY_FUNCTION__
+#else
+#define __FN__ __FUNCTION__
+#endif

@@ -23,7 +23,7 @@ struct VrsSha256cScheme {
 #ifdef _DEBUG
   static const int64_t kMaxUnitPerZkp = 8;
 #else
-  static const int64_t kMaxUnitPerZkp = 512;
+  static const int64_t kMaxUnitPerZkp = 128;
 #endif
   static_assert(kMaxUnitPerZkp <= (int64_t)PcBase::kGSize / 3,
                 "kMaxUnitPerZkp too large");
@@ -53,7 +53,7 @@ struct VrsMimc5Scheme {
 #ifdef _DEBUG
   static const int64_t kMaxUnitPerZkp = 32;
 #else
-  static const int64_t kMaxUnitPerZkp = 1024 * 32;
+  static const int64_t kMaxUnitPerZkp = 1024 * 16;
 #endif
   static_assert(kMaxUnitPerZkp <= (int64_t)PcBase::kGSize / 3,
                 "kMaxUnitPerZkp too large");
@@ -87,7 +87,7 @@ struct VrsPoseidonScheme {
 #ifdef _DEBUG
   static const int64_t kMaxUnitPerZkp = 32;
 #else
-  static const int64_t kMaxUnitPerZkp = 1024 * 32;
+  static const int64_t kMaxUnitPerZkp = 1024 * 16;
 #endif
   static_assert(kMaxUnitPerZkp <= (int64_t)PcBase::kGSize / 3,
                 "kMaxUnitPerZkp too large");

@@ -143,7 +143,7 @@ struct VrsCache {
                              Fr const& key_com_r, int64_t begin, int64_t end,
                              std::vector<G1>& var_coms,
                              std::vector<Fr>& var_coms_r) {
-    Tick tick(__FUNCTION__);
+    Tick tick(__FN__);
     int64_t const kPrimaryInputSize = Scheme::kPrimaryInputSize;
     auto count = end - begin;
     std::vector<Fr> v(count);
@@ -185,7 +185,7 @@ struct VrsCache {
   static void UpgradeVarComs(h256_t const& seed, Fr const& key, int64_t begin,
                              int64_t old_end, int64_t new_end,
                              std::vector<G1>& var_coms) {
-    Tick tick(__FUNCTION__);
+    Tick tick(__FN__);
     if (old_end == new_end) return;
     // int64_t const kPrimaryInputSize = Scheme::kPrimaryInputSize;
     auto min_end = std::min(old_end, new_end);
@@ -227,7 +227,7 @@ struct VrsCache {
   }
 
   static FileData CreateFileData(int64_t count) {
-    Tick tick(__FUNCTION__);
+    Tick tick(__FN__);
     FileData cache;
     cache.count = count;
     cache.seed = misc::RandH256();
@@ -260,14 +260,14 @@ struct VrsCache {
 
   static bool LoadFile(std::string const& pathname, FileData& cache,
                        bool check_name) {
-    Tick tick(__FUNCTION__);
+    Tick tick(__FN__);
     try {
       yas::file_istream is(pathname.c_str());
       yas::binary_iarchive<yas::file_istream, YasBinF()> ia(is);
       // yas::json_iarchive<yas::file_istream> ia(is);
       ia.serialize(cache);
     } catch (std::exception& e) {
-      std::cerr << __FUNCTION__ << ": " << e.what() << "\n";
+      std::cerr << __FN__ << ": " << e.what() << "\n";
       boost::system::error_code ec;
       fs::remove(pathname, ec);
       return false;
@@ -292,7 +292,7 @@ struct VrsCache {
 
   static bool SaveFileData(std::string const& cache_dir, FileData const& cache,
                            std::string& output) {
-    Tick tick(__FUNCTION__);
+    Tick tick(__FN__);
     if (cache.max_unit_per_zkp != Scheme::kMaxUnitPerZkp ||
         cache.type != Scheme::type()) {
       std::cout << "invalid max_unit_per_zkp or type\n";
@@ -312,7 +312,7 @@ struct VrsCache {
       // yas::json_oarchive<yas::file_ostream> oa(os);
       oa.serialize(cache);
     } catch (std::exception& e) {
-      std::cerr << __FUNCTION__ << ": " << e.what() << "\n";
+      std::cerr << __FN__ << ": " << e.what() << "\n";
       fs::remove(temp_path_name);
       return false;
     }
@@ -400,7 +400,7 @@ struct VrsCache {
         fs::rename(ori_name, using_name);
         return using_name;
       } catch (std::exception& e) {
-        std::cerr << __FUNCTION__ << ":" << e.what() << "\n";
+        std::cerr << __FN__ << ":" << e.what() << "\n";
         files.erase(it);
       }
     }
@@ -428,7 +428,7 @@ struct VrsCache {
   }
 
   static void UpgradeFileData(FileData& cache, int64_t count) {
-    Tick tick(__FUNCTION__);
+    Tick tick(__FN__);
     static constexpr int64_t kPrimaryInputSize = 1;
     if (cache.count == count) return;
     auto old_count = cache.count;

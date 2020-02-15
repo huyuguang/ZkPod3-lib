@@ -98,7 +98,7 @@ struct A1 {
   static bool VerifyInternal(VerifyInput const& input, Fr const& c,
                              CommitmentExtPub const& com_ext_pub,
                              SubProof const& sub_proof) {
-    // Tick tick(__FUNCTION__);
+    // Tick tick(__FN__);
     auto const& gx = PcG(input.x_g_offset);
     auto const& gy = PcG(input.y_g_offset);
     auto const& h = PcH();
@@ -134,7 +134,7 @@ struct A1 {
 
   static void ComputeCom(CommitmentPub& com_pub, CommitmentSec& com_sec,
                          ProveInput const& input) {
-    // Tick tick(__FUNCTION__);
+    // Tick tick(__FN__);
     auto const& gx = PcG(input.x_g_offset);
     auto const& gy = PcG(input.y_g_offset);
     auto const& gz = gx;
@@ -162,7 +162,7 @@ struct A1 {
                                    CommitmentExtSec& com_ext_sec,
                                    ProveInput const& input,
                                    CommitmentPub const& com_pub) {
-    // Tick tick(__FUNCTION__);
+    // Tick tick(__FN__);
     auto const& gx = PcG(input.x_g_offset);
     auto const& gy = PcG(input.y_g_offset);
     auto const& h = PcH();
@@ -212,7 +212,7 @@ struct A1 {
 
   static void Prove(Proof& proof, h256_t seed, ProveInput input,
                     CommitmentPub com_pub, CommitmentSec com_sec) {
-    // Tick tick(__FUNCTION__);
+    // Tick tick(__FN__);
 
     CommitmentExtSec com_ext_sec;
     ComputeCommitmentExt(proof.com_ext_pub, com_ext_sec, input, com_pub);
@@ -225,7 +225,7 @@ struct A1 {
 
   static bool Verify(Proof const& proof, h256_t seed,
                      VerifyInput const& input) {
-    // Tick tick(__FUNCTION__);
+    // Tick tick(__FN__);
     UpdateSeed(seed, input.com_pub, proof.com_ext_pub);
     Fr challenge = H256ToFr(seed);
     return VerifyInternal(input, challenge, proof.com_ext_pub, proof.sub_proof);
@@ -273,7 +273,7 @@ void serialize(Ar& ar, A1::Proof& t) {
 }
 
 inline bool A1::Test() {
-  Tick tick(__FUNCTION__);
+  Tick tick(__FN__);
   h256_t UpdateSeed = misc::RandH256();
 
   int64_t x_g_offset = 1;
@@ -310,7 +310,7 @@ inline bool A1::Test() {
 
   VerifyInput verify_input(com_pub, x_g_offset, y_g_offset);
   bool success = Verify(proof, UpdateSeed, verify_input);
-  std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success
+  std::cout << __FILE__ << " " << __FN__ << ": " << success
             << "\n\n\n\n\n\n";
   return success;
 }

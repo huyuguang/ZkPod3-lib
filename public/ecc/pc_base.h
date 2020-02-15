@@ -113,7 +113,7 @@ class PcBase : boost::noncopyable {
   };
 
   void Create() {
-    Tick tick(__FUNCTION__);
+    Tick tick(__FN__);
 
     GenerateG1(0xffffffff, &h_);
 
@@ -124,7 +124,7 @@ class PcBase : boost::noncopyable {
   }
 
   void SaveInternal(std::string const& file) {
-    Tick tick(__FUNCTION__);
+    Tick tick(__FN__);
     FILE* f = fopen(file.c_str(), "wb+");
     if (!f) throw std::runtime_error("Create file failed");
 
@@ -154,7 +154,7 @@ class PcBase : boost::noncopyable {
   }
 
   void LoadInternal(std::string const& file) {
-    Tick tick(__FUNCTION__);
+    Tick tick(__FN__);
     FILE* f = fopen(file.c_str(), "rb");
     if (!f) throw std::runtime_error("Open failed");
 
@@ -338,4 +338,26 @@ inline G1 const& PcH() {
 inline G1 const& PcHG(int64_t i) {
   if (i == 0) return PcH();
   return PcG(i - 1);
+}
+
+inline bool TestPcCommitment(int64_t n) {
+  if (n > PcBase::kGSize) return false;
+  std::vector<Fr> x(n);
+  FrRand(x);
+  Fr r = FrRand();
+  G1 left, right;
+  {
+    Tick tick("multiexp1");
+    left = PcComputeCommitmentG(0, x, r);
+  }
+  {
+    Tick tick("multiexp2");
+    auto& base = GetPcBase();
+    right = MultiExp(base.g().data(), x.data(), n) + base.h() * r;
+  }
+
+  bool success = left == right;
+  std::cout << __FILE__ << " " << __FN__ << ": " << success
+            << "\n\n\n\n\n\n";
+  return success;
 }

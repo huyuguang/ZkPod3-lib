@@ -159,7 +159,7 @@ struct Sec51c {
 
   static void ComputeCom(CommitmentPub& com_pub, CommitmentSec& com_sec,
                          ProveInput const& input) {
-    // Tick tick(__FUNCTION__);
+    // Tick tick(__FN__);
     com_sec.r = FrRand();
     com_sec.s = FrRand();
     com_sec.t = FrRand();
@@ -186,7 +186,7 @@ struct Sec51c {
     if (x_g_offset + 2 * n < kGSize) return x_g_offset + n;
     // since kMaxUnitPerZkp <= (int64_t)PcBase::kGSize/3,
     // the exception should never been throw
-    std::cout << __FUNCTION__ << " oops, n: " << n
+    std::cout << __FN__ << " oops, n: " << n
               << ", x_g_offset: " << x_g_offset << "\n";
     throw std::runtime_error("invalid x_g_offset");
   }
@@ -236,7 +236,7 @@ void serialize(Ar& ar, Sec51c::Proof& t) {
 }
 
 bool Sec51c::Test(int64_t n) {
-  Tick tick(__FUNCTION__);
+  Tick tick(__FN__);
   std::vector<Fr> x(n);
   FrRand(x.data(), n);
   std::vector<Fr> y(n);
@@ -281,7 +281,7 @@ bool Sec51c::Test(int64_t n) {
 
   VerifyInput verify_input(t, com_pub, x_g_offset, y_g_offset, z_g_offset);
   bool success = Verify(proof, seed, verify_input);
-  std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success
+  std::cout << __FILE__ << " " << __FN__ << ": " << success
             << "\n\n\n\n\n\n";
   return success;
 }

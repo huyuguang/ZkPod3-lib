@@ -215,7 +215,7 @@ bool Matrix<HyraxA>::Test(int64_t n, int64_t s) {
 
   VerifyInput verify_input(com_rows, r_g_offset, com_cols, c_g_offset);
   bool success = Verify(seed, verify_input, proof);
-  std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success
+  std::cout << __FILE__ << " " << __FN__ << ": " << success
             << "\n\n\n\n\n\n";
   return success;
 }

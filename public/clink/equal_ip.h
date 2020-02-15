@@ -216,7 +216,7 @@ bool EqualIp<HyraxA>::Test(int64_t xn, int64_t yn) {
 
   VerifyInput verify_input(a, com_x, x_g_offset, b, com_y, y_g_offset);
   bool success = Verify(seed, proof, verify_input);
-  std::cout << __FILE__ << " " << __FUNCTION__ << ": " << success
+  std::cout << __FILE__ << " " << __FN__ << ": " << success
             << "\n\n\n\n\n\n";
   return success;
 }

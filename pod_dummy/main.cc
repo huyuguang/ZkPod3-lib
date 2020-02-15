@@ -130,6 +130,7 @@ int main(int argc, char** argv) {
   int64_t bp_p2_n = 0;
   int64_t bp_p3_n = 0;
   int64_t vrs_cache_n = 0;
+  int64_t pc_commitment_n = 0;
 
   try {
     po::options_description options("command line options");
@@ -168,7 +169,8 @@ int main(int argc, char** argv) {
         "substr_query", po::value<Param2IntStr>(&substr_query),
         "n,s,key, ex: 24,1000,abc")("bp_p1", po::value<int64_t>(&bp_p1_n), "")(
         "bp_p2", po::value<int64_t>(&bp_p2_n), "")(
-        "bp_p3", po::value<int64_t>(&bp_p3_n), "");
+        "bp_p3", po::value<int64_t>(&bp_p3_n), "")(
+        "pc_commitment", po::value<int64_t>(&pc_commitment_n), "");
 
     boost::program_options::variables_map vmap;
 
@@ -236,6 +238,10 @@ int main(int argc, char** argv) {
       assert(false);
       rets["vrs_cache"] = false;
     }
+  }
+
+  if (pc_commitment_n) {
+    rets["pc_commiment"] = TestPcCommitment(pc_commitment_n);
   }
 
   if (bp_p1_n) {
