@@ -127,6 +127,10 @@ CXX := export LD_LIBRARY_PATH=${CXX11_HOME}/lib; ${CXX11_HOME}/bin/g++
 
 all: $(RELEASE_BIN) $(DEBUG_BIN)
 
+release: $(RELEASE_BIN)
+
+debug: $(DEBUG_BIN)
+
 %.o : %.cc
 	$(CXX) -c $^ $(CXXFLAGS) $(RELEASE_FLAGS) $(MCL_FLAGS) $(SNARK_FLAGS) $(BOOST_FLAGS) -o $(BUILD)/$@
 
