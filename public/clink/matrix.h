@@ -139,12 +139,12 @@ struct Matrix {
     std::array<parallel::Task, 2> tasks;
 
     G1 com_v;
-    tasks[0] = [&proof, &input, &d, &com_v]() {
+    tasks[0] = [&input, &d, &com_v]() {
       com_v = MultiExpBdlo12(input.com_rows, d);
     };
 
     G1 com_w;
-    tasks[1] = [&proof, &input, &e, &com_w]() {
+    tasks[1] = [&input, &e, &com_w]() {
       com_w = MultiExpBdlo12(input.com_cols, e);
     };
 

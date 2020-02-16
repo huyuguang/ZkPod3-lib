@@ -34,6 +34,7 @@ struct VrsLarge {
                   ProveInput&& input,
                   std::vector<std::vector<G1>>&& cached_var_coms,
                   std::vector<std::vector<Fr>>&& cached_var_coms_r) {
+    Tick tick(__FN__);
     assert(cached_var_coms.size() == cached_var_coms_r.size());
 
     auto items = VrsPub<Scheme>::SplitLargeTask(input.n);

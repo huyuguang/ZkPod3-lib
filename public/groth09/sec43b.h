@@ -138,16 +138,22 @@ struct Sec43b {
       x.resize(new_m);
       y.resize(new_m);
       z.resize(new_m);
+
+      std::vector<Fr> vf0(n(), f0);
+
       for (int64_t i = old_m; i < new_m; ++i) {
-        auto& xi = x[i];
-        xi.resize(n());
-        std::fill(xi.begin(), xi.end(), f0);
-        auto& yi = y[i];
-        yi.resize(n());
-        std::fill(yi.begin(), yi.end(), f0);
-        auto& zi = z[i];
-        zi.resize(n());
-        std::fill(zi.begin(), zi.end(), f0);
+        x[i] = vf0;
+        y[i] = vf0;
+        z[i] = vf0;
+        //auto& xi = x[i];
+        //xi.resize(n());
+        //std::fill(xi.begin(), xi.end(), f0);
+        //auto& yi = y[i];
+        //yi.resize(n());
+        //std::fill(yi.begin(), yi.end(), f0);
+        //auto& zi = z[i];
+        //zi.resize(n());
+        //std::fill(zi.begin(), zi.end(), f0);
       }
     }
   };

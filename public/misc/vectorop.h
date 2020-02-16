@@ -32,7 +32,7 @@ template <typename T>
 void VectorAdd(std::vector<T>& c, int64_t n,
                std::function<T const&(int64_t)>& get_a, T const& b) {
   c.resize(n);
-  for (size_t i = 0; i < n; ++i) {
+  for (int64_t i = 0; i < n; ++i) {
     c[i] = get_a(i) + b;
   }
 }
@@ -52,7 +52,7 @@ void VectorAdd(std::vector<T>& c, int64_t n,
                std::function<T const&(int64_t)>& get_a,
                std::function<T const&(int64_t)>& get_b) {
   c.resize(n);
-  for (size_t i = 0; i < n; ++i) {
+  for (int64_t i = 0; i < n; ++i) {
     c[i] = get_a(i) + get_b(i);
   }
 }

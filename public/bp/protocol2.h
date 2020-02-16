@@ -210,7 +210,7 @@ bool Verify(h256_t seed, G1 p, G1 const& u, std::vector<G1>&& g1,
 
   std::vector<Fr> ss(align_n);
   std::vector<Fr> ss_inverse(align_n);
-  auto parallel_f = [&ss, rounds, &get_b, &rounds_x, &ss_inverse](size_t i) {
+  auto parallel_f = [&ss, &get_b, &rounds_x, &ss_inverse](size_t i) {
     ss[i] = FrOne();
     for (size_t j = 0; j < rounds_x.size(); ++j) {
       auto b = get_b(i, j);

@@ -127,7 +127,7 @@ struct VrsBasic {
       }
 
       std::vector<G1> check_cached_var_coms(m);
-      auto parallel_f = [this, &vars, &check_cached_var_coms,
+      auto parallel_f = [&vars, &check_cached_var_coms,
                          &cached_var_coms_r](int64_t i) {
         check_cached_var_coms[i] =
             PcComputeCommitmentG(kR1csGOffset, vars[i], cached_var_coms_r[i]);

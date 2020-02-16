@@ -1,4 +1,23 @@
-#sudo apt-get install libomp-dev
+#for linux(ubuntu18)
+#sudo apt-get install libcrypto++-dev
+#sudo apt-get install libboost-all-dev
+#sudo apt-get install libgmp-dev
+#sudo apt install libtbb-dev
+
+#for mac
+#brew install libcryptopp
+#brew install boost
+#brew install gmp
+#brew install tbb
+
+UNAME := $(shell uname -s)
+ifeq ($(UNAME),Linux)
+	OS_TYPE := Linux
+else ifeq ($(UNAME),Darwin)
+	OS_TYPE := Darwin
+else
+	OS_TYPE := Unknown
+endif
 
 CXX11_HOME = /usr
 
@@ -75,6 +94,12 @@ LIBS := \
  -ltbb \
  -ltbbmalloc_proxy \
  -ltbbmalloc \
+
+ifeq ($(OS_TYPE),Darwin)
+  TMPVAR := $(LIBS)
+  TMPVAR := $(filter-out -lgomp, $(TMPVAR))
+  LIBS := $(filter-out -lrt, $(TMPVAR))
+endif
 
 BUILD := ./build/self
 BUILDPUB := ./build/public

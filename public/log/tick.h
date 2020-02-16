@@ -55,9 +55,6 @@ struct Tick {
     auto pos = desc_.find_first_of('(');
     if (pos == std::string::npos) return;
     desc_.resize(pos);
-    pos = desc_.find_first_of(' ');
-    if (pos == std::string::npos) return;
-    desc_ = desc_.substr(pos + 1);
 #endif
   }
 

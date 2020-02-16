@@ -328,6 +328,7 @@ struct Pod {
                        ProveOutput& output,
                        std::vector<std::vector<G1>>&& cached_var_coms,
                        std::vector<std::vector<Fr>>&& cached_var_coms_r) {
+    Tick tick(__FN__);
     auto get_p = [&plain](int64_t i) -> Fr const& { return plain[i]; };
     auto get_w = [&w, s](int64_t i) -> Fr const& { return w[i / (s + 1)]; };
     output.proved_data.vw_com_r = FrRand();
