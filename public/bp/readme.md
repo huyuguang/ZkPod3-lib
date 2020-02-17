@@ -3,8 +3,9 @@
 https://eprint.iacr.org/2017/1066.pdf
 
 #### 概要
-本文仅包含论文中的protocol 1和protocol 2，以及基于protocol 1证明内积，在本文中被称之为protocol 3。本文不关心电路的部分。简而言之，本文要解决的问题如下：  
+本文仅包含论文中的protocol 1和protocol 2，以及基于protocol 1证明内积（在文中被称之为protocol 3）。本文不关心和电路有关的部分。简而言之，本文最终要解决的问题如下：  
 Prover有两个Fr中的秘密向量a、b，prover公开com(a)、com(b)、com(c)并且证明c=<a,b>。  
+- h、u是公开的独立的G生成元，g<sub>1</sub>、g<sub>2</sub>是公开的独立的G生成元矢量
 - com(a)=h<sup>r<sub>1</sub></sup>g<sub>1</sub><sup>a</sup>
 - com(b)=h<sup>r<sub>2</sub></sup>g<sub>2</sub><sup>b</sup>
 - com(c)=h<sup>r<sub>3</sub></sup>u<sup>c</sup>  
@@ -30,11 +31,33 @@ Prover公开P<sub>1</sub>=g<sub>1</sub><sup>a</sup>g<sub>2</sub><sup>b</sup>，P
 
 ### Protocol 3
 Protocol 3并未直接出现在论文中，以下内容是根据论文第4章整理得来。  
-Prover公开P=h<sup>alpha</sup>g<sub>1</sub><sup>a</sup>g<sub>2</sub><sup>b</sup>  
-Prover公开Q=h<sup>beta</sup>u<sup>c</sup>  
-其中alpha,beta是两个Fr随机数。  
+Prover公开P=h<sup>*alpha*</sup>g<sub>1</sub><sup>a</sup>g<sub>2</sub><sup>b</sup> 以及 Q=h<sup>*beta*</sup>u<sup>c</sup>  
+其中*alpha*,*beta*是两个Fr随机数。  
+
 Prover  
-- 选择随机向量d<sub>a</sub>,d<sub>b</sub>，随机标量rho，tao<sub>1</sub>，tao<sub>2</sub>
-- 
+- 选择随机向量d<sub>a</sub>,d<sub>b</sub>，随机标量*rho*，*tau<sub>1</sub>*，*tau<sub>2</sub>*
+- 计算R=h<sup>*rho*</sup>g<sub>1</sub><sup>d<sub>a</sub></sup>g<sub>2</sub><sup>d<sub>b</sub></sup>
+- 定义t<sub>1</sub>=<a,d<sub>b</sub>>+<b,d<sub>a</sub>>, t<sub>2</sub>=<d<sub>a</sub>,d<sub>b</sub>>
+- 计算T<sub>1</sub>=h<sup>*tau<sub>1</sub>*</sup>u<sup>t<sub>1</sub></sup>，T<sub>2</sub>=h<sup>*tau<sub>2</sub></sup>*u<sup>t<sub>2</sub></sup>
+- 发布R，T<sub>1</sub>，T<sub>2</sub>
+
+Verifier
+- 挑战x
+
+Prover
+- 令a'=a+d<sub>a</sub>x，b'=b+d<sub>b</sub>x
+- 计算c'=<a',b'>
+- 计算*mu*=*alpha*+x*rho*，*tau*=*beta*+x*tau<sub>1</sub>*+x<sup>2</sup>*tau<sub>2</sub>*
+- 发送c'，*mu*，*tau*
+
+Verifier
+- 检查是否满足QT<sub>1</sub><sup>x</sup>T<sub>2</sub><sup>x<sup>2</sup></sup> = h<sup>*tau*</sup>u<sup>c'</sup>
+
+Prover
+- 令**P<sub>1</sub>**=PR<sup>x</sup>h<sup>*-mu*</sup>，**c**=c'
+- 令**a**=a'，**b**=b'
+- 发送**P<sub>1</sub>**和**c**
+
+随后Prover和Verify运行Protocol 1。
 
 
