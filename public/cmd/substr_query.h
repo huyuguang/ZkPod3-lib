@@ -58,18 +58,18 @@ struct SubstrQuery {
 
   struct ProveInput {
     ProveInput(std::string const& key, typename Pod::CommitedData const& data_x,
-               int64_t x_g_offset, std::string const& vrs_cache_dir = "")
+               int64_t x_g_offset, std::string const& data_dir)
         : key(key),
           data_x(data_x),
           x_g_offset(x_g_offset),
-          vrs_cache_dir(vrs_cache_dir),
+          data_dir(data_dir),
           n(data_x.n),
           s(data_x.s) {}
     std::string const& key;
     typename Pod::CommitedData const& data_x;
     int64_t const x_g_offset;
     int64_t const py_g_offset = 0;  // must be 0 because of Pod
-    std::string vrs_cache_dir;
+    std::string data_dir;
     int64_t const n;
     int64_t const s;
   };
@@ -127,7 +127,7 @@ struct SubstrQuery {
       return output.sp_outputs[i].com_pack_y_r;
     };
 
-    Pod::EncryptAndProve(output.pod_output, seed, data_y, input.vrs_cache_dir);
+    Pod::EncryptAndProve(output.pod_output, seed, data_y, input.data_dir);
   }
 
   struct VerifyInput {
@@ -220,11 +220,13 @@ struct SubstrQuery {
     return true;
   }
 
-  static bool Test(int64_t n, int64_t s, std::string const& key);
+  static bool Test(int64_t n, int64_t s, std::string const& key,
+                   std::string const& data_dir);
 };
 
 template <typename Policy>
-bool SubstrQuery<Policy>::Test(int64_t n, int64_t s, std::string const& key) {
+bool SubstrQuery<Policy>::Test(int64_t n, int64_t s, std::string const& key,
+                               std::string const& data_dir) {
   if (key.size() > 31) {
     std::cout << "invalid parameter: k.size() must <= 31.\n";
     return false;
@@ -288,7 +290,7 @@ bool SubstrQuery<Policy>::Test(int64_t n, int64_t s, std::string const& key) {
   data_x.get_r = [&com_x_r](int64_t i) -> Fr const& { return com_x_r[i]; };
   data_x.get_m = [&x](int64_t i, int64_t j) -> Fr const& { return x[i][j]; };
 
-  ProveInput prove_input(key, data_x, x_g_offset);
+  ProveInput prove_input(key, data_x, x_g_offset, data_dir);
 
   ProveOutput prove_output;
   Prove(prove_output, seed, prove_input);

@@ -14,6 +14,7 @@
 #include "log/tick.h"
 #include "misc/misc.h"
 #include "public.h"
+#include "debug/flags.h"
 
 bool InitAll(std::string const& data_dir) {
   InitEcc();
@@ -131,6 +132,7 @@ int main(int argc, char** argv) {
   int64_t bp_p3_n = 0;
   int64_t vrs_cache_n = 0;
   int64_t pc_commitment_n = 0;
+  int64_t multiexp_n = 0;
 
   try {
     po::options_description options("command line options");
@@ -170,7 +172,9 @@ int main(int argc, char** argv) {
         "n,s,key, ex: 24,1000,abc")("bp_p1", po::value<int64_t>(&bp_p1_n), "")(
         "bp_p2", po::value<int64_t>(&bp_p2_n), "")(
         "bp_p3", po::value<int64_t>(&bp_p3_n), "")(
-        "pc_commitment", po::value<int64_t>(&pc_commitment_n), "");
+        "pc_commitment", po::value<int64_t>(&pc_commitment_n), "")(
+        "multiexp", po::value<int64_t>(&multiexp_n), "")(
+        "disable_vrs_cache", "");
 
     boost::program_options::variables_map vmap;
 
@@ -208,6 +212,11 @@ int main(int argc, char** argv) {
     if (vmap.count("substr")) {
       substr = true;
     }
+
+    if (vmap.count("disable_vrs_cache")) {
+      debug::flags::disable_vrs_cache = true;
+    }
+    
   } catch (std::exception& e) {
     std::cout << "Unknown parameters.\n"
               << e.what() << "\n"
@@ -238,6 +247,10 @@ int main(int argc, char** argv) {
       assert(false);
       rets["vrs_cache"] = false;
     }
+  }
+
+  if (multiexp_n) {
+    rets["multiexp"] = TestMultiexp(multiexp_n);
   }
 
   if (pc_commitment_n) {
@@ -406,11 +419,11 @@ int main(int argc, char** argv) {
     if (policy == PolicyType::kOrdinary) {
       rets["cmd::match_query(ordinary)"] =
           cmd::MatchQuery<groth09::OrdinaryPolicy>::Test(
-              match_query.n, match_query.s, match_query.str);
+              match_query.n, match_query.s, match_query.str, data_dir);
     } else {
       rets["cmd::match_query(succinct)"] =
           cmd::MatchQuery<groth09::SuccinctPolicy>::Test(
-              match_query.n, match_query.s, match_query.str);
+              match_query.n, match_query.s, match_query.str, data_dir);
     }
   }
 
@@ -418,11 +431,11 @@ int main(int argc, char** argv) {
     if (policy == PolicyType::kOrdinary) {
       rets["cmd::substr_query(ordinary)"] =
           cmd::SubstrQuery<groth09::OrdinaryPolicy>::Test(
-              substr_query.n, substr_query.s, substr_query.str);
+              substr_query.n, substr_query.s, substr_query.str, data_dir);
     } else {
       rets["cmd::substr_query(succinct)"] =
           cmd::SubstrQuery<groth09::SuccinctPolicy>::Test(
-              substr_query.n, substr_query.s, substr_query.str);
+              substr_query.n, substr_query.s, substr_query.str, data_dir);
     }
   }
 
@@ -503,31 +516,31 @@ int main(int argc, char** argv) {
       if (policy == PolicyType::kOrdinary) {
         rets["pod(mimc5+ordinary)"] =
             clink::Pod<clink::VrsMimc5Scheme, groth09::OrdinaryPolicy>::Test(
-                pod.x, pod.y);
+                pod.x, pod.y, data_dir);
       } else {
         rets["pod(mimc5+succinct)"] =
             clink::Pod<clink::VrsMimc5Scheme, groth09::SuccinctPolicy>::Test(
-                pod.x, pod.y);
+                pod.x, pod.y, data_dir);
       }
     } else if (vrs_scheme == VrsSchemeType::kSha256c) {
       if (policy == PolicyType::kOrdinary) {
         rets["pod(sha256c+ordinary)"] =
             clink::Pod<clink::VrsSha256cScheme, groth09::OrdinaryPolicy>::Test(
-                pod.x, pod.y);
+                pod.x, pod.y, data_dir);
       } else {
         rets["pod(sha256c+succinct)"] =
             clink::Pod<clink::VrsSha256cScheme, groth09::SuccinctPolicy>::Test(
-                pod.x, pod.y);
+                pod.x, pod.y, data_dir);
       }
     } else if (vrs_scheme == VrsSchemeType::kPoseidon) {
       if (policy == PolicyType::kOrdinary) {
         rets["pod(poseidon+ordinary)"] =
             clink::Pod<clink::VrsPoseidonScheme, groth09::OrdinaryPolicy>::Test(
-                pod.x, pod.y);
+                pod.x, pod.y, data_dir);
       } else {
         rets["pod(poseidon+succinct)"] =
             clink::Pod<clink::VrsPoseidonScheme, groth09::SuccinctPolicy>::Test(
-                pod.x, pod.y);
+                pod.x, pod.y, data_dir);
       }
     } else {
       assert(false);

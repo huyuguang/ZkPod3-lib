@@ -148,6 +148,8 @@ inline void G1Rand(G1* r, size_t n) {
   }
 }
 
+inline void G1Rand(std::vector<G1>& g) { return G1Rand(g.data(), g.size()); }
+
 inline G2 G2Rand() {
   G2 out;
   bool b;

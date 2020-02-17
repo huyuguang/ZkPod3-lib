@@ -1,9 +1,13 @@
 #pragma once
 
+#define TBB_SUPPRESS_DEPRECATED_MESSAGE
 #include <tbb/scalable_allocator.h>
 #include <tbb/tbb.h>
 #include <tbb/tbb_allocator.h>
+
+#ifdef _WIN32
 #include <tbb/tbbmalloc_proxy.h>
+#endif
 
 #include <algorithm>
 #include <atomic>

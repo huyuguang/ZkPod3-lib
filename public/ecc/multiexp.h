@@ -4,6 +4,7 @@
 
 #include "./funcs.h"
 #include "./types.h"
+#include "log/tick.h"
 
 template <typename G, typename GET_G, typename GET_F>
 G MultiExpBdlo12Inner(GET_G const& get_g, GET_F const& get_f, size_t n) {
@@ -191,4 +192,14 @@ G1 MultiExpBdlo12(std::vector<G const*> const& g, std::vector<Fr> const& f,
   auto get_g = [&g, offset](size_t i) -> G const& { return *g[i + offset]; };
   auto get_f = [&f, offset](size_t i) -> Fr const& { return f[i + offset]; };
   return MultiExpBdlo12<G>(get_g, get_f, count, check_01);
+}
+
+bool TestMultiexp(int64_t n) {
+  std::vector<Fr> f(n);
+  FrRand(f);
+  std::vector<G1> g(n);
+  G1Rand(g);
+  Tick tick(__FN__);
+  MultiExpBdlo12<G1>(g, f);
+  return true;
 }

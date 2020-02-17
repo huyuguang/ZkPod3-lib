@@ -153,6 +153,7 @@
     <ClInclude Include="..\public\cmd\cmd.h" />
     <ClInclude Include="..\public\cmd\match_query.h" />
     <ClInclude Include="..\public\cmd\substr_query.h" />
+    <ClInclude Include="..\public\debug\flags.h" />
     <ClInclude Include="..\public\ecc\ecc.h" />
     <ClInclude Include="..\public\ecc\ecc_pub.h" />
     <ClInclude Include="..\public\ecc\funcs.h" />

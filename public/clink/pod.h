@@ -93,19 +93,17 @@ struct Pod {
 
   static void EncryptAndProve(ProveOutput& output, h256_t seed,
                               CommitedData const& commited_data,
-                              std::string cache_dir = "") {
+                              std::string const& data_dir) {
     Tick _tick_(__FN__);
     auto n = commited_data.n;
     auto s = commited_data.s;
-
-    if (cache_dir.empty()) {
-      char const* data_dir = std::getenv("options:data_dir");
-      cache_dir = data_dir ? data_dir : ".";
-      cache_dir += "/vrs_cache/";
-      cache_dir += Scheme::type();
+   
+    std::string cache_dir;
+    if (!data_dir.empty() && !debug::flags::disable_vrs_cache) {
+      cache_dir = data_dir + "/vrs_cache/" + Scheme::type();
     }
 
-    output.cache.reset(new AutoCacheFile(cache_dir, (n + 1) * (s + 1)));
+    output.cache.reset(new AutoCacheFile(cache_dir, (n + 1) * (s + 1)));      
     auto cache = output.cache->LoadAndUpgrade();
 
     std::vector<std::vector<G1>> cached_var_coms;
@@ -298,7 +296,7 @@ struct Pod {
                                         secret.key_com_r, secret.key);
   }
 
-  static bool Test(int64_t n, int64_t s);
+  static bool Test(int64_t n, int64_t s, std::string const& cache_dir);
 
  private:
   static void UpdateSeed(h256_t& seed, std::vector<G1> const& k) {
@@ -384,7 +382,8 @@ struct Pod {
 };
 
 template <typename Scheme, typename Policy>
-bool Pod<Scheme, Policy>::Test(int64_t n, int64_t s) {
+bool Pod<Scheme, Policy>::Test(int64_t n, int64_t s,
+                               std::string const& data_dir) {
   std::vector<Fr> m(n * s);
   FrRand(m.data(), m.size());
   auto get_m = [s, &m](int64_t i, int64_t j) -> Fr const& {
@@ -420,7 +419,7 @@ bool Pod<Scheme, Policy>::Test(int64_t n, int64_t s) {
 
   // prove
   ProveOutput prove_output;
-  EncryptAndProve(prove_output, seed, commited_data);
+  EncryptAndProve(prove_output, seed, commited_data, data_dir);
 
   // prover send prove_output.proved_data to verifier
 #ifndef DISABLE_SERIALIZE_CHECK
@@ -458,8 +457,9 @@ bool Pod<Scheme, Policy>::Test(int64_t n, int64_t s) {
   }
 
   // prover indicate the signed receipt and the secret to notary(blockchain)
-
-  prove_output.cache->SetLeaked();
+  if (prove_output.cache) {
+    prove_output.cache->SetLeaked();
+  }
 
   // notary verify the consistent of the receipt and the secret, if ok,
   // automaticly transfer money

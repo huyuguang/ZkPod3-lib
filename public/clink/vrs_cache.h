@@ -521,6 +521,7 @@ struct VrsCache {
     }
     FileDataUPtr LoadAndUpgrade() {
       FileDataUPtr cache;
+      if (cache_dir_.empty()) return cache;
       cache_file_ = SelectFile(cache_dir_, count_);
       if (!cache_file_.empty()) {
         cache.reset(new FileData());

@@ -62,6 +62,9 @@
     <Filter Include="public\clink">
       <UniqueIdentifier>{8dcc0487-5525-4474-90e2-0dca51d01f8e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="public\debug">
+      <UniqueIdentifier>{9ce8906f-ae77-4e5a-88fb-593459a8c933}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\public\public.h">
@@ -285,6 +288,9 @@
     </ClInclude>
     <ClInclude Include="..\public\circuit\sha256c_gadget.h">
       <Filter>public\circuit</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\debug\flags.h">
+      <Filter>public\debug</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
