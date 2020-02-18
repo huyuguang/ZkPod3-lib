@@ -24,6 +24,9 @@
     <None Include="..\public\utils\readme.md">
       <Filter>public\utils</Filter>
     </None>
+    <None Include="..\public\clink\readme.md">
+      <Filter>public\clink</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="public">
