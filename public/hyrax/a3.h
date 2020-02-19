@@ -8,7 +8,7 @@
 // y: secret Fr, = <x,a>
 // open: com(gx,x), com(gy,y)
 // prove: y=<x,a>
-// proof size: 2 G1 and 2log(n) Fr
+// proof size: (2+2log(n))G1 + 2Fr
 namespace hyrax {
 struct A3 {
   struct ProveInput {

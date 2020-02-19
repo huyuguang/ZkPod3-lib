@@ -2,6 +2,7 @@
 
 #include "./vrs_cache.h"
 #include "./vrs_large.h"
+#include "debug/flags.h"
 #include "ecc/parallel_multiexp.h"
 
 namespace clink {
@@ -97,13 +98,13 @@ struct Pod {
     Tick _tick_(__FN__);
     auto n = commited_data.n;
     auto s = commited_data.s;
-   
+
     std::string cache_dir;
     if (!data_dir.empty() && !debug::flags::disable_vrs_cache) {
       cache_dir = data_dir + "/vrs_cache/" + Scheme::type();
     }
 
-    output.cache.reset(new AutoCacheFile(cache_dir, (n + 1) * (s + 1)));      
+    output.cache.reset(new AutoCacheFile(cache_dir, (n + 1) * (s + 1)));
     auto cache = output.cache->LoadAndUpgrade();
 
     std::vector<std::vector<G1>> cached_var_coms;
