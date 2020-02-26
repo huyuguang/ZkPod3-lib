@@ -19,7 +19,6 @@
 bool InitAll(std::string const& data_dir) {
   InitEcc();
 
-  std::cout << "mcl jit: " << mcl::fp::isEnableJIT() << "\n";
   // auto ecc_pub_file = data_dir + "/" + "ecc_pub.bin";
   // if (!OpenOrCreateEccPub(ecc_pub_file)) {
   //  std::cerr << "Open or create ecc pub file " << ecc_pub_file << "

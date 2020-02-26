@@ -1101,15 +1101,12 @@ inline bool operator!=(G2WM const& a, G2WM const& b) { return !(a == b); }
 #include <cybozu/benchmark.hpp>
 #include <mcl/bn256.hpp>
 inline bool TestMcl(int64_t n) {
-  using namespace mcl::bn;
+  //using namespace mcl::bn;
   try {
     const int N = (int)n;
-    initPairing();
     std::cout << "mcl jit: " << mcl::fp::isEnableJIT() << "\n";
-    G1 P, Q;
-    hashAndMapToG1(P, "abc", 3);
-    P += P;
-    G1::dbl(Q, P);
+    G1 P = G1Rand();
+    G1 Q = G1Rand();
     Tick tick(__FN__);
     CYBOZU_BENCH_C("add", N, G1::add, P, Q, P);
     CYBOZU_BENCH_C("dbl", N, G1::dbl, P, P);
