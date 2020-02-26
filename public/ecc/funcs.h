@@ -21,6 +21,7 @@
 #include <mcl/window_method.hpp>
 
 #include "./types.h"
+#include "log/tick.h"
 #include "misc/misc.h"
 #include "parallel/parallel.h"
 
@@ -1096,3 +1097,25 @@ inline bool operator==(G2WM const& a, G2WM const& b) {
 }
 
 inline bool operator!=(G2WM const& a, G2WM const& b) { return !(a == b); }
+
+#include <cybozu/benchmark.hpp>
+#include <mcl/bn256.hpp>
+inline bool TestMcl(int64_t n) {
+  using namespace mcl::bn;
+  try {
+    const int N = (int)n;
+    initPairing();
+    std::cout << "mcl jit: " << mcl::fp::isEnableJIT() << "\n";
+    G1 P, Q;
+    hashAndMapToG1(P, "abc", 3);
+    P += P;
+    G1::dbl(Q, P);
+    Tick tick(__FN__);
+    CYBOZU_BENCH_C("add", N, G1::add, P, Q, P);
+    CYBOZU_BENCH_C("dbl", N, G1::dbl, P, P);
+  } catch (std::exception& e) {
+    std::cout << "err " << e.what() << "\n";
+    return false;
+  }
+  return true;
+}

@@ -29,10 +29,12 @@
 
 ##### 编译
 - Linux or Mac
+  - 编译mcl: cd depends/libsnark/depends/mcl; make clean && make lib/libmcl.a MCL_USE_OPENSSL=0
   - 需要c++17支持
   - cd pod_dummy && make -j8  
   - 编译好的可执行程序在linux/bin目录下
 - Windows
+  - 不需要单独编译mcl
   - 需要msvc2017或msvc2019
   - 直接用msvc2019打开all.sln，编译即可
   - 编译好的可执行程序在win/bin目录下

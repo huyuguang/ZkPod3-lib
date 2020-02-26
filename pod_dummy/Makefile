@@ -28,7 +28,7 @@ CSV_HOME = ../thirdparty/csv
 PUB_HOME = ../public
 SNARK_HOME = ../depends/libsnark
 FF_HOME = $(SNARK_HOME)/depends/libff
-MCL_HOME = $(SNARK_HOME)/depends/mcl/include
+MCL_HOME = $(SNARK_HOME)/depends/mcl
 
 CXXFLAGS := \
  -g3 \
@@ -45,7 +45,7 @@ CXXFLAGS := \
  -mtune=native \
  -I $(CXX11_HOME)/include \
  -isystem $(SNARK_HOME) \
- -isystem $(MCL_HOME) \
+ -isystem $(MCL_HOME)/include \
  -isystem $(FF_HOME) \
  -isystem $(YAS_HOME) \
  -isystem $(CSV_HOME) \
@@ -141,10 +141,10 @@ debug: $(DEBUG_BIN)
 
 
 $(DEBUG_BIN) : $(DEBUG_OBJ)
-	$(CXX) $(addprefix $(BUILD)/, $^) -o $(HOME)/bin/$@ $(LDFLAGS) $(LIBS)
+	$(CXX) $(addprefix $(BUILD)/, $^) $(MCL_HOME)/lib/libmcl.a -o $(HOME)/bin/$@ $(LDFLAGS) $(LIBS)
 
 $(RELEASE_BIN) : $(RELEASE_OBJ)
-	$(CXX) $(addprefix $(BUILD)/, $^) -o $(HOME)/bin/$@ $(LDFLAGS) $(LIBS)
+	$(CXX) $(addprefix $(BUILD)/, $^) $(MCL_HOME)/lib/libmcl.a -o $(HOME)/bin/$@ $(LDFLAGS) $(LIBS)
 
 clean:
 	find . -name "*.o" -delete

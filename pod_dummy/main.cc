@@ -19,6 +19,7 @@
 bool InitAll(std::string const& data_dir) {
   InitEcc();
 
+  std::cout << "mcl jit: " << mcl::fp::isEnableJIT() << "\n";
   // auto ecc_pub_file = data_dir + "/" + "ecc_pub.bin";
   // if (!OpenOrCreateEccPub(ecc_pub_file)) {
   //  std::cerr << "Open or create ecc pub file " << ecc_pub_file << "
@@ -133,6 +134,7 @@ int main(int argc, char** argv) {
   int64_t vrs_cache_n = 0;
   int64_t pc_commitment_n = 0;
   int64_t multiexp_n = 0;
+  int64_t mcl_n = 0;
 
   try {
     po::options_description options("command line options");
@@ -174,7 +176,8 @@ int main(int argc, char** argv) {
         "bp_p3", po::value<int64_t>(&bp_p3_n), "")(
         "pc_commitment", po::value<int64_t>(&pc_commitment_n), "")(
         "multiexp", po::value<int64_t>(&multiexp_n), "")(
-        "disable_vrs_cache", "");
+        "disable_vrs_cache", "")(
+        "mcl", po::value<int64_t>(&mcl_n), "");
 
     boost::program_options::variables_map vmap;
 
@@ -247,6 +250,10 @@ int main(int argc, char** argv) {
       assert(false);
       rets["vrs_cache"] = false;
     }
+  }
+
+  if (mcl_n) {
+    rets["mcl"] = TestMcl(mcl_n);
   }
 
   if (multiexp_n) {

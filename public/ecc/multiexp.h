@@ -194,7 +194,26 @@ G1 MultiExpBdlo12(std::vector<G const*> const& g, std::vector<Fr> const& f,
   return MultiExpBdlo12<G>(get_g, get_f, count, check_01);
 }
 
-bool TestMultiexp(int64_t n) {
+inline bool TestEccDbl(int64_t n) {
+  Tick tick(__FN__);
+  G1 g = G1Rand();
+  for (int64_t i = 0; i < n; ++i) {
+    G1::dbl(g, g);
+  }
+  return g != G1Zero();
+}
+
+inline bool TestEccAdd(int64_t n) {
+  Tick tick(__FN__);
+  G1 g = G1Rand();
+  G1 h = G1Rand();
+  for (int64_t i = 0; i < n; ++i) {
+    g = g + h;
+  }
+  return g != G1Zero();
+}
+
+inline bool TestMultiexp(int64_t n) {
   std::vector<Fr> f(n);
   FrRand(f);
   std::vector<G1> g(n);
