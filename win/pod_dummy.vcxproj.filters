@@ -340,5 +340,8 @@
     <ClInclude Include="..\public\circuit\fixed_point\div2_gadget.h">
       <Filter>public\circuit\fixed_point</Filter>
     </ClInclude>
+    <ClInclude Include="..\public\circuit\fixed_point\div3_gadget.h">
+      <Filter>public\circuit\fixed_point</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

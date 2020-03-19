@@ -11,7 +11,7 @@
 
 namespace circuit {
 inline bool Test() {
-  return fixed_point::Test();
-  //return TestFuncH();
+  //return fixed_point::Test();
+  return TestFuncH();
 }
 }  // namespace circuit

@@ -6,8 +6,8 @@
 namespace circuit::fixed_point {
 
 // ret = a / b, c = a / b ... d
-// C * B + D * 2^N == A * 2^N && |D| < |B| && C is valid
-
+// C * B + D * 2^N == A * 2^N && D < B && C is valid
+// a, b must >=0
 template <size_t D, size_t N>
 class DivGadget : public libsnark::gadget<Fr> {
   static_assert(2 * D + 2 * N < 253, "invalid D,N");
@@ -15,12 +15,11 @@ class DivGadget : public libsnark::gadget<Fr> {
  public:
   DivGadget(libsnark::protoboard<Fr>& pb,
             libsnark::pb_linear_combination<Fr> const& a,
-            libsnark::pb_linear_combination<Fr> const& b, bool check_sign,
+            libsnark::pb_linear_combination<Fr> const& b,
             const std::string& annotation_prefix = "")
       : libsnark::gadget<Fr>(pb, annotation_prefix),
         a_(a),
-        b_(b),
-        check_sign_(check_sign) {
+        b_(b) {
     auto constances = RationalConst<D, N>();
     c_.allocate(pb, FMT(this->annotation_prefix, " c"));
     dn_.allocate(pb, FMT(this->annotation_prefix, " dn"));
@@ -28,23 +27,10 @@ class DivGadget : public libsnark::gadget<Fr> {
     libsnark::pb_linear_combination<Fr> bn;
     bn.assign(this->pb, b_ * constances.kFrN);
 
-    if (check_sign_) {
-      abs_bn_gadget_.reset(new AbsGadget<D + N + N>(
-          this->pb, bn, FMT(this->annotation_prefix, " abs_bn")));
-      abs_dn_gadget_.reset(new AbsGadget<D + N + N>(
-          this->pb, dn_, FMT(this->annotation_prefix, " abs_dn")));
-    }
-
-    libsnark::pb_linear_combination<Fr> abs_bn;
-    abs_bn.assign(this->pb, check_sign_ ? abs_bn_gadget_->ret() : bn);
-
-    libsnark::pb_linear_combination<Fr> abs_dn;
-    abs_dn.assign(this->pb, check_sign_ ? abs_dn_gadget_->ret() : dn_);
-
     less_.allocate(pb, FMT(this->annotation_prefix, " less"));
     less_or_eq_.allocate(pb, FMT(this->annotation_prefix, " less_or_eq"));
     comparison_gadget_.reset(new libsnark::comparison_gadget<Fr>(
-        pb, D + N + N, abs_dn, abs_bn, less_, less_or_eq_,
+        pb, D + N + N, dn_, bn, less_, less_or_eq_,
         FMT(this->annotation_prefix, " comparison")));
 
     // check if c is valid
@@ -57,10 +43,6 @@ class DivGadget : public libsnark::gadget<Fr> {
     this->pb.add_r1cs_constraint(
         libsnark::r1cs_constraint<Fr>(c_, b_, a_ * constances.kFrN - dn_),
         FMT(this->annotation_prefix, " C * B + D * 2^N == A * 2^N"));
-    if (check_sign_) {
-      abs_bn_gadget_->generate_r1cs_constraints();
-      abs_dn_gadget_->generate_r1cs_constraints();
-    }
     comparison_gadget_->generate_r1cs_constraints();
     this->pb.add_r1cs_constraint(
         libsnark::r1cs_constraint<Fr>(less_, libsnark::pb_variable<Fr>(0),
@@ -81,11 +63,6 @@ class DivGadget : public libsnark::gadget<Fr> {
     this->pb.val(c_) = SignedMpzToFr(mpz_c);
     this->pb.val(dn_) = SignedMpzToFr(mpz_dn);
 
-    if (check_sign_) {
-      abs_bn_gadget_->generate_r1cs_witness();
-      abs_dn_gadget_->generate_r1cs_witness();
-    }
-
     comparison_gadget_->generate_r1cs_witness();
 
     sign_gadget_->generate_r1cs_witness();
@@ -100,11 +77,8 @@ class DivGadget : public libsnark::gadget<Fr> {
  private:
   libsnark::pb_linear_combination<Fr> a_;
   libsnark::pb_linear_combination<Fr> b_;
-  bool check_sign_;
   libsnark::pb_variable<Fr> c_;
   libsnark::pb_variable<Fr> dn_;
-  std::unique_ptr<AbsGadget<D + N + N>> abs_bn_gadget_;
-  std::unique_ptr<AbsGadget<D + N + N>> abs_dn_gadget_;
   libsnark::pb_variable<Fr> less_;
   libsnark::pb_variable<Fr> less_or_eq_;
   std::unique_ptr<libsnark::comparison_gadget<Fr>> comparison_gadget_;
@@ -124,7 +98,7 @@ bool DivGadget<D, N>::Test(double double_a, double double_b) {
   libsnark::pb_variable<Fr> pb_b;
   pb_a.allocate(pb, "TestDiv a");
   pb_b.allocate(pb, "TestDiv b");
-  DivGadget<D, N> gadget(pb, pb_a, pb_b, true, "TestDiv");
+  DivGadget<D, N> gadget(pb, pb_a, pb_b, "TestDiv");
   gadget.generate_r1cs_constraints();
   pb.val(pb_a) = a;
   pb.val(pb_b) = b;
@@ -145,8 +119,8 @@ bool DivGadget<D, N>::Test(double double_a, double double_b) {
 }
 
 inline bool TestDiv() {
-  double double_a = -7.3;
-  double double_b = -32.1;
+  double double_a = 7.3;
+  double double_b = 32.1;
   return DivGadget<32, 32>::Test(double_a, double_b);
 }
 }  // namespace circuit::fixed_point

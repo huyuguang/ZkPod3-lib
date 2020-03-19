@@ -17,19 +17,18 @@ class LrFuncHGadget : public libsnark::gadget<Fr> {
     ip_gadget_.reset(new fp::IpGadget<D, N>(
         pb, theta, x, FMT(this->annotation_prefix, " ip_gadget")));
 
-    libsnark::pb_linear_combination<Fr> neg_ip;
-    neg_ip.assign(this->pb, -ip_gadget_->ret());
-    exp_gadget_.reset(new fp::ExpGadget<D, N>(
-        pb, neg_ip, series_num, FMT(this->annotation_prefix, " exp_gadget")));
+    neg_ip_.assign(this->pb, -ip_gadget_->ret());    
+    neg_ip_sign_.assign(this->pb, -ip_gadget_->sign() + 1);
 
-    libsnark::pb_linear_combination<Fr> exp_plus_1;
-    exp_plus_1.assign(this->pb,
+    exp_gadget_.reset(
+        new fp::ExpGadget<D, N>(pb, neg_ip_, neg_ip_sign_, series_num,
+                                FMT(this->annotation_prefix, " exp_gadget")));    
+    exp_plus_1_.assign(this->pb,
                       exp_gadget_->ret() + fp::RationalConst<D, N>().kFrN);
 
     // since e^x always >=0, check_sign = false
-    inv_gadget_.reset(
-        new fp::InvGadget<D, N>(pb, exp_plus_1, false,
-                                FMT(this->annotation_prefix, " inv_gadget")));
+    inv_gadget_.reset(new fp::InvGadget<D, N>(
+        pb, exp_plus_1_, FMT(this->annotation_prefix, " inv_gadget")));
   }
 
   void generate_r1cs_constraints() {
@@ -40,8 +39,17 @@ class LrFuncHGadget : public libsnark::gadget<Fr> {
 
   void generate_r1cs_witness() {
     ip_gadget_->generate_r1cs_witness();
+    neg_ip_.evaluate(this->pb);
+    neg_ip_sign_.evaluate(this->pb);
+
+    std::cout << "neg_ip_sign: " << this->pb.lc_val(neg_ip_sign_) << "\n";
+    std::cout << "ip_sign: " << this->pb.lc_val(ip_gadget_->sign()) << "\n";
+
     exp_gadget_->generate_r1cs_witness();
+
+    exp_plus_1_.evaluate(this->pb);
     inv_gadget_->generate_r1cs_witness();
+
 #ifdef _DEBUG
     Fr ip_ret = this->pb.lc_val(ip_gadget_->ret());
     std::cout << "ip_ret: " << fp::RationalToDouble<N>(ip_ret) << "\n";
@@ -52,7 +60,7 @@ class LrFuncHGadget : public libsnark::gadget<Fr> {
 #endif
   }
 
-  libsnark::pb_linear_combination<Fr> ret() const { return inv_gadget_->ret(); }
+  libsnark::pb_variable<Fr> ret() const { return inv_gadget_->ret(); }
 
   static bool Test(std::vector<double> const& double_theta,
                    std::vector<double> const& double_x);
@@ -64,6 +72,9 @@ class LrFuncHGadget : public libsnark::gadget<Fr> {
   std::unique_ptr<fp::ExpGadget<D, N>> exp_gadget_;
   std::unique_ptr<fp::InvGadget<D, N>> inv_gadget_;
   libsnark::pb_linear_combination<Fr> ret_;
+  libsnark::pb_linear_combination<Fr> neg_ip_;
+  libsnark::pb_linear_combination<Fr> neg_ip_sign_;
+  libsnark::pb_linear_combination<Fr> exp_plus_1_;
 };
 
 template <size_t D, size_t N>
@@ -107,7 +118,7 @@ bool LrFuncHGadget<D, N>::Test(std::vector<double> const& double_theta,
 
 inline static bool TestFuncH() {
   std::vector<double> double_theta{1, 2, 3};
-  std::vector<double> double_x{3, 5, 2};
+  std::vector<double> double_x{3, -5, 2};
   return LrFuncHGadget<32, 32>::Test(double_theta, double_x);
 }
 }  // namespace circuit

@@ -3,6 +3,7 @@
 #include "./abs_gadget.h"
 #include "./div_gadget.h"
 #include "./div2_gadget.h"
+#include "./div3_gadget.h"
 #include "./exp_gadget.h"
 #include "./inv_gadget.h"
 #include "./ip_gadget.h"
@@ -23,11 +24,13 @@ inline bool Test() {
   //return TestIp();
   // return TestSign();
   // return TestAbs();
-  return TestDiv();
+  //TestDiv();
   // return TestInv();
-  // return TestMul2();
-  // return TestExp();
-  return TestDiv2();
+  // return TestMul2();  
+  //TestDiv2();
+  //TestDiv3();
+  TestExp();
+  return true;
 }
 }  // namespace
 

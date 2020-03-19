@@ -4,13 +4,14 @@
 
 namespace circuit::fixed_point {
 
+// NOTE: b must >=0
 template <size_t D, size_t N>
 class InvGadget : public DivGadget<D, N> {
  public:
   InvGadget(libsnark::protoboard<Fr>& pb,
-            libsnark::pb_linear_combination<Fr> const& b, bool check_sign,
-            const std::string& annotation_prefix = "")
-      : DivGadget<D, N>(pb, GetA(pb), b, check_sign, annotation_prefix) {}
+            libsnark::pb_linear_combination<Fr> const& b, const std::string&
+                annotation_prefix = "")
+      : DivGadget<D, N>(pb, GetA(pb), b, annotation_prefix) {}
 
  private:
   libsnark::pb_linear_combination<Fr> GetA(libsnark::protoboard<Fr>& pb) {
@@ -28,7 +29,7 @@ inline bool TestInv() {
   libsnark::protoboard<Fr> pb;
   libsnark::pb_variable<Fr> pb_b;
   pb_b.allocate(pb, "TestInv b");
-  InvGadget<D, N> gadget(pb, pb_b, true, "TestInv");
+  InvGadget<D, N> gadget(pb, pb_b, "TestInv");
   gadget.generate_r1cs_constraints();
   pb.val(pb_b) = b;
   gadget.generate_r1cs_witness();

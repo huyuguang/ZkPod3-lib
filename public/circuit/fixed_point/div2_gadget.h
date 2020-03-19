@@ -15,7 +15,7 @@ class Div2Gadget : public libsnark::gadget<Fr> {
   Div2Gadget(libsnark::protoboard<Fr>& pb,
              libsnark::pb_linear_combination<Fr> const& a,
              libsnark::pb_linear_combination<Fr> const& sign_a,
-             libsnark::pb_linear_combination<Fr> const& b,             
+             libsnark::pb_linear_combination<Fr> const& b,
              libsnark::pb_linear_combination<Fr> const& sign_b,
              const std::string& annotation_prefix = "")
       : libsnark::gadget<Fr>(pb, annotation_prefix),
@@ -28,9 +28,8 @@ class Div2Gadget : public libsnark::gadget<Fr> {
     sign_ret_.allocate(pb, FMT(this->annotation_prefix, " sign_ret"));
     ret_.allocate(pb, FMT(this->annotation_prefix, " ret"));
 
-    div_gadget_.reset(
-        new DivGadget<D, N>(this->pb, abs_a_, abs_b_, false,
-                            FMT(this->annotation_prefix, " div_gadget")));
+    div_gadget_.reset(new DivGadget<D, N>(
+        this->pb, abs_a_, abs_b_, FMT(this->annotation_prefix, " div_gadget")));
   }
 
   void generate_r1cs_constraints() {
@@ -70,9 +69,9 @@ class Div2Gadget : public libsnark::gadget<Fr> {
     Fr a = this->pb.lc_val(a_);
     Fr sign_a = this->pb.lc_val(sign_a_);
     Fr check_sign_a = a.isNegative() ? 0 : 1;
-    std::cout << "a: " << a << "\n";
-    std::cout << "sign_a: " << sign_a << "\n";
-    std::cout << "check_sign_a: " << check_sign_a << "\n";
+    //std::cout << "a: " << a << "\n";
+    //std::cout << "sign_a: " << sign_a << "\n";
+    //std::cout << "check_sign_a: " << check_sign_a << "\n";
 
     assert(sign_a == check_sign_a);
     this->pb.val(abs_a_) = a.isNegative() ? -a : a;
@@ -80,9 +79,9 @@ class Div2Gadget : public libsnark::gadget<Fr> {
     Fr b = this->pb.lc_val(b_);
     Fr sign_b = this->pb.lc_val(sign_b_);
     Fr check_sign_b = b.isNegative() ? 0 : 1;
-    std::cout << "b: " << b << "\n";
-    std::cout << "sign_b: " << sign_b << "\n";
-    std::cout << "check_sign_b: " << check_sign_b << "\n";
+    //std::cout << "b: " << b << "\n";
+    //std::cout << "sign_b: " << sign_b << "\n";
+    //std::cout << "check_sign_b: " << check_sign_b << "\n";
 
     assert(sign_b == check_sign_b);
     this->pb.val(abs_b_) = b.isNegative() ? -b : b;

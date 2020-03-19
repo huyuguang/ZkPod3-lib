@@ -126,6 +126,7 @@
     <ClInclude Include="..\public\bp\protocol3.h" />
     <ClInclude Include="..\public\circuit\fixed_point\abs_gadget.h" />
     <ClInclude Include="..\public\circuit\fixed_point\div2_gadget.h" />
+    <ClInclude Include="..\public\circuit\fixed_point\div3_gadget.h" />
     <ClInclude Include="..\public\circuit\fixed_point\div_gadget.h" />
     <ClInclude Include="..\public\circuit\fixed_point\exp_gadget.h" />
     <ClInclude Include="..\public\circuit\fixed_point\fixed_point.h" />
