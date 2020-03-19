@@ -6,7 +6,7 @@
 #include <iostream>
 
 #include "bp/bp.h"
-#include "circuit/poseidon_gadget.h"
+#include "circuit/test_all.h"
 #include "clink/clink.h"
 #include "cmd/cmd.h"
 #include "ecc/ecc.h"
@@ -122,6 +122,7 @@ int main(int argc, char** argv) {
   bool divide = false;
   bool match = false;
   bool substr = false;
+  bool gadget = false;
   int64_t pack_n = 0;
   ParamIntStr substrpack;
   ParamIntStr matchpack;
@@ -163,7 +164,7 @@ int main(int argc, char** argv) {
         "pod", po::value<ParamIntPair>(&pod), "n*s, ex: 100*1023")(
         "matrix", po::value<ParamIntPair>(&matrix), "n*s, ex:10*20")(
         "equal_ip", po::value<ParamIntPair>(&equal_ip), "xn,yn, ex:10,20")(
-        "overlap", "")("divide", "")("match", "")("substr", "")(
+        "overlap", "")("divide", "")("match", "")("substr", "")("gadget", "")(
         "pack", po::value<int64_t>(&pack_n), "n, ex: 31000")(
         "substrpack", po::value<ParamIntStr>(&substrpack), "n,key, ex: 10,abc")(
         "matchpack", po::value<ParamIntStr>(&substrpack), "n,key, ex: 10,abc")(
@@ -213,6 +214,10 @@ int main(int argc, char** argv) {
 
     if (vmap.count("substr")) {
       substr = true;
+    }
+
+    if (vmap.count("gadget")) {
+      gadget = true;
     }
 
     if (vmap.count("disable_vrs_cache")) {
@@ -387,6 +392,10 @@ int main(int argc, char** argv) {
       rets["clink::substr(succinct)"] =
           clink::Substr<groth09::SuccinctPolicy>::Test();
     }
+  }
+
+  if (gadget) {
+    rets["gadget"] = circuit::Test();
   }
 
   if (pack_n) {

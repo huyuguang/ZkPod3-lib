@@ -566,6 +566,22 @@ inline boost::dynamic_bitset<uint8_t> FrsToBitset(Fr const* f, size_t size) {
   return ret;
 }
 
+// would throw if mpz is invalid
+inline Fr SignedMpzToFr(mpz_class const mpz) {
+  Fr fr;
+  if (mpz >= 0) {
+    fr.setMpz(mpz);
+  } else {
+    fr.setMpz(-mpz);
+    fr = -fr;
+  }
+  return fr;
+}
+
+inline mpz_class FrToSignedMpz(Fr const& fr) {
+  return fr.isNegative() ? -((-fr).getMpz()) : fr.getMpz();
+}
+
 // buf must 32 bytes
 inline bool BinToG1(uint8_t const* buf, G1* g) {
   return g->deserialize(buf, 32) == 32;

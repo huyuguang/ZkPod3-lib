@@ -68,6 +68,9 @@
     <Filter Include="public\debug">
       <UniqueIdentifier>{9ce8906f-ae77-4e5a-88fb-593459a8c933}</UniqueIdentifier>
     </Filter>
+    <Filter Include="public\circuit\fixed_point">
+      <UniqueIdentifier>{e442436f-84fe-4d1d-8209-9c9e5cbf6d97}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\public\public.h">
@@ -294,6 +297,48 @@
     </ClInclude>
     <ClInclude Include="..\public\debug\flags.h">
       <Filter>public\debug</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\circuit\test_all.h">
+      <Filter>public\circuit</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\circuit\fixed_point\inv_gadget.h">
+      <Filter>public\circuit\fixed_point</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\circuit\fixed_point\ip_gadget.h">
+      <Filter>public\circuit\fixed_point</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\circuit\fixed_point\exp_gadget.h">
+      <Filter>public\circuit\fixed_point</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\circuit\fixed_point\fixed_point.h">
+      <Filter>public\circuit\fixed_point</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\circuit\logistic_regression.h">
+      <Filter>public\circuit</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\circuit\fixed_point\misc.h">
+      <Filter>public\circuit\fixed_point</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\circuit\fixed_point\mul_gadget.h">
+      <Filter>public\circuit\fixed_point</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\circuit\fixed_point\div_gadget.h">
+      <Filter>public\circuit\fixed_point</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\circuit\fixed_point\sign_gadget.h">
+      <Filter>public\circuit\fixed_point</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\circuit\fixed_point\abs_gadget.h">
+      <Filter>public\circuit\fixed_point</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\circuit\fixed_point\type_gadget.h">
+      <Filter>public\circuit\fixed_point</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\circuit\fixed_point\mul2_gadget.h">
+      <Filter>public\circuit\fixed_point</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\circuit\fixed_point\div2_gadget.h">
+      <Filter>public\circuit\fixed_point</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
