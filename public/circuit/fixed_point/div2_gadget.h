@@ -120,8 +120,8 @@ bool Div2Gadget<D, N>::Test(double double_a, double double_b) {
   auto double_ret = double_a / double_b;
   std::cout << "double_ret: " << double_ret << "\n";
 
-  Fr a = DoubleToRational<N>(double_a);
-  Fr b = DoubleToRational<N>(double_b);
+  Fr a = DoubleToRational<D, N>(double_a);
+  Fr b = DoubleToRational<D, N>(double_b);
 
   libsnark::protoboard<Fr> pb;
   libsnark::pb_variable<Fr> pb_a;
@@ -143,7 +143,7 @@ bool Div2Gadget<D, N>::Test(double double_a, double double_b) {
   if (!pb.is_satisfied()) return false;
 
   Fr fr_ret = pb.lc_val(gadget.ret());
-  std::cout << "fr_ret: " << fr_ret << "\t" << fp::RationalToDouble<N>(fr_ret)
+  std::cout << "fr_ret: " << fr_ret << "\t" << fp::RationalToDouble<D, N>(fr_ret)
             << "\n";
   Fr fr_sign = pb.lc_val(gadget.sign());
   std::cout << "sign: " << fr_sign << "\n";
@@ -155,6 +155,7 @@ bool Div2Gadget<D, N>::Test(double double_a, double double_b) {
 }
 
 inline bool TestDiv2() {
+  Tick tick(__FN__);
   double double_a = -7.3;
   double double_b = -32.1;
   return Div2Gadget<32, 32>::Test(double_a, double_b);

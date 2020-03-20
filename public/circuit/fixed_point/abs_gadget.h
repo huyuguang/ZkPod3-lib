@@ -43,6 +43,7 @@ class AbsGadget : public libsnark::gadget<Fr> {
 };
 
 inline bool TestAbs() {
+  Tick tick(__FN__);
   constexpr size_t W = 10;
   Fr a = 0;
   libsnark::protoboard<Fr> pb;

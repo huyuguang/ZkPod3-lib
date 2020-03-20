@@ -22,6 +22,7 @@ class InvGadget : public DivGadget<D, N> {
 };
 
 inline bool TestInv() {
+  Tick tick(__FN__);
   constexpr size_t D = 10;
   constexpr size_t N = 2;
   Fr b = -7;

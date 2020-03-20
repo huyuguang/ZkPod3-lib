@@ -11,6 +11,8 @@
 #include "./mul_gadget.h"
 #include "./sign_gadget.h"
 #include "./type_gadget.h"
+#include "./exp2_gadget.h"
+#include "./add_gadget.h"
 
 // D: bits of integral part of fixed_point rational
 // N: bits of fractional of fixed_point rational
@@ -20,16 +22,17 @@ namespace circuit {
 
 namespace fixed_point {
 inline bool Test() {
-  //return TestMul();
+  //TestMul();
   //return TestIp();
   // return TestSign();
   // return TestAbs();
   //TestDiv();
   // return TestInv();
-  // return TestMul2();  
+  TestMul2();  
   //TestDiv2();
   //TestDiv3();
   TestExp();
+  //TestExp2();
   return true;
 }
 }  // namespace

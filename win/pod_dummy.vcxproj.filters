@@ -343,5 +343,14 @@
     <ClInclude Include="..\public\circuit\fixed_point\div3_gadget.h">
       <Filter>public\circuit\fixed_point</Filter>
     </ClInclude>
+    <ClInclude Include="..\public\circuit\fixed_point\exp2_gadget.h">
+      <Filter>public\circuit\fixed_point</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\circuit\fixed_point\mulc_gadget.h">
+      <Filter>public\circuit\fixed_point</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\circuit\fixed_point\add_gadget.h">
+      <Filter>public\circuit\fixed_point</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

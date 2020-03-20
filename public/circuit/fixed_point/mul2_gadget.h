@@ -4,25 +4,26 @@
 
 namespace circuit::fixed_point {
 
-// ret = a*b*c, c is a const
+// ret = a[0]*a[1]...*c, c is a const
 template <size_t D, size_t N>
 class Mul2Gadget : public libsnark::gadget<Fr> {
-  static_assert(2 * D + 3 * N < 253, "invalid D,N");
-
  public:
   Mul2Gadget(libsnark::protoboard<Fr>& pb,
-             libsnark::pb_linear_combination<Fr> const& a,
-             libsnark::pb_linear_combination<Fr> const& b, Fr const& c,
-             const std::string& annotation_prefix = "")
-      : libsnark::gadget<Fr>(pb, annotation_prefix), a_(a), b_(b), c_(c) {
+             libsnark::pb_linear_combination_array<Fr> const& a,
+             Fr const& c, const std::string& annotation_prefix = "")
+      : libsnark::gadget<Fr>(pb, annotation_prefix), a_(a), c_(c) {
+    CheckMaxNumOfBits();
+
     auto constances = RationalConst<D, N>();
 
-    product_.allocate(pb, FMT(this->annotation_prefix, " product"));
+    products_.allocate(pb, a_.size() - 1, FMT(this->annotation_prefix, " products"));
 
-    product_off_.assign(this->pb, libsnark::linear_combination<Fr>(product_) +
-                                      constances.kFrD3N);
+    Fr kFrDxN = constances.GetFrDxN(a_.size() + 1);
+    product_off_.assign(this->pb, libsnark::linear_combination<Fr>(
+                                      products_[products_.size() - 1]) +
+                                      kFrDxN);
 
-    bits_.allocate(this->pb, D + 3 * N + 1,
+    bits_.allocate(this->pb, D + (a_.size() + 1) * N + 1,
                    FMT(this->annotation_prefix, " bits"));
     p1_gadget_.reset(new libsnark::packing_gadget<Fr>(
         this->pb, bits_, product_off_, FMT(this->annotation_prefix, " p1")));
@@ -30,7 +31,8 @@ class Mul2Gadget : public libsnark::gadget<Fr> {
     packed_.allocate(pb, FMT(this->annotation_prefix, " packed"));
     p2_gadget_.reset(new libsnark::packing_gadget<Fr>(
         this->pb,
-        libsnark::pb_variable_array<Fr>(bits_.begin() + 2 * N, bits_.end()),
+        libsnark::pb_variable_array<Fr>(bits_.begin() + a_.size() * N,
+                                        bits_.end()),
         packed_, FMT(this->annotation_prefix, " p2")));
 
     ret_.assign(this->pb,
@@ -40,18 +42,40 @@ class Mul2Gadget : public libsnark::gadget<Fr> {
 
   void generate_r1cs_constraints() {
     this->pb.add_r1cs_constraint(
-        libsnark::r1cs_constraint<Fr>(a_, b_ * c_, product_),
-        FMT(this->annotation_prefix, " a*b*c = product"));
+        libsnark::r1cs_constraint<Fr>(a_[0], a_[1] * c_, products_[0]),
+        FMT(this->annotation_prefix, " a[0]*a[1]*c = products[0]"));
+    for (size_t i = 2; i < a_.size(); ++i) {
+      this->pb.add_r1cs_constraint(
+          libsnark::r1cs_constraint<Fr>(a_[i], products_[i - 2],
+                                        products_[i - 1]),
+          FMT(this->annotation_prefix, " a[%uz]*a[%zu]*c = products[%zu]", i,
+              i - 2, i - 1));
+    }
+
     p1_gadget_->generate_r1cs_constraints(true);
     p2_gadget_->generate_r1cs_constraints(false);
   }
 
   void generate_r1cs_witness() {
-    a_.evaluate(this->pb);
-    b_.evaluate(this->pb);
-    this->pb.val(product_) = this->pb.lc_val(a_) * this->pb.lc_val(b_) * c_;
+    for (auto& i : a_) {
+      i.evaluate(this->pb);
+    }
+
+    this->pb.val(products_[0]) =
+        this->pb.lc_val(a_[0]) * this->pb.lc_val(a_[1]) * c_;
+
+    for (size_t i = 2; i < a_.size(); ++i) {
+      this->pb.val(products_[i - 1]) =
+          this->pb.lc_val(a_[i]) * this->pb.val(products_[i - 2]);
+    }
 
     product_off_.evaluate(this->pb);
+
+    for (auto& i : products_) {
+      Fr f = this->pb.val(i);
+    }
+
+    Fr fr_product_off = this->pb.lc_val(product_off_);
     p1_gadget_->generate_r1cs_witness_from_packed();
     p2_gadget_->generate_r1cs_witness_from_bits();
     ret_.evaluate(this->pb);
@@ -63,15 +87,26 @@ class Mul2Gadget : public libsnark::gadget<Fr> {
   // 1: >=0; 0: <=0
   libsnark::pb_linear_combination<Fr> sign() const { return sign_; };
 
-  static bool Test(double double_a, double double_b, double double_c);
+  static bool Test(std::vector<double> const& double_a, double double_c);
 
  private:
-  libsnark::pb_linear_combination<Fr> a_;
-  libsnark::pb_linear_combination<Fr> b_;
+  void CheckMaxNumOfBits() {
+    if (a_.size() < 2) throw std::runtime_error(__FN__);
+
+    Fr abs_c = c_.isNegative() ? -c_ : c_;
+    auto num =
+        a_.size() * (D + N) +
+        libff::bigint<Fr::num_limbs>(abs_c.getMpz().get_mpz_t()).num_bits();
+        
+    assert(num < 253);
+    if (num >= 253) throw std::runtime_error(__FN__);
+  }
+ private:
+  libsnark::pb_linear_combination_array<Fr> a_;
   Fr c_;
   libsnark::pb_linear_combination<Fr> ret_;
   libsnark::pb_linear_combination<Fr> sign_;
-  libsnark::pb_variable<Fr> product_;
+  libsnark::pb_variable_array<Fr> products_;
   libsnark::pb_linear_combination<Fr> product_off_;  // = product_ + 2^(D+2N)
   std::unique_ptr<libsnark::packing_gadget<Fr>> p1_gadget_;
   std::unique_ptr<libsnark::packing_gadget<Fr>> p2_gadget_;
@@ -80,30 +115,40 @@ class Mul2Gadget : public libsnark::gadget<Fr> {
 };
 
 template <size_t D, size_t N>
-bool Mul2Gadget<D, N>::Test(double double_a, double double_b, double double_c) {
-  auto double_ret = double_a * double_b * double_c;
+bool Mul2Gadget<D, N>::Test(std::vector<double> const& double_a,
+                            double double_c) {
+  auto double_ret = double_c;
+  for (auto& i : double_a) {
+    double_ret = double_ret * i;
+  }
+
   std::cout << "double_ret: " << double_ret << "\n";
 
-  Fr a = DoubleToRational<N>(double_a);
-  Fr b = DoubleToRational<N>(double_b);
-  Fr c = DoubleToRational<N>(double_c);
+  std::vector<Fr> fr_a(double_a.size());
+  for (size_t i = 0; i < double_a.size();++i) {
+    fr_a[i] = DoubleToRational<D, N>(double_a[i]);
+  }
 
   libsnark::protoboard<Fr> pb;
-  libsnark::pb_variable<Fr> pb_a;
-  libsnark::pb_variable<Fr> pb_b;
-  pb_a.allocate(pb, "TestMul2 a");
-  pb_b.allocate(pb, "TestMul2 b");
-  Mul2Gadget<D, N> gadget(pb, pb_a, pb_b, c, "TestMul2");
+  libsnark::pb_variable_array<Fr> pb_a;
+  pb_a.allocate(pb, double_a.size(), "TestMul2 a");
+
+  Fr c = DoubleToRational<D, N>(double_c);
+  Mul2Gadget<D, N> gadget(pb, pb_a, c, "TestMul2 gadget");
+  
   gadget.generate_r1cs_constraints();
-  pb.val(pb_a) = a;
-  pb.val(pb_b) = b;
+
+  for (size_t i = 0; i < double_a.size(); ++i) {
+    pb.val(pb_a[i]) = fr_a[i];
+  }
+
   gadget.generate_r1cs_witness();
   assert(pb.is_satisfied());
   if (!pb.is_satisfied()) return false;
 
   Fr fr_ret = pb.lc_val(gadget.ret());
-  std::cout << "fr_ret: " << fr_ret << "\t" << fp::RationalToDouble<N>(fr_ret)
-            << "\n";
+  std::cout << "fr_ret: " << fr_ret << "\t"
+            << fp::RationalToDouble<D, N>(fr_ret) << "\n";
   Fr fr_sign = pb.lc_val(gadget.sign());
   std::cout << "sign: " << fr_sign << "\n";
   assert(fr_sign == (double_ret >= 0 ? 1 : 0));
@@ -114,10 +159,10 @@ bool Mul2Gadget<D, N>::Test(double double_a, double double_b, double double_c) {
 }
 
 inline bool TestMul2() {
-  double double_a = 7.3;
-  double double_b = 32.1;
+  Tick tick(__FN__);
+  std::vector<double> double_a{-7.3,21.1,-1.4};
   double double_c = -2.4;
-  return Mul2Gadget<32, 32>::Test(double_a, double_b, double_c);
+  return Mul2Gadget<32, 32>::Test(double_a, double_c);
 }
 
 }  // namespace circuit::fixed_point

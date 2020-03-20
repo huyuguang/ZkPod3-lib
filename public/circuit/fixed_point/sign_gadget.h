@@ -10,6 +10,7 @@ namespace circuit::fixed_point {
 // num_constraints:
 // num_variables:
 
+// TODO: D, N
 template <size_t W>
 class SignGadget : public libsnark::gadget<Fr> {
   static_assert(W < 253, "invalid W");
@@ -68,6 +69,7 @@ class SignGadget : public libsnark::gadget<Fr> {
 };
 
 inline bool TestSign() {
+  Tick tick(__FN__);
   constexpr size_t W = 10;
   std::vector<bool> rets;
   rets.push_back(SignGadget<W>::Test(Fr(100), true));

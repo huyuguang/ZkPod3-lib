@@ -18,8 +18,6 @@ class RationalConst {
  public:
   RationalConst() {
     std::call_once(once_flag, []() {
-      //kMpzP = Fr::getOp().mp;
-
       kMpzD3N = mpz_class(1) << (D + 3 * N);
       kFrD3N.setMpz(kMpzD3N);
 
@@ -39,7 +37,11 @@ class RationalConst {
       kFr3N.setMpz(kMpz3N);
     });
   }
-  //inline static mpz_class kMpzP;
+
+  Fr GetFrDxN(size_t x) {
+    mpz_class mpz_dxn = mpz_class(1) << (D + x * N);
+    return SignedMpzToFr(mpz_dxn);
+  }
 
   inline static mpz_class kMpzD3N;
   inline static Fr kFrD3N;
@@ -81,7 +83,8 @@ class BigIntConst {
   inline static std::once_flag once_flag;
 };
 
-template<size_t N>
+// TODO: check overflow
+template<size_t D, size_t N>
 inline double RationalToDouble(Fr const& fr_x) {
   bool neg = fr_x.isNegative();
   mpz_class mpz_x = neg ? (-fr_x).getMpz() : fr_x.getMpz();
@@ -90,7 +93,8 @@ inline double RationalToDouble(Fr const& fr_x) {
   return neg ? -double_x : double_x;
 }
 
-template<size_t N>
+// TODO: check overflow
+template<size_t D, size_t N>
 inline Fr DoubleToRational(double double_x) {
   bool neg = double_x < 0;
   mpz_class mpz_x = std::abs(double_x) * (1ULL << N);

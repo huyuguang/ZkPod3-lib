@@ -86,8 +86,8 @@ bool IpGadget<D, N>::Test(std::vector<double> const& double_a,
   std::vector<Fr> a(count);
   std::vector<Fr> b(count);
   for (size_t i = 0; i < count; ++i) {
-    a[i] = DoubleToRational<N>(double_a[i]);
-    b[i] = DoubleToRational<N>(double_b[i]);
+    a[i] = DoubleToRational<D, N>(double_a[i]);
+    b[i] = DoubleToRational<D, N>(double_b[i]);
   }
 
   libsnark::protoboard<Fr> pb;
@@ -104,7 +104,7 @@ bool IpGadget<D, N>::Test(std::vector<double> const& double_a,
   if (!pb.is_satisfied()) return false;
 
   Fr fr_ret = pb.lc_val(gadget.ret());
-  std::cout << "fr_ret: " << fr_ret << "\t" << fp::RationalToDouble<N>(fr_ret)
+  std::cout << "fr_ret: " << fr_ret << "\t" << fp::RationalToDouble<D, N>(fr_ret)
             << "\n";
   Fr fr_sign = pb.lc_val(gadget.sign());
   std::cout << "sign: " << fr_sign << "\n";
@@ -116,6 +116,7 @@ bool IpGadget<D, N>::Test(std::vector<double> const& double_a,
 }
 
 inline bool TestIp() {
+  Tick tick(__FN__);
   std::vector<double> double_theta{0.1, -2.2, 3};
   std::vector<double> double_x{3, 5, 2.7};
   return IpGadget<32, 32>::Test(double_theta, double_x); 

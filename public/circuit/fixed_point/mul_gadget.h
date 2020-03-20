@@ -49,7 +49,14 @@ class MulGadget : public libsnark::gadget<Fr> {
   void generate_r1cs_witness() {
     a_.evaluate(this->pb);
     b_.evaluate(this->pb);
-    this->pb.val(product_) = this->pb.lc_val(a_) * this->pb.lc_val(b_);
+    Fr a = this->pb.lc_val(a_);
+    Fr b = this->pb.lc_val(b_);
+    Fr c = a * b;
+    this->pb.val(product_) = c;
+
+    //std::cout << "mul a: " << a << "\t" << RationalToDouble<D,N>(a) <<"\n";
+    //std::cout << "mul b: " << b << "\t" << RationalToDouble<D,N>(b) <<"\n";
+    //std::cout << "mul c: " << c << "\t" << RationalToDouble<D,N>(c) <<"\n";
 
     product_off_.evaluate(this->pb);
     p1_gadget_->generate_r1cs_witness_from_packed();
@@ -83,8 +90,8 @@ bool MulGadget<D, N>::Test(double double_a, double double_b) {
   auto double_ret = double_a * double_b;
   std::cout << "double_ret: " << double_ret << "\n";
 
-  Fr a = DoubleToRational<N>(double_a);
-  Fr b = DoubleToRational<N>(double_b);
+  Fr a = DoubleToRational<D, N>(double_a);
+  Fr b = DoubleToRational<D, N>(double_b);
 
   libsnark::protoboard<Fr> pb;
   libsnark::pb_variable<Fr> pb_a;
@@ -100,7 +107,7 @@ bool MulGadget<D, N>::Test(double double_a, double double_b) {
   if (!pb.is_satisfied()) return false;
 
   Fr fr_ret = pb.lc_val(gadget.ret());
-  std::cout << "fr_ret: " << fr_ret << "\t" << fp::RationalToDouble<N>(fr_ret)
+  std::cout << "fr_ret: " << fr_ret << "\t" << fp::RationalToDouble<D, N>(fr_ret)
             << "\n";
   Fr fr_sign = pb.lc_val(gadget.sign());
   std::cout << "sign: " << fr_sign << "\n";
@@ -112,6 +119,7 @@ bool MulGadget<D, N>::Test(double double_a, double double_b) {
 }
 
 inline bool TestMul() {
+  Tick tick(__FN__);
   double double_a = 7.3;
   double double_b = 32.1;
   return MulGadget<32, 32>::Test(double_a, double_b);

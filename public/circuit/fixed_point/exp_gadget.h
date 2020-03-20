@@ -1,11 +1,12 @@
 #pragma once
 
 #include "./abs_gadget.h"
-#include "./mul2_gadget.h"
 #include "./inv_gadget.h"
+#include "./mul2_gadget.h"
 
 namespace circuit::fixed_point {
 
+// e^x = limit(n->infinte) 1+x+x^2/2!+x^3/3!+...x^n/n!
 // X = x * N (N=2^n)
 // X1 = X
 // X2 = x^2 * N/2! = X1 * X * (N/2) / N^2
@@ -15,19 +16,17 @@ namespace circuit::fixed_point {
 
 // exp(x) * N = N + X1 + X2 + ...
 // x can be negative
-// We do not need to check sign_x, but if not, the e^negative wants larger series_num
+// We do not need to check sign_x, but if not, the e^negative wants larger
+// series_num
 
 template <size_t D, size_t N>
 class ExpGadget : public libsnark::gadget<Fr> {
-
  public:
   ExpGadget(libsnark::protoboard<Fr>& pb,
             libsnark::pb_linear_combination<Fr> const& x,
             libsnark::pb_linear_combination<Fr> const& sign_x,
-            size_t series_num,
-            const std::string& annotation_prefix = "")
-      : libsnark::gadget<Fr>(pb, annotation_prefix),
-        x_(x), sign_x_(sign_x) {
+            size_t series_num, const std::string& annotation_prefix = "")
+      : libsnark::gadget<Fr>(pb, annotation_prefix), x_(x), sign_x_(sign_x) {
     auto constances = RationalConst<D, N>();
     abs_x_.allocate(pb, FMT(this->annotation_prefix, " abs_x"));
     ret_.allocate(pb, FMT(this->annotation_prefix, " ret"));
@@ -36,12 +35,14 @@ class ExpGadget : public libsnark::gadget<Fr> {
     mul2_gadgets_.resize(series_num);
     for (size_t i = 0; i < series_num; ++i) {
       auto mpz_coef = constances.kMpzN / (i + 2);
-      Fr fr_coef;
-      fr_coef.setMpz(mpz_coef);
+      Fr fr_coef = SignedMpzToFr(mpz_coef);
       libsnark::pb_linear_combination<Fr> last =
           i == 0 ? abs_x_ : mul2_gadgets_[i - 1]->ret();
+      libsnark::pb_linear_combination_array<Fr> a(2);
+      a[0] = abs_x_;
+      a[1] = last;
       mul2_gadgets_[i].reset(new Mul2Gadget<D, N>(
-          pb, abs_x_, last, fr_coef,
+          pb, a, fr_coef,
           FMT(this->annotation_prefix, " Mul2Gadget_%zu", i)));
       e_abs_x = e_abs_x + mul2_gadgets_[i]->ret();
     }
@@ -103,26 +104,26 @@ class ExpGadget : public libsnark::gadget<Fr> {
   libsnark::pb_linear_combination<Fr> x_;
   libsnark::pb_linear_combination<Fr> sign_x_;
   libsnark::pb_variable<Fr> abs_x_;
-  std::vector<std::unique_ptr<Mul2Gadget<D,N>>> mul2_gadgets_;
+  std::vector<std::unique_ptr<Mul2Gadget<D, N>>> mul2_gadgets_;
   std::unique_ptr<InvGadget<D, N>> inv_gadget_;
   libsnark::pb_linear_combination<Fr> e_abs_x_;
   libsnark::pb_variable<Fr> ret_;
 };
 
-
 template <size_t D, size_t N>
 bool ExpGadget<D, N>::Test(double double_x) {
+  std::cout << "exp(" << double_x << ")\n";
   auto double_ret = std::exp(double_x);
-  std::cout << "double_ret: " << double_ret << "\n";
+  std::cout << "should be: " << double_ret << "\n";
 
-  Fr x = DoubleToRational<N>(double_x);
+  Fr x = DoubleToRational<D, N>(double_x);
 
   libsnark::protoboard<Fr> pb;
   libsnark::pb_variable<Fr> pb_x;
   libsnark::pb_variable<Fr> pb_sign_x;
   pb_x.allocate(pb, "ExpGadget::Test a");
   pb_sign_x.allocate(pb, "ExpGadget::Test sign_x");
-  size_t kSeriesNum = 20;
+  size_t kSeriesNum = 9;
   ExpGadget<D, N> gadget(pb, pb_x, pb_sign_x, kSeriesNum, "ExpGadget::Test");
   gadget.generate_r1cs_constraints();
   pb.val(pb_x) = x;
@@ -132,8 +133,8 @@ bool ExpGadget<D, N>::Test(double double_x) {
   if (!pb.is_satisfied()) return false;
 
   Fr fr_ret = pb.val(gadget.ret());
-  std::cout << "fr_ret: " << fr_ret << "\t" << fp::RationalToDouble<N>(fr_ret)
-            << "\n";
+  std::cout << "fr_ret: " << fr_ret << "\t"
+            << fp::RationalToDouble<D, N>(fr_ret) << "\n";
 
   std::cout << "num_constraints: " << pb.num_constraints() << "\n";
   std::cout << "num_variables: " << pb.num_variables() << "\n";
@@ -141,7 +142,8 @@ bool ExpGadget<D, N>::Test(double double_x) {
 }
 
 inline bool TestExp() {
-  double double_x = 7.3;
+  Tick tick(__FN__);
+  double double_x = -7.3;
   return ExpGadget<32, 32>::Test(double_x);
 }
 }  // namespace circuit::fixed_point
