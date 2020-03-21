@@ -5,6 +5,8 @@
 namespace circuit::fixed_point {
 
 // ret = a[0]*a[1]...*c, c is a const
+
+// TODO: move c to a and check is_const
 template <size_t D, size_t N>
 class Mul2Gadget : public libsnark::gadget<Fr> {
  public:
