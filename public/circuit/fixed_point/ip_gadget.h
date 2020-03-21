@@ -76,11 +76,11 @@ class IpGadget : public libsnark::gadget<Fr> {
 
 template <size_t D, size_t N>
 bool IpGadget<D, N>::Test(std::vector<double> const& double_a,
-                               std::vector<double> const& double_b) {
+                          std::vector<double> const& double_b) {
   assert(double_a.size() == double_b.size());
   size_t count = double_a.size();
   auto double_ret = std::inner_product(double_a.begin(), double_a.end(),
-                                      double_b.begin(), 0.0);
+                                       double_b.begin(), 0.0);
   std::cout << "double_ret: " << double_ret << "\n";
 
   std::vector<Fr> a(count);
@@ -104,8 +104,8 @@ bool IpGadget<D, N>::Test(std::vector<double> const& double_a,
   if (!pb.is_satisfied()) return false;
 
   Fr fr_ret = pb.lc_val(gadget.ret());
-  std::cout << "fr_ret: " << fr_ret << "\t" << fp::RationalToDouble<D, N>(fr_ret)
-            << "\n";
+  std::cout << "fr_ret: " << fr_ret << "\t"
+            << fp::RationalToDouble<D, N>(fr_ret) << "\n";
   Fr fr_sign = pb.lc_val(gadget.sign());
   std::cout << "sign: " << fr_sign << "\n";
   assert(fr_sign == (double_ret >= 0 ? 1 : 0));
@@ -117,8 +117,26 @@ bool IpGadget<D, N>::Test(std::vector<double> const& double_a,
 
 inline bool TestIp() {
   Tick tick(__FN__);
-  std::vector<double> double_theta{0.1, -2.2, 3};
-  std::vector<double> double_x{3, 5, 2.7};
-  return IpGadget<32, 32>::Test(double_theta, double_x); 
+  bool ret;
+  std::vector<bool> rets;
+  std::vector<double> double_a;
+  std::vector<double> double_b;
+
+  double_a = std::vector<double> {0.1, -2.2, 3};
+  double_b = std::vector<double>{3, 5, 2.7};
+  ret =  IpGadget<32, 32>::Test(double_a, double_b);
+  rets.push_back(ret);
+
+  double_a = std::vector<double> {10.1};
+  double_b = std::vector<double>{0};
+  ret =  IpGadget<32, 32>::Test(double_a, double_b);
+  rets.push_back(ret);
+
+  double_a = std::vector<double> {10.1};
+  double_b = std::vector<double>{0.002};
+  ret =  IpGadget<32, 32>::Test(double_a, double_b);
+  rets.push_back(ret);
+
+  return std::all_of(rets.begin(), rets.end(), [](auto i) { return i; });
 }
 }  // namespace circuit::fixed_point

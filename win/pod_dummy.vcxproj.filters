@@ -301,13 +301,7 @@
     <ClInclude Include="..\public\circuit\test_all.h">
       <Filter>public\circuit</Filter>
     </ClInclude>
-    <ClInclude Include="..\public\circuit\fixed_point\inv_gadget.h">
-      <Filter>public\circuit\fixed_point</Filter>
-    </ClInclude>
     <ClInclude Include="..\public\circuit\fixed_point\ip_gadget.h">
-      <Filter>public\circuit\fixed_point</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\circuit\fixed_point\exp_gadget.h">
       <Filter>public\circuit\fixed_point</Filter>
     </ClInclude>
     <ClInclude Include="..\public\circuit\fixed_point\fixed_point.h">
@@ -319,9 +313,6 @@
     <ClInclude Include="..\public\circuit\fixed_point\misc.h">
       <Filter>public\circuit\fixed_point</Filter>
     </ClInclude>
-    <ClInclude Include="..\public\circuit\fixed_point\mul_gadget.h">
-      <Filter>public\circuit\fixed_point</Filter>
-    </ClInclude>
     <ClInclude Include="..\public\circuit\fixed_point\div_gadget.h">
       <Filter>public\circuit\fixed_point</Filter>
     </ClInclude>
@@ -331,25 +322,13 @@
     <ClInclude Include="..\public\circuit\fixed_point\abs_gadget.h">
       <Filter>public\circuit\fixed_point</Filter>
     </ClInclude>
-    <ClInclude Include="..\public\circuit\fixed_point\type_gadget.h">
-      <Filter>public\circuit\fixed_point</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\circuit\fixed_point\mul2_gadget.h">
-      <Filter>public\circuit\fixed_point</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\circuit\fixed_point\div2_gadget.h">
-      <Filter>public\circuit\fixed_point</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\circuit\fixed_point\div3_gadget.h">
-      <Filter>public\circuit\fixed_point</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\circuit\fixed_point\exp2_gadget.h">
-      <Filter>public\circuit\fixed_point</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\circuit\fixed_point\mulc_gadget.h">
-      <Filter>public\circuit\fixed_point</Filter>
-    </ClInclude>
     <ClInclude Include="..\public\circuit\fixed_point\add_gadget.h">
+      <Filter>public\circuit\fixed_point</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\circuit\fixed_point\mul_gadget.h">
+      <Filter>public\circuit\fixed_point</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\circuit\fixed_point\exp_gadget.h">
       <Filter>public\circuit\fixed_point</Filter>
     </ClInclude>
   </ItemGroup>

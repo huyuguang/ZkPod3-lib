@@ -54,7 +54,7 @@ class Sha256cGadget : public libsnark::gadget<Fr> {
     this->pb.val(plain_) = plain;
     this->pb.val(key_) = key;
     generate_r1cs_witness();
-    //assert(this->pb.is_satisfied());
+    // assert(this->pb.is_satisfied());
   }
 
  private:

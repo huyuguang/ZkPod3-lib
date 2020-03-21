@@ -38,9 +38,23 @@ class RationalConst {
     });
   }
 
-  Fr GetFrDxN(size_t x) {
+  Fr GetFrDxN(size_t x) const {
     mpz_class mpz_dxn = mpz_class(1) << (D + x * N);
     return SignedMpzToFr(mpz_dxn);
+  }
+
+  bool IsOverflow(Fr const& fr) const {
+    bool neg = fr.isNegative();
+    mpz_class abs_mpz = neg ? (-fr).getMpz() : fr.getMpz();
+    return IsOverflow(abs_mpz, neg);
+  }
+
+  bool IsOverflow(mpz_class const& abs_mpz, bool neg) const {
+    if (neg) {
+      return abs_mpz > kMpzDN;
+    } else {
+      return abs_mpz >= kMpzDN;
+    }
   }
 
   inline static mpz_class kMpzD3N;
@@ -65,39 +79,27 @@ class RationalConst {
   inline static std::once_flag once_flag;
 };
 
-template <size_t W>
-class BigIntConst {
- public:
-  BigIntConst() {
-    std::call_once(once_flag, []() {
-      kMpzW = mpz_class(1) << W;
-      kFrW.setMpz(kMpzW);
-    });
-  }
-  //inline static mpz_class kMpzP;
-
-  inline static mpz_class kMpzW;
-  inline static Fr kFrW;
-
- private:
-  inline static std::once_flag once_flag;
-};
-
-// TODO: check overflow
-template<size_t D, size_t N>
+template <size_t D, size_t N>
 inline double RationalToDouble(Fr const& fr_x) {
+  auto constances = RationalConst<D, N>();
   bool neg = fr_x.isNegative();
   mpz_class mpz_x = neg ? (-fr_x).getMpz() : fr_x.getMpz();
+  if (constances.IsOverflow(mpz_x, neg)) {
+    throw std::runtime_error(__FN__);
+  }
   double double_x = mpz_x.get_d();
   double_x /= (double)(1ULL << N);
   return neg ? -double_x : double_x;
 }
 
-// TODO: check overflow
-template<size_t D, size_t N>
+template <size_t D, size_t N>
 inline Fr DoubleToRational(double double_x) {
+  auto constances = RationalConst<D, N>();
   bool neg = double_x < 0;
   mpz_class mpz_x = std::abs(double_x) * (1ULL << N);
+  if (constances.IsOverflow(mpz_x, neg)) {
+    throw std::runtime_error(__FN__);
+  }
   Fr fr_x;
   fr_x.setMpz(mpz_x);
   if (neg) fr_x = -fr_x;

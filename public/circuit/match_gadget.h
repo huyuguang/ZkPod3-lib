@@ -30,7 +30,7 @@ class MatchGadget : public libsnark::gadget<Fr> {
   void Assign(Fr const& x) {
     this->pb.val(x_) = x;
     generate_r1cs_witness();
-    //assert(this->pb.is_satisfied());
+    // assert(this->pb.is_satisfied());
   }
 
  private:

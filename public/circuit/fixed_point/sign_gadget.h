@@ -4,25 +4,23 @@
 
 namespace circuit::fixed_point {
 
-// kFrW = 2^W
-// insure a >=-kFrW && a < kFrW, that is [-2^W, 2^W-1]
+// insure a >=-kFrDN && a < kFrDN, that is [-2^(D+N), 2^(D+N)-1]
 // ret = a >= 0? 1 : 0
 // num_constraints:
 // num_variables:
 
-// TODO: D, N
-template <size_t W>
+template <size_t D, size_t N>
 class SignGadget : public libsnark::gadget<Fr> {
-  static_assert(W < 253, "invalid W");
+  static_assert(D + N < 253, "invalid D,N");
 
  public:
   SignGadget(libsnark::protoboard<Fr>& pb,
              libsnark::pb_linear_combination<Fr> const& a,
              const std::string& annotation_prefix = "")
       : libsnark::gadget<Fr>(pb, annotation_prefix), a_(a) {
-    a_off_.assign(this->pb, a_ + BigIntConst<W>().kFrW);
-    // 2kFrW > a_ + kFrW >=0, so use W+1 bits
-    bits_.allocate(this->pb, W + 1, FMT(this->annotation_prefix, " bits"));
+    a_off_.assign(this->pb, a_ + RationalConst<D, N>().kFrDN);
+    // 2kFrDN > a_ + kFrDN >=0, so use D+N+1 bits
+    bits_.allocate(this->pb, D + N + 1, FMT(this->annotation_prefix, " bits"));
     packing_gadget_.reset(new libsnark::packing_gadget<Fr>(
         this->pb, bits_, a_off_, FMT(this->annotation_prefix, " packing")));
   }
@@ -47,13 +45,13 @@ class SignGadget : public libsnark::gadget<Fr> {
     }
   }
 
-  libsnark::pb_variable<Fr> ret() const { return bits_[W]; }
+  libsnark::pb_variable<Fr> ret() const { return bits_[D + N]; }
 
   static bool Test(Fr const& x, bool except) {
     libsnark::protoboard<Fr> pb;
     libsnark::pb_variable<Fr> pb_x;
     pb_x.allocate(pb, "Test x");
-    SignGadget<W> gadget(pb, pb_x, "SignGadget");
+    SignGadget<D, N> gadget(pb, pb_x, "SignGadget");
     gadget.generate_r1cs_constraints();
     pb.val(pb_x) = x;
     gadget.generate_r1cs_witness();
@@ -70,24 +68,25 @@ class SignGadget : public libsnark::gadget<Fr> {
 
 inline bool TestSign() {
   Tick tick(__FN__);
-  constexpr size_t W = 10;
+  constexpr size_t D = 8;
+  constexpr size_t N = 2;
   std::vector<bool> rets;
-  rets.push_back(SignGadget<W>::Test(Fr(100), true));
-  rets.push_back(SignGadget<W>::Test(Fr(0), true));
-  rets.push_back(SignGadget<W>::Test(Fr(-1), true));
-  rets.push_back(SignGadget<W>::Test(Fr(-100), true));
-  rets.push_back(SignGadget<W>::Test(Fr(-1024), true));
+  rets.push_back(SignGadget<D, N>::Test(Fr(100), true));
+  rets.push_back(SignGadget<D, N>::Test(Fr(0), true));
+  rets.push_back(SignGadget<D, N>::Test(Fr(-1), true));
+  rets.push_back(SignGadget<D, N>::Test(Fr(-100), true));
+  rets.push_back(SignGadget<D, N>::Test(Fr(-1024), true));
 
 #ifndef _DEBUG  // would trigger assert in basic_gadgets
-  rets.push_back(SignGadget<W>::Test(Fr(1024), false));
-  rets.push_back(SignGadget<W>::Test(Fr(-1025), false));
-  rets.push_back(SignGadget<W>::Test(Fr(1025), false));
-  rets.push_back(SignGadget<W>::Test(Fr(122222244), false));
+  rets.push_back(SignGadget<D, N>::Test(Fr(1024), false));
+  rets.push_back(SignGadget<D, N>::Test(Fr(-1025), false));
+  rets.push_back(SignGadget<D, N>::Test(Fr(1025), false));
+  rets.push_back(SignGadget<D, N>::Test(Fr(122222244), false));
 #endif
 
-  // std::cout << pb.val(gadget.ret()) << "\n";
-  // std::cout << "num_constraints: " << pb.num_constraints() << "\n";
-  // std::cout << "num_variables: " << pb.num_variables() << "\n";
   return std::all_of(rets.begin(), rets.end(), [](auto i) { return i; });
 }
+
+template <size_t D, size_t N>
+using TypeGadget = SignGadget<D, N>;
 }  // namespace circuit::fixed_point
