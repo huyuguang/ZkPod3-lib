@@ -66,23 +66,23 @@ struct Sec43b {
   struct Proof {
     G1 c;
     typename Sec53::Proof proof_53;   // 2*log(m)+4 G1, 2n+3 Fr
-    typename HyraxA::Proof proof_a2;  // 2 G1, n+2 Fr
+    typename HyraxA::Proof proof_a;  // 2 G1, n+2 Fr
 
     bool operator==(Proof const& right) const {
       return c == right.c && proof_53 == right.proof_53 &&
-             proof_a2 == right.proof_a2;
+             proof_a == right.proof_a;
     }
     bool operator!=(Proof const& right) const { return !(*this == right); }
 
     template <typename Ar>
     void serialize(Ar& ar) const {
       ar& YAS_OBJECT_NVP("43b.pf", ("c", c), ("53p", proof_53),
-                         ("a2p", proof_a2));
+                         ("ap", proof_a));
     }
     template <typename Ar>
     void serialize(Ar& ar) {
       ar& YAS_OBJECT_NVP("43b.pf", ("c", c), ("53p", proof_53),
-                         ("a2p", proof_a2));
+                         ("ap", proof_a));
     }
   };
 
@@ -304,13 +304,13 @@ struct Sec43b {
       typename HyraxA::CommitmentPub com_pub_hy;
       typename HyraxA::CommitmentSec com_sec_hy;
 
-      std::vector<Fr> x_hy(n);
+      std::vector<Fr> zk(n);
 
-      std::fill(x_hy.begin(), x_hy.end(), FrZero());
+      std::fill(zk.begin(), zk.end(), FrZero());
 
-      auto parallel_f = [&input_z, &x_hy, &k, m](int64_t j) mutable {
+      auto parallel_f = [&input_z, &zk, &k, m](int64_t j) {
         for (int64_t i = 0; i < m; ++i) {
-          x_hy[j] += input_z[i][j] * k[i];
+          zk[j] += input_z[i][j] * k[i];
         }
       };
       parallel::For(n, parallel_f, n < 16 * 1024);
@@ -320,7 +320,7 @@ struct Sec43b {
           input.x_g_offset, input.y_g_offset, input.z_g_offset);
 
       typename HyraxA::ProveInput input_hy(
-          x_hy, t, input_53_z, input_a2_x_g_offset, input_a2_y_g_offset);
+          zk, t, input_53_z, input_a2_x_g_offset, input_a2_y_g_offset);
 
       com_sec_hy.r_xi = InnerProduct(com_sec.t, k);
       com_sec_hy.r_tau = com_sec_53_t;
@@ -337,7 +337,7 @@ struct Sec43b {
       assert(check_xi == com_pub_hy.xi);
 #endif
 
-      HyraxA::Prove(proof.proof_a2, seed, std::move(input_hy),
+      HyraxA::Prove(proof.proof_a, seed, std::move(input_hy),
                     std::move(com_pub_hy), std::move(com_sec_hy));
     }
   }
@@ -402,7 +402,7 @@ struct Sec43b {
           input.x_g_offset, input.y_g_offset, input.z_g_offset);
       typename HyraxA::VerifyInput input_hy(t, com_pub_hy, input_a2_x_g_offset,
                                             input_a2_y_g_offset);
-      ret_a2 = HyraxA::Verify(proof.proof_a2, seed, input_hy);
+      ret_a2 = HyraxA::Verify(proof.proof_a, seed, input_hy);
       assert(ret_a2);
     };
 

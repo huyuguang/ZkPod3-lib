@@ -27,6 +27,12 @@
     <None Include="..\public\clink\readme.md">
       <Filter>public\clink</Filter>
     </None>
+    <None Include="..\public\circuit\fixed_point\readme.md">
+      <Filter>public\circuit\fixed_point</Filter>
+    </None>
+    <None Include="..\public\circuit\readme.md">
+      <Filter>public\circuit</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="public">

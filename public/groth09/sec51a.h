@@ -11,7 +11,7 @@
 // prove: z = <X, Y>
 // proof size: (2n+3) Fr and 4 G1
 // prove cost: 2*mulexp(n)
-// verify cost: mulexp(n)
+// verify cost: gx != gy? 2*mulexp(n) : mulexp(n)
 namespace groth09 {
 
 struct Sec51a {

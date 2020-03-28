@@ -6,7 +6,7 @@ https://eprint.iacr.org/2017/1066.pdf
 ### 概要
 本文仅包含论文中的protocol 1和protocol 2，以及基于protocol 1证明内积（在文中被称之为protocol 3）。本文不关心和电路有关的部分。简而言之，本文最终要解决的问题如下：  
 Prover有两个Fr中长度为n的秘密向量a、b，prover公开com(a)、com(b)、com(c)并且证明c=<a,b>。  
-- h、u是公开的独立的G生成元，g<sub>1</sub>、g<sub>2</sub>是公开的独立的G生成元矢量
+- h、u是公开的独立的G生成元，g<sub>1</sub>、g<sub>2</sub>是公开的独立的G生成元向量
 - com(a)=h<sup>r<sub>1</sub></sup>g<sub>1</sub><sup>a</sup>
 - com(b)=h<sup>r<sub>2</sub></sup>g<sub>2</sub><sup>b</sup>
 - com(c)=h<sup>r<sub>3</sub></sup>u<sup>c</sup>  
@@ -61,7 +61,7 @@ Prover
 
 ### 最终问题
 Prover有两个Fr中的秘密向量a、b，prover公开com(a)、com(b)、com(c)并且证明c=<a,b>。  
-- h、u是公开的独立的G生成元，g<sub>1</sub>、g<sub>2</sub>是公开的独立的G生成元矢量
+- h、u是公开的独立的G生成元，g<sub>1</sub>、g<sub>2</sub>是公开的独立的G生成元向量
 - com(a)=h<sup>r<sub>1</sub></sup>g<sub>1</sub><sup>a</sup>
 - com(b)=h<sup>r<sub>2</sub></sup>g<sub>2</sub><sup>b</sup>
 - com(c)=h<sup>r<sub>3</sub></sup>u<sup>c</sup>  
@@ -78,6 +78,6 @@ Prover有两个Fr中的秘密向量a、b，prover公开com(a)、com(b)、com(c)�
 
 ### 性能
 - Protocol 3
-  - Prove cost：
-  - Verify cost：
+  - Prove cost：TODO
+  - Verify cost：TODO
   - Proof size：(4+2log(n))G1+6F<sub>r</sub>

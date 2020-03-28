@@ -22,20 +22,20 @@ template <size_t D, size_t N>
 class ExpGadget : public libsnark::gadget<Fr> {
  public:
   ExpGadget(libsnark::protoboard<Fr>& pb,
-            libsnark::pb_linear_combination<Fr> const& x, size_t level,
+            libsnark::pb_linear_combination<Fr> const& x, size_t accuracy_level,
             const std::string& annotation_prefix = "")
       : libsnark::gadget<Fr>(pb, annotation_prefix), x_(x) {
-    assert(level >= 6 && level <= 20);
+    assert(accuracy_level >= 6 && accuracy_level <= 20);
     auto constances = RationalConst<D, N>();
 
     mulc_gadget_.reset(
-        new MulVCGadget<D, N>(this->pb, x_, 1.0 / (1ULL << level),
+        new MulVCGadget<D, N>(this->pb, x_, 1.0 / (1ULL << accuracy_level),
                               FMT(this->annotation_prefix, " mulc_gadget")));
 
     base_x_.assign(this->pb, mulc_gadget_->ret() + constances.kFrN);
 
-    mul_gadgets_.resize(level);
-    for (size_t i = 0; i < level; ++i) {
+    mul_gadgets_.resize(accuracy_level);
+    for (size_t i = 0; i < accuracy_level; ++i) {
       libsnark::pb_linear_combination<Fr> last =
           i == 0 ? base_x_ : mul_gadgets_[i - 1]->ret();
       mul_gadgets_[i].reset(new MulVVGadget<D, N>(
@@ -84,8 +84,8 @@ bool ExpGadget<D, N>::Test(double double_x) {
   libsnark::protoboard<Fr> pb;
   libsnark::pb_variable<Fr> pb_x;
   pb_x.allocate(pb, "ExpGadget::Test a");
-  size_t kLevel = 10;
-  ExpGadget<D, N> gadget(pb, pb_x, kLevel, "ExpGadget::Test");
+  size_t kAccuracyLevel = 10;
+  ExpGadget<D, N> gadget(pb, pb_x, kAccuracyLevel, "ExpGadget::Test");
   gadget.generate_r1cs_constraints();
   pb.val(pb_x) = x;
   gadget.generate_r1cs_witness();

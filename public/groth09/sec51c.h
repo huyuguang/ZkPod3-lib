@@ -13,8 +13,8 @@
 // open: com(gx, X), com(gy, Y), com(gz, z). gx, gy maybe overlapped, gz can not
 // prove: z = <X, Y o t>
 // proof size: 2log(n) Fr and 4 G1
-// prove cost: 2*mulexp(n)
-// verify cost: mulexp(n)
+// prove cost: 
+// verify cost: 
 
 namespace groth09 {
 
@@ -88,6 +88,7 @@ struct Sec51c {
     Fr com_yt_r = FrRand();
     int64_t yt_g_offset = SelectYtOffset(input.n(), input.x_g_offset);
     proof.com_yt = PcComputeCommitmentG(yt_g_offset, input.yt, com_yt_r);
+    UpdateSeed(seed, proof.com_yt);
     ProveYt(proof, seed, input, com_pub, com_sec, com_yt_r, yt_g_offset);
 
     // now we have com(yt_g_offset, yt, com_yt_r), want to prove <x, yt> == z
@@ -139,7 +140,7 @@ struct Sec51c {
   static bool Verify(Proof const& proof, h256_t seed,
                      VerifyInput const& input) {
     UpdateSeed(seed, input.com_pub, input.t);
-
+    UpdateSeed(seed, proof.com_yt);
     int64_t yt_g_offset = SelectYtOffset(input.n(), input.x_g_offset);
     if (!VerifyYt(proof, seed, input, yt_g_offset)) {
       assert(false);
@@ -198,6 +199,12 @@ struct Sec51c {
     HashUpdate(hash, com_pub.b);
     HashUpdate(hash, com_pub.c);
     HashUpdate(hash, t);
+    hash.Final(seed.data());
+  }
+
+  static void UpdateSeed(h256_t& seed, G1 const& g) {
+    CryptoPP::Keccak_256 hash;
+    HashUpdate(hash, g);
     hash.Final(seed.data());
   }
 

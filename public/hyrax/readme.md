@@ -8,11 +8,11 @@ https://eprint.iacr.org/2017/1132.pdf
 
 ### A1
 - x、y、z是F<sub>r</sub>中3个秘密的标量
-- Prover公开com(x)、com(y)、com(z)并证明z=<x,y>
+- Prover公开com(x)、com(y)、com(z)并证明z=x*y
   - com(x)=h<sup>r<sub>x</sub></sup>g<sub>x</sub><sup>x</sup>
   - com(y)=h<sup>r<sub>y</sub></sup>g<sub>y</sub><sup>y</sup>
-  - com(z)=h<sup>r<sub>z</sub></sup>g<sub>z</sub><sup>z</sup>
-  - g<sub>x</sub>和g<sub>y</sub>可以相同
+  - com(z)=h<sup>r<sub>z</sub></sup>g<sub>x</sub><sup>z</sup>
+  - 原论文中com(x)、com(y)、com(z)使用了相同的g，但实际上g<sub>x</sub>和g<sub>y</sub>可以不相同。注意com(z)所使用的g必须和com(x)所使用的g相同。
 
 ### A2
 - a是公开的F<sub>r</sub>向量，向量长度为n
@@ -36,6 +36,6 @@ A3是A2的递归折叠版本，有更大的证明开销和验证开销，同时有对数级别的证明长度。
   - Verify cost：MulExp(n)
   - Proof size：2G1+(n+2)F<sub>r</sub>
 - A3
-  - Prove cost： 2MulExp(n)~4MulExp(n)
+  - Prove cost： ~3MulExp(n)
   - Verify cost： 2nEccExp
   - Proof size：(2+2log(n))G1+2F<sub>r</sub>
