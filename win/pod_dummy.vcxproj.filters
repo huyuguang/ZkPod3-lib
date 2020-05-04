@@ -77,6 +77,9 @@
     <Filter Include="public\circuit\fixed_point">
       <UniqueIdentifier>{e442436f-84fe-4d1d-8209-9c9e5cbf6d97}</UniqueIdentifier>
     </Filter>
+    <Filter Include="public\circuit\cnn">
+      <UniqueIdentifier>{ae44458c-240a-4b8f-990e-3cf40c57f274}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\public\public.h">
@@ -205,9 +208,6 @@
     <ClInclude Include="..\public\bp\protocol1.h">
       <Filter>public\bp</Filter>
     </ClInclude>
-    <ClInclude Include="..\public\bp\protocol3.h">
-      <Filter>public\bp</Filter>
-    </ClInclude>
     <ClInclude Include="..\public\ecc\pc_base.h">
       <Filter>public\ecc</Filter>
     </ClInclude>
@@ -313,9 +313,6 @@
     <ClInclude Include="..\public\circuit\fixed_point\fixed_point.h">
       <Filter>public\circuit\fixed_point</Filter>
     </ClInclude>
-    <ClInclude Include="..\public\circuit\logistic_regression.h">
-      <Filter>public\circuit</Filter>
-    </ClInclude>
     <ClInclude Include="..\public\circuit\fixed_point\misc.h">
       <Filter>public\circuit\fixed_point</Filter>
     </ClInclude>
@@ -336,6 +333,33 @@
     </ClInclude>
     <ClInclude Include="..\public\circuit\fixed_point\exp_gadget.h">
       <Filter>public\circuit\fixed_point</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\clink\opening.h">
+      <Filter>public\clink</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\clink\equality.h">
+      <Filter>public\clink</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\bp\protocol31.h">
+      <Filter>public\bp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\circuit\fixed_point\sigmoid_gadget.h">
+      <Filter>public\circuit\fixed_point</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\circuit\fixed_point\relu_gadget.h">
+      <Filter>public\circuit\fixed_point</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\circuit\fixed_point\max_gadget.h">
+      <Filter>public\circuit\fixed_point</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\circuit\cnn\convolution.h">
+      <Filter>public\circuit\cnn</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\circuit\cnn\cnn.h">
+      <Filter>public\circuit\cnn</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\clink\vcp_mnist.h">
+      <Filter>public\clink</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

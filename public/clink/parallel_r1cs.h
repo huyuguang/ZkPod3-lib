@@ -13,6 +13,12 @@
 
 namespace clink {
 
+struct R1csInfo {
+  int64_t num_constraints;
+  int64_t num_variables;
+  libsnark::r1cs_constraint_system<Fr> constraint_system;
+};
+
 template <typename Policy>
 struct ParallelR1cs {
   using Sec53 = typename Policy::Sec53;

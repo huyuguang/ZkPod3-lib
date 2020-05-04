@@ -174,7 +174,7 @@ bool MulGadget<D, N>::Test(std::vector<double> const& double_a,
 
   Fr fr_ret = pb.lc_val(gadget.ret());
   std::cout << "fr_ret: " << fr_ret << "\t"
-            << fp::RationalToDouble<D, N>(fr_ret) << "\n";
+            << RationalToDouble<D, N>(fr_ret) << "\n";
   Fr fr_sign = pb.lc_val(gadget.sign());
   std::cout << "sign: " << fr_sign << "\n";
   assert(fr_sign == (double_ret >= 0 ? 1 : 0));

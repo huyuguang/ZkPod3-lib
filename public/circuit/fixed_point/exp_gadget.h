@@ -94,7 +94,7 @@ bool ExpGadget<D, N>::Test(double double_x) {
 
   Fr fr_ret = pb.lc_val(gadget.ret());
   std::cout << "fr_ret: " << fr_ret << "\t"
-            << fp::RationalToDouble<D, N>(fr_ret) << "\n";
+            << RationalToDouble<D, N>(fr_ret) << "\n";
 
   std::cout << "num_constraints: " << pb.num_constraints() << "\n";
   std::cout << "num_variables: " << pb.num_variables() << "\n";

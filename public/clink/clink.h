@@ -14,3 +14,6 @@
 #include "./substrpack.h"
 #include "./vrs_basic.h"
 #include "./vrs_large.h"
+#include "./opening.h"
+#include "./equality.h"
+#include "./vcp_mnist.h"

@@ -81,6 +81,7 @@ class RationalConst {
 
 template <size_t D, size_t N>
 inline double RationalToDouble(Fr const& fr_x) {
+  static_assert(N < 64, "N too large");
   auto constances = RationalConst<D, N>();
   bool neg = fr_x.isNegative();
   mpz_class mpz_x = neg ? (-fr_x).getMpz() : fr_x.getMpz();
@@ -94,6 +95,7 @@ inline double RationalToDouble(Fr const& fr_x) {
 
 template <size_t D, size_t N>
 inline Fr DoubleToRational(double double_x) {
+  static_assert(N < 64, "N too large");
   auto constances = RationalConst<D, N>();
   bool neg = double_x < 0;
   mpz_class mpz_x = std::abs(double_x) * (1ULL << N);

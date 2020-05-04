@@ -122,7 +122,9 @@ int main(int argc, char** argv) {
   bool divide = false;
   bool match = false;
   bool substr = false;
-  bool gadget = false;
+  bool circuit = false;
+  bool opening = false;
+  bool equality = false;
   int64_t pack_n = 0;
   ParamIntStr substrpack;
   ParamIntStr matchpack;
@@ -130,7 +132,7 @@ int main(int argc, char** argv) {
   Param2IntStr substr_query;
   int64_t bp_p1_n = 0;
   int64_t bp_p2_n = 0;
-  int64_t bp_p3_n = 0;
+  int64_t bp_p31_n = 0;
   int64_t vrs_cache_n = 0;
   int64_t pc_commitment_n = 0;
   int64_t multiexp_n = 0;
@@ -164,7 +166,7 @@ int main(int argc, char** argv) {
         "pod", po::value<ParamIntPair>(&pod), "n*s, ex: 100*1023")(
         "matrix", po::value<ParamIntPair>(&matrix), "n*s, ex:10*20")(
         "equal_ip", po::value<ParamIntPair>(&equal_ip), "xn,yn, ex:10,20")(
-        "overlap", "")("divide", "")("match", "")("substr", "")("gadget", "")(
+        "overlap", "")("divide", "")("match", "")("substr", "")("circuit", "")(
         "pack", po::value<int64_t>(&pack_n), "n, ex: 31000")(
         "substrpack", po::value<ParamIntStr>(&substrpack), "n,key, ex: 10,abc")(
         "matchpack", po::value<ParamIntStr>(&substrpack), "n,key, ex: 10,abc")(
@@ -173,11 +175,11 @@ int main(int argc, char** argv) {
         "substr_query", po::value<Param2IntStr>(&substr_query),
         "n,s,key, ex: 24,1000,abc")("bp_p1", po::value<int64_t>(&bp_p1_n), "")(
         "bp_p2", po::value<int64_t>(&bp_p2_n), "")(
-        "bp_p3", po::value<int64_t>(&bp_p3_n), "")(
+        "bp_p31", po::value<int64_t>(&bp_p31_n), "")(
         "pc_commitment", po::value<int64_t>(&pc_commitment_n), "")(
         "multiexp", po::value<int64_t>(&multiexp_n), "")(
-        "disable_vrs_cache", "")(
-        "mcl", po::value<int64_t>(&mcl_n), "");
+        "disable_vrs_cache", "")("mcl", po::value<int64_t>(&mcl_n), "")(
+        "opening", "")("equality", "");
 
     boost::program_options::variables_map vmap;
 
@@ -216,14 +218,22 @@ int main(int argc, char** argv) {
       substr = true;
     }
 
-    if (vmap.count("gadget")) {
-      gadget = true;
+    if (vmap.count("circuit")) {
+      circuit = true;
     }
 
     if (vmap.count("disable_vrs_cache")) {
       debug::flags::disable_vrs_cache = true;
     }
-    
+
+    if (vmap.count("opening")) {
+      opening = true;
+    }
+
+    if (vmap.count("equality")) {
+      equality = true;
+    }
+
   } catch (std::exception& e) {
     std::cout << "Unknown parameters.\n"
               << e.what() << "\n"
@@ -276,8 +286,8 @@ int main(int argc, char** argv) {
     rets["bp::p2"] = bp::p2::Test(bp_p2_n);
   }
 
-  if (bp_p3_n) {
-    rets["bp::p3"] = bp::p3::Test(bp_p3_n);
+  if (bp_p31_n) {
+    rets["bp::p31"] = bp::p31::Test(bp_p31_n);
   }
 
   if (hyrax_a1) {
@@ -394,8 +404,8 @@ int main(int argc, char** argv) {
     }
   }
 
-  if (gadget) {
-    rets["gadget"] = circuit::Test();
+  if (circuit) {
+    rets["circuit"] = circuit::Test();
   }
 
   if (pack_n) {
@@ -560,6 +570,14 @@ int main(int argc, char** argv) {
     } else {
       assert(false);
     }
+  }
+
+  if (opening) {
+    clink::Opening::Test();
+  }
+
+  if (equality) {
+    clink::Equality::Test();
   }
 
   std::cout << "\n=============================\n";

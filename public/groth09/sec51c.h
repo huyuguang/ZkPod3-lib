@@ -69,7 +69,7 @@ struct Sec51c {
   struct Proof {
     G1 com_yt;
     clink::EqualIp<hyrax::A3>::Proof proof_eip;
-    bp::p3::Proof proof_bp;
+    bp::p31::Proof proof_bp;
     bool CheckFormat() const { return true; }
     bool operator==(Proof const& right) const {
       return com_yt == right.com_yt && proof_eip == right.proof_eip &&
@@ -96,16 +96,16 @@ struct Sec51c {
     std::vector<G1> g2 = GetPcBase().CopyG(yt_g_offset, input.n());
     std::vector<Fr> x_copy = input.x;
     std::vector<Fr> yt_copy = input.yt;
-    bp::p3::ProveInput input_bp(std::move(g1), std::move(g2), PcH(),
+    bp::p31::ProveInput input_bp(std::move(g1), std::move(g2), PcH(),
                                 PcG(input.z_g_offset), std::move(x_copy),
                                 std::move(yt_copy), input.z);
-    bp::p3::CommitmentPub com_pub_bp;
-    bp::p3::CommitmentSec com_sec_bp;
+    bp::p31::CommitmentPub com_pub_bp;
+    bp::p31::CommitmentSec com_sec_bp;
     com_sec_bp.alpha = com_sec.r + com_yt_r;
     com_sec_bp.beta = com_sec.t;
     com_pub_bp.p = com_pub.a + proof.com_yt;
     com_pub_bp.q = com_pub.c;
-    bp::p3::Prove(proof.proof_bp, seed, std::move(input_bp), com_pub_bp,
+    bp::p31::Prove(proof.proof_bp, seed, std::move(input_bp), com_pub_bp,
                   com_sec_bp);
   }
 
@@ -149,13 +149,13 @@ struct Sec51c {
 
     std::vector<G1> g1 = GetPcBase().CopyG(input.x_g_offset, input.n());
     std::vector<G1> g2 = GetPcBase().CopyG(yt_g_offset, input.n());
-    bp::p3::CommitmentPub com_pub_bp;
+    bp::p31::CommitmentPub com_pub_bp;
     com_pub_bp.p = input.com_pub.a + proof.com_yt;
     com_pub_bp.q = input.com_pub.c;
-    bp::p3::VerifyInput input_p3(std::move(g1), std::move(g2), PcH(),
+    bp::p31::VerifyInput input_p3(std::move(g1), std::move(g2), PcH(),
                                  PcG(input.z_g_offset), com_pub_bp);
 
-    return bp::p3::Verify(proof.proof_bp, seed, std::move(input_p3));
+    return bp::p31::Verify(proof.proof_bp, seed, std::move(input_p3));
   }
 
   static void ComputeCom(CommitmentPub& com_pub, CommitmentSec& com_sec,

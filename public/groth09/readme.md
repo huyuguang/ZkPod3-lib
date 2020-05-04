@@ -11,7 +11,7 @@ http://www0.cs.ucl.ac.uk/staff/J.Groth/MatrixZK.pdf
 
 [基础概念和符号约定](../ecc/readme.md)
 
-
+--------
 
 ### 5.1b (5.1a)
 ##### 语义
@@ -32,9 +32,9 @@ http://www0.cs.ucl.ac.uk/staff/J.Groth/MatrixZK.pdf
 - $\vec{g_x}^{\vec x}$指$\prod_{i=0}^{n-1} g_{xi}^{x_i}$，这是计算开销最大的部分，通常也称之为$multiexp (n)$。
 - 原论文中$com(\vec x)、com(\vec y)$使用了相同的$\vec g$，但实际上$\vec{g_x}、\vec{g_y}$可以互不相同。
 
-##### 证明
+##### 协议
 
-?	证明方法完全遵循原论文5.1节。不同之处在于用$FS$变换把协议转为了非交互的。
+?	协议完全遵循原论文5.1节。不同之处在于用$FS$变换把协议转为了非交互的。
 
 1. Prover选择3个$F_r$随机数$r,s,t$。
 2. 计算$a=com(\vec{x}),b=com(\vec{y}),c=com(z)$。
@@ -58,9 +58,9 @@ http://www0.cs.ucl.ac.uk/staff/J.Groth/MatrixZK.pdf
 6. Verifier验证Proof。
    - 使用同样的方法计算挑战随机数$e$
    - 验证如下三个等式是否成立，如果都成立则验证通过。
-     - $a^e{a_d}?=h^{r_x}\vec{g_x}^\vec{f_x}$
-     - $b^e{b_d}?=h^{s_y}\vec{g_y}^\vec{f_y}$
-     - $e^{e^2}{c_1}^e{c_0}?=h^{t_z}{g_z}^{f_z}, f_z=\vec{f_x}\cdot(\vec{f_y}\circ{\vec{t}})$，在5.1a中没有$\vec{t}$，因此退化为$\vec{f_x}\cdot{\vec{f_y}}$
+     - $a^e{a_d} \overset ?= h^{r_x}\vec{g_x}^\vec{f_x}$
+     - $b^e{b_d} \overset?=h^{s_y}\vec{g_y}^\vec{f_y}$
+     - $e^{e^2}{c_1}^e{c_0}\overset ?=h^{t_z}{g_z}^{f_z}, f_z=\vec{f_x}\cdot(\vec{f_y}\circ{\vec{t}})$，在5.1a中没有$\vec{t}$，因此退化为$\vec{f_x}\cdot{\vec{f_y}}$
      - 第一个等式和第二个等式有两次$multiexp(n )$
 
 ##### 性能
@@ -70,6 +70,8 @@ http://www0.cs.ucl.ac.uk/staff/J.Groth/MatrixZK.pdf
 - 验证开销：2次$multiexp(n)$。
 - 证明长度：$4G1+(2N+3)F_r$。
 - 可以看出，当退化为5.1a时，区别只是$O(n)$级别的$F_r$中乘法计算（几个$F_r$向量内积），因此可以认为5.1a和5.1b的性能是一样的。
+
+--------
 
 ### 5.1c
 ##### 语义
@@ -82,9 +84,9 @@ http://www0.cs.ucl.ac.uk/staff/J.Groth/MatrixZK.pdf
 - 原始论文（groth09）中并不存在该算法，该算法是本文概要中所提到的扩展的一部分。注意到原论文中5.1所述的算法的证明长度都是$O(N)$，我们希望能牺牲部分性能换取证明长度降为$O(logN)$。
 - 该算法使用HyraxA3和Bullet Proof P3组合而来，和原始论文中的5.1毫无关系。
 
-##### 证明
+##### 协议
 
-可以注意到5.1a的语义非常类似于[Bullet Proof P3](../bp/readme.md)，但存在一定的差别，主要体现在commitment时所用的$\vec g$。和5.1b的区别则是那个额外的$\vec t$，则可以通过Hyrax A3来解决。Bullet Proof发明了一种递归折叠的技术（Hyrax A3也是借鉴了Bullet Proof的折叠方法），用更大的证明开销和更大的验证开销换来了证明长度从$O(N)$降到$O(logN)$，在某些情况下这是有利的。大致思路如下：
+可以注意到5.1a的语义非常类似于[Bullet Proof P3](../bp/readme.md)，但存在一定的差别，主要体现在commitment时所用的$\vec g$。和5.1b的区别则是那个额外的$\vec t$，这可以通过Hyrax A3来解决。Bullet Proof发明了一种递归折叠的技术（Hyrax A3也是借鉴了Bullet Proof的折叠方法），用更大的证明开销和更大的验证开销换来了证明长度从$O(N)$降到$O(logN)$，在某些情况下这是有利的。大致思路如下：
 
   - 公开$com(\vec{\underline{yt}})$，并且通过Hyrax A3证明$\vec{\underline{yt}}=\vec y\circ \vec t$。
   - 用Bullet Proof Protocol3证明$z=\vec x\cdot \vec{\underline{yt}}$。
@@ -117,8 +119,8 @@ http://www0.cs.ucl.ac.uk/staff/J.Groth/MatrixZK.pdf
    3. 步骤6产生的proof2
 8. Verifier验证Proof
    1. 使用相同的方法通过$FS$变换得到挑战随机数。
-   2. 验证proof1，也即确认$\underline{\vec{yt}}=\vec y\circ \vec t$。
-   3. 验证proof2，也即确认$z==\vec{x}\cdot{\underline{\vec{yt}}}$。
+   2. 验证proof1，也即检查$\underline{\vec{yt}} \overset?=\vec y\circ \vec t$。
+   3. 验证proof2，也即检查$z\overset?=\vec{x}\cdot{\underline{\vec{yt}}}$。
 
 ##### 性能
 
@@ -126,6 +128,8 @@ http://www0.cs.ucl.ac.uk/staff/J.Groth/MatrixZK.pdf
 - 可以看出证明开销为两个子证明的开销之和，其中HyraxA3部分的开销是$3Multiexp(n)$
 - 可以看出验证开销为两个子证明的开销之和，其中HyraxA3部分的开销是$2nEccexp$
 - 证明长度为$4G1+2log(n)F_r$。
+
+--------
 
 ### 5.2b(5.2a)
 
@@ -147,9 +151,9 @@ http://www0.cs.ucl.ac.uk/staff/J.Groth/MatrixZK.pdf
 - $\vec{g_x}^{\vec{x_i}}$指$\prod_{j=0}^{n-1} g_x^{x_{ij}}$，这是计算开销最大的部分，通常也称之为$multiexp (n)$。
 - 原论文中$com(\vec x)、com(\vec y)$使用了相同的$\vec g$，但实际上$\vec{g_x}、\vec{g_y}$可以互不相同。
 
-##### 证明
+##### 协议
 
-证明方法完全遵循原论文5.2节。不同之处在于用$FS$变换把协议转为了非交互的。
+协议完全遵循原论文5.2节。不同之处在于用$FS$变换把协议转为了非交互的。
 
 详细步骤略。
 
@@ -157,6 +161,8 @@ http://www0.cs.ucl.ac.uk/staff/J.Groth/MatrixZK.pdf
 
 - 算法特点是简洁但有O($m^2n$)级别的$F_r$运算，因此性能不佳，主要目的是为了引出随后的5.3方案。
 - 最终将问题转换为5.1a或5.1b。
+
+--------
 
 ### 5.3b(5.3a)
 
@@ -166,7 +172,7 @@ http://www0.cs.ucl.ac.uk/staff/J.Groth/MatrixZK.pdf
 - 5.2b(5.2a)的递归版本，通过增加交互次数，降低了5.2a中$F_r$中的计算量。
 - 最终将问题转换为5.1c或5.1b或5.1a。也即，根据模板参数的不同，5.3b具有不同的证明、验证开销以及证明长度。
 
-##### 证明
+##### 协议
 
 证明方法完全遵循原论文5.2节。不同之处在于用$FS$变换把协议转为了非交互的。注意5.3是个递归算法，因此有多次$FS$变换，同时需要对齐数据。
 
@@ -221,7 +227,7 @@ http://www0.cs.ucl.ac.uk/staff/J.Groth/MatrixZK.pdf
 - 5.1b方案 TODO
 - 5.1c方案 TODO
 
-
+--------
 
 ### 4.3b
 
@@ -236,7 +242,7 @@ http://www0.cs.ucl.ac.uk/staff/J.Groth/MatrixZK.pdf
 - $\vec{r},\vec{s},\vec{t}$ 是三个长度为$n$的随机$F_r$向量，$r_i,s_i,t_i$表示向量中第$i$个元素。
 - 原论文中$com(\vec{x_i}), com(\vec{y_i}), com(\vec{z_i})$使用了相同的$\vec g$，但实际上$\vec{g_x}, \vec{g_y}, \vec{g_z}$可以互不相同。
 
-##### 证明
+##### 协议
 
 证明方法大体遵循原论文，也即将问题转换为5.3，但在具体实现时略微做了调整，最终将问题转换为5.3和Hyrax A2/3。也即，根据模板参数的不同，4.3b具有不同的证明、验证开销以及证明长度。原始论文中并未用到Hyrax A2/3，此处是对原始论文的一点小改进。当然，同样用$FS$变换把协议转为了非交互的。
 
@@ -291,13 +297,9 @@ http://www0.cs.ucl.ac.uk/staff/J.Groth/MatrixZK.pdf
 9. Verifier验证Proof：
 
    1. 基于$\vec a,\vec b,\vec c,m,n$进行$FS$变换得到两个$F_r$挑战向量$\vec{k}, \vec{t}$。
-2. 用和Prover相同的方法计算得到$\vec{\underline{a53}}$。
+   2. 用和Prover相同的方法计算得到$\vec{\underline{a53}}$，验证5.3。
    
-   3. 验证5.3。
-4. 用和Prover相同的方法计算得到$\xi$。
-   5. 验证Hyrax A2/A3。
-
-   
+   3. 用和Prover相同的方法计算得到$\xi$，验证Hyrax A2/A3。
 
 ##### 性能
 
