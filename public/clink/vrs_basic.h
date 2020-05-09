@@ -40,12 +40,13 @@ struct VrsBasic {
         i.resize(n);
       }
 
-      auto& gadget = scheme->gadget;
+      libsnark::protoboard<Fr> pb;
+      auto gadget = scheme->CreateGadget(pb);
       for (int64_t j = 0; j < n; ++j) {
         Fr const& p = get_p(j);
-        gadget.Assign(p, k);
-        assert(pb().is_satisfied());
-        auto var = pb().full_variable_assignment();
+        gadget->Assign(p, k);
+        assert(pb.is_satisfied());
+        auto var = pb.full_variable_assignment();
         for (int64_t i = 0; i < m; ++i) {
           vars[i][j] = var[i];
         }
@@ -61,7 +62,7 @@ struct VrsBasic {
 
     G1 ComputeSigmaG() const { return PcComputeSigmaG(kR1csGOffset, n); }
 
-    libsnark::protoboard<Fr>& pb() { return scheme->pb; }
+    R1csInfo const& r1cs_info() const { return *scheme->r1cs_info; }
 
     // hardcode as 0 because cache always use 0
     Fr const& k;
@@ -79,7 +80,7 @@ struct VrsBasic {
    private:
     void BuildVarComs(std::vector<std::vector<Fr>> const& vars,
                       std::vector<G1>&& icached_var_coms,
-                      std::vector<Fr>&& icached_var_coms_r) {      
+                      std::vector<Fr>&& icached_var_coms_r) {
       auto constexpr kPrimaryInputSize = Scheme::kPrimaryInputSize;
 
       assert(icached_var_coms.size() == icached_var_coms_r.size());
@@ -193,7 +194,7 @@ struct VrsBasic {
     G1 vw_com = PcComputeCommitmentG(input.vw_g_offset, vw, input.vw_com_r);
 
     // proof v[i] = hash(p[i],key)
-    typename R1cs::ProveInput r1cs_input(input.pb(), std::move(vars),
+    typename R1cs::ProveInput r1cs_input(input.r1cs_info(), std::move(vars),
                                          input.var_coms, input.var_coms_r,
                                          kR1csGOffset);
     R1cs::Prove(proof.r1cs_proof, seed, std::move(r1cs_input));
@@ -230,7 +231,7 @@ struct VrsBasic {
 
     G1 ComputeSigmaG() const { return PcComputeSigmaG(kR1csGOffset, n); }
 
-    libsnark::protoboard<Fr>& pb() { return scheme->pb; }
+    R1csInfo const& r1cs_info() const { return *scheme->r1cs_info; }
 
     GetP get_p;
     GetW get_w;
@@ -277,8 +278,8 @@ struct VrsBasic {
 
     // check r1cs (hp product)
     std::vector<std::vector<Fr>> public_w{std::move(p)};
-    typename R1cs::VerifyInput r1cs_input(input.n, input.pb(), proof.var_coms,
-                                          public_w, kR1csGOffset);
+    typename R1cs::VerifyInput r1cs_input(
+        input.n, input.r1cs_info(), proof.var_coms, public_w, kR1csGOffset);
     if (!R1cs::Verify(proof.r1cs_proof, seed, r1cs_input)) {
       assert(false);
       return false;
@@ -346,8 +347,7 @@ bool VrsBasic<Scheme, Policy>::Test(int64_t n) {
     success = VrsPub<Scheme>::VerifySecret(prove_output.h, prove_output.g,
                                            prove_output.key_com, k_com_r, k);
   }
-  std::cout << __FILE__ << " " << __FN__ << ": " << success
-            << "\n\n\n\n\n\n";
+  std::cout << __FILE__ << " " << __FN__ << ": " << success << "\n\n\n\n\n\n";
   return success;
 }
 }  // namespace clink

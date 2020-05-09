@@ -57,8 +57,8 @@ struct VrsCache {
     std::vector<Fr> v(count);
     std::vector<std::vector<Fr>> values(count);
     Scheme scheme;
-    auto& pb = scheme.pb;
-    auto& gadget = scheme.gadget;
+    libsnark::protoboard<Fr> pb;
+    auto gadget = scheme.CreateGadget(pb);
     auto num_var = (int64_t)pb.num_variables();
     if ((int64_t)var_coms.size() != num_var) {
       assert(false);
@@ -71,9 +71,9 @@ struct VrsCache {
 
     for (int64_t i = 0; i < count; ++i) {
       auto plain = VrsPub<Scheme>::GeneratePlain(seed, i + begin);
-      gadget.Assign(plain, key);
+      gadget->Assign(plain, key);
       assert(pb.is_satisfied());
-      v[i] = pb.val(gadget.result());
+      v[i] = pb.val(gadget->result());
       values[i] = pb.full_variable_assignment();
     }
 
@@ -149,14 +149,14 @@ struct VrsCache {
     std::vector<Fr> v(count);
     std::vector<std::vector<Fr>> values(count);
     Scheme scheme;
-    auto& pb = scheme.pb;
-    auto& gadget = scheme.gadget;
+    libsnark::protoboard<Fr> pb;
+    auto gadget = scheme.CreateGadget(pb);
 
     for (int64_t i = 0; i < count; ++i) {
       auto plain = VrsPub<Scheme>::GeneratePlain(seed, i + begin);
-      gadget.Assign(plain, key);
+      gadget->Assign(plain, key);
       assert(pb.is_satisfied());
-      v[i] = pb.val(gadget.result());
+      v[i] = pb.val(gadget->result());
       values[i] = pb.full_variable_assignment();
     }
 
@@ -194,12 +194,12 @@ struct VrsCache {
     auto count = max_end - min_end;
     std::vector<std::vector<Fr>> values(count);
     Scheme scheme;
-    auto& pb = scheme.pb;
-    auto& gadget = scheme.gadget;
+    libsnark::protoboard<Fr> pb;
+    auto gadget = scheme.CreateGadget(pb);
 
     for (int64_t i = 0; i < count; ++i) {
       auto plain = VrsPub<Scheme>::GeneratePlain(seed, i + min_end);
-      gadget.Assign(plain, key);
+      gadget->Assign(plain, key);
       assert(pb.is_satisfied());
       values[i] = pb.full_variable_assignment();
     }

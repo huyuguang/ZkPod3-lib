@@ -11,8 +11,8 @@
 
 namespace circuit {
 inline bool Test() {
-  //fixed_point::Test();
-  cnn::Test();
+  fixed_point::Test();
+  //cnn::Test();
   return true;
 }
 }  // namespace circuit

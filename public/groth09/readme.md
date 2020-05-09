@@ -34,7 +34,7 @@ http://www0.cs.ucl.ac.uk/staff/J.Groth/MatrixZK.pdf
 
 ##### 协议
 
-?	协议完全遵循原论文5.1节。不同之处在于用$FS$变换把协议转为了非交互的。
+协议完全遵循原论文5.1节。不同之处在于用$FS$变换把协议转为了非交互的。
 
 1. Prover选择3个$F_r$随机数$r,s,t$。
 2. 计算$a=com(\vec{x}),b=com(\vec{y}),c=com(z)$。
@@ -307,6 +307,37 @@ http://www0.cs.ucl.ac.uk/staff/J.Groth/MatrixZK.pdf
 
 - 5.1b+HyraxA2 TODO
 - 5.1c+HyraxA3 TODO
+
+-----------------------------
+
+### 批量内积证明
+
+有些情况下需要证明一个向量和多个向量的内积，且不希望重复多次协议5.1。
+
+##### 语义
+
+- $\vec{a}$是$F_r$中的秘密向量。
+- $\vec{b}_i, i\in [1,n]$是$F_r$中的n个秘密向量。
+- $c_i, i\in[1,n]$是n个$F_r$中的秘密标量。
+- Prover公开$com(\vec{a}),com(\vec{b}_i), com(\vec c),i\in[1,n]$，证明$c_i=\vec{a}_i \cdot \vec{b}_i,i\in[1,n]$。
+- $A=com(\vec{a})=h^{r_{a}}\vec{g}^{\vec{a}}$。
+- $B_i=com(\vec{b}_i)=h^{r_{bi}}\vec{g}^{\vec{b}_i}, i\in[1,n]$。
+- $C=com(\vec c)=h^{r_c }\vec g^{\vec c}$。
+
+##### 协议
+
+1. 使用$FS$变换得到挑战$x=FS(A,\vec B,C)$。
+2. 令$\vec x=\{x^0,x^1,x^2...\}$。
+3. 令$\vec{d}_i=\vec{b}_ix_i, D_i=com(r_{di},\vec d_i)$，显然有$D_i=com(r_{bi},\vec b_i)^{x_i}, r_{di}=r_{bi}^{x_i} $。
+4. 令$ \vec{e}=\Sigma_{i=1}^{n}\vec{d}_i, E=com(\vec{e})$，显然有$$。
+5. 显然如下$n$个等式成立：$c_ix^i=\vec{a}\cdot (\vec{b}_ix^i)$，于是可以把它们合并为$\vec c \cdot \vec x=\Sigma_{i=1}^{n}c_ix^i=\Sigma_{i=1}^{n}\vec{a}\cdot(\vec{b}_ix^i)=\vec{a}\cdot (\Sigma_{i=1}^{n}\vec{b}_ix^i)=\vec{a}\cdot \vec{e}$，令等式左边为$L$，等式右边为$R$。
+6. 通过HyraxA3证明$com(L)$。
+7. 证明com(R)：
+   - 通过线性组合得到$E$。
+   - 通过5.1证明$R=\vec{a}\cdot \vec{e}$。
+8. Verifier验证4,5的两个证明，并且验证$com(L)\overset{?}=com(R)$。
+
+
 
 
 

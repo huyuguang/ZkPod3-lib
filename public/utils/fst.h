@@ -19,6 +19,10 @@ inline void HashUpdate(CryptoPP::Keccak_256& hash, std::string const& d) {
   hash.Update((uint8_t const*)d.data(), d.size());
 }
 
+inline void HashUpdate(CryptoPP::Keccak_256& hash, void const* p, size_t len) {
+  hash.Update((uint8_t const*)p, len);
+}
+
 inline void HashUpdate(CryptoPP::Keccak_256& hash, h256_t const& d) {
   hash.Update((uint8_t const*)d.data(), d.size());
 }

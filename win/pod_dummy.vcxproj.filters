@@ -361,5 +361,14 @@
     <ClInclude Include="..\public\clink\vcp_mnist.h">
       <Filter>public\clink</Filter>
     </ClInclude>
+    <ClInclude Include="..\public\clink\vcp_mnist_demo.h">
+      <Filter>public\clink</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\circuit\fixed_point\precision_gadget.h">
+      <Filter>public\circuit\fixed_point</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\circuit\fixed_point\relu2_gadget.h">
+      <Filter>public\circuit\fixed_point</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

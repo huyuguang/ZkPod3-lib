@@ -8,16 +8,27 @@
 namespace clink {
 
 struct VrsSha256cScheme {
-  VrsSha256cScheme() : gadget(pb, "Sha256cGadget") {
-    pb.set_input_sizes(kPrimaryInputSize);
+  VrsSha256cScheme() {
+    libsnark::protoboard<Fr> pb;
+    auto gadget = CreateGadget(pb);
+    r1cs_info.reset(new R1csInfo(pb));
   }
+
+  std::unique_ptr<circuit::Sha256cGadget> CreateGadget(
+      libsnark::protoboard<Fr>& pb) {
+    std::unique_ptr<circuit::Sha256cGadget> ret;
+    ret.reset(new circuit::Sha256cGadget(pb, "Sha256cGadget"));
+    pb.set_input_sizes(kPrimaryInputSize);
+    return ret;
+  }
+
   static Fr Generate(Fr const& plain, Fr const& key) {
     return circuit::Sha256Enc(plain, key);
   }
 
-  int64_t num_variables() const { return (int64_t)pb.num_variables(); }
+  int64_t num_variables() const { return r1cs_info->num_variables; }
 
-  int64_t num_constraints() const { return (int64_t)pb.num_constraints(); }
+  int64_t num_constraints() const { return r1cs_info->num_constraints; }
 
   static const int64_t kPrimaryInputSize = 1;
 #ifdef _DEBUG
@@ -33,21 +44,31 @@ struct VrsSha256cScheme {
     return a;
   };
 
-  libsnark::protoboard<Fr> pb;
-  circuit::Sha256cGadget gadget;
+  std::unique_ptr<R1csInfo> r1cs_info;
 };
 
 struct VrsMimc5Scheme {
-  VrsMimc5Scheme() : gadget(pb, "Mimc5Gadget") {
-    pb.set_input_sizes(kPrimaryInputSize);
+  VrsMimc5Scheme() {
+    libsnark::protoboard<Fr> pb;
+    auto gadget = CreateGadget(pb);
+    r1cs_info.reset(new R1csInfo(pb));
   }
+
+  std::unique_ptr<circuit::Mimc5Gadget> CreateGadget(
+      libsnark::protoboard<Fr>& pb) {
+    std::unique_ptr<circuit::Mimc5Gadget> ret;
+    ret.reset(new circuit::Mimc5Gadget(pb, "Mimc5Gadget"));
+    pb.set_input_sizes(kPrimaryInputSize);
+    return ret;
+  }
+
   static Fr Generate(Fr const& plain, Fr const& key) {
     return circuit::Mimc5Enc(plain, key);
   }
 
-  int64_t num_variables() const { return (int64_t)pb.num_variables(); }
+  int64_t num_variables() const { return r1cs_info->num_variables; }
 
-  int64_t num_constraints() const { return (int64_t)pb.num_constraints(); }
+  int64_t num_constraints() const { return r1cs_info->num_constraints; }
 
   static const int64_t kPrimaryInputSize = 1;
 #ifdef _DEBUG
@@ -63,14 +84,24 @@ struct VrsMimc5Scheme {
     return a;
   };
 
-  libsnark::protoboard<Fr> pb;
-  circuit::Mimc5Gadget gadget;
+  std::unique_ptr<R1csInfo> r1cs_info;
 };
 
 struct VrsPoseidonScheme {
-  VrsPoseidonScheme() : gadget(pb, "PoseidonGadget") {
-    pb.set_input_sizes(kPrimaryInputSize);
+  VrsPoseidonScheme() {
+    libsnark::protoboard<Fr> pb;
+    auto gadget = CreateGadget(pb);
+    r1cs_info.reset(new R1csInfo(pb));
   }
+
+  std::unique_ptr<circuit::VrsPoseidon> CreateGadget(
+      libsnark::protoboard<Fr>& pb) {
+    std::unique_ptr<circuit::VrsPoseidon> ret;
+    ret.reset(new circuit::VrsPoseidon(pb, "PoseidonGadget"));
+    pb.set_input_sizes(kPrimaryInputSize);
+    return ret;
+  }
+
   static Fr Generate(Fr const& plain, Fr const& key) {
     std::array<Fr, 2> inputs{{plain, key}};
     auto ret = circuit::Poseidon<5, 1, 6, 52, 2, 1>(inputs);
@@ -79,9 +110,9 @@ struct VrsPoseidonScheme {
     return ret[0];
   }
 
-  int64_t num_variables() const { return (int64_t)pb.num_variables(); }
+  int64_t num_variables() const { return r1cs_info->num_variables; }
 
-  int64_t num_constraints() const { return (int64_t)pb.num_constraints(); }
+  int64_t num_constraints() const { return r1cs_info->num_constraints; }
 
   static const int64_t kPrimaryInputSize = 1;
 #ifdef _DEBUG
@@ -97,7 +128,6 @@ struct VrsPoseidonScheme {
     return a;
   };
 
-  libsnark::protoboard<Fr> pb;
-  circuit::VrsPoseidon gadget;
+  std::unique_ptr<R1csInfo> r1cs_info;
 };
 }  // namespace clink

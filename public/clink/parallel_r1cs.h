@@ -5,7 +5,8 @@
 #include "./details.h"
 #include "groth09/groth09.h"
 
-// pb: r1cs of one circuit. m=pb.num_constraints(),s=pb.num_variables()
+// r1cs_info: r1cs of one circuit. m=r1cs_info.num_constraints()
+// s=r1cs_info.num_variables()
 // w: matrix<Fr, s, n>, all var(witness) of the circuits.
 // com_w_r: array<Fr, s>, random fr.
 // com_w: array<Fr, s>, com_w[i] = com(w[i], com_w_r[i]).
@@ -14,6 +15,10 @@
 namespace clink {
 
 struct R1csInfo {
+  R1csInfo(libsnark::protoboard<Fr> const& pb)
+      : num_constraints(pb.num_constraints()),
+        num_variables(pb.num_variables()),
+        constraint_system(pb.get_constraint_system()) {}
   int64_t num_constraints;
   int64_t num_variables;
   libsnark::r1cs_constraint_system<Fr> constraint_system;
@@ -27,15 +32,15 @@ struct ParallelR1cs {
   using Proof = typename Sec43::Proof;
 
   struct ProveInput {
-    ProveInput(libsnark::protoboard<Fr> const& pb,
-               std::vector<std::vector<Fr>>&& w, std::vector<G1> const& com_w,
-               std::vector<Fr> const& com_w_r, int64_t g_offset)
-        : pb(pb),
+    ProveInput(R1csInfo const& r1cs_info, std::vector<std::vector<Fr>>&& w,
+               std::vector<G1> const& com_w, std::vector<Fr> const& com_w_r,
+               int64_t g_offset)
+        : r1cs_info(r1cs_info),
           com_w(com_w),
           com_w_r(com_w_r),
           g_offset(g_offset),
-          m((int64_t)pb.num_constraints()),
-          s((int64_t)pb.num_variables()),
+          m(r1cs_info.num_constraints),
+          s(r1cs_info.num_variables),
           n((int64_t)w[0].size()) {
 #ifdef _DEBUG
       assert((int64_t)w.size() == s);
@@ -75,14 +80,14 @@ struct ParallelR1cs {
     }
 
     libsnark::r1cs_constraint_system<Fr> const& constraint_system() const {
-      return pb.get_constraint_system_ref();
+      return r1cs_info.constraint_system;
     }
 
     std::vector<libsnark::r1cs_constraint<Fr>> const& constraints() const {
       return constraint_system().constraints;
     }
 
-    libsnark::protoboard<Fr> const& pb;
+    R1csInfo const& r1cs_info;
     std::vector<G1> const& com_w;
     std::vector<Fr> const& com_w_r;
     int64_t const g_offset;
@@ -119,19 +124,19 @@ struct ParallelR1cs {
   }
 
   struct VerifyInput {
-    VerifyInput(int64_t n, libsnark::protoboard<Fr> const& pb,
+    VerifyInput(int64_t n, R1csInfo const& r1cs_info,
                 std::vector<G1> const& com_w,
                 std::vector<std::vector<Fr>> const& public_w, int64_t g_offset)
         : n(n),
-          pb(pb),
+          r1cs_info(r1cs_info),
           com_w(com_w),
           public_w(public_w),
           g_offset(g_offset),
-          m((int64_t)pb.num_constraints()),
-          s((int64_t)pb.num_variables()) {}
+          m(r1cs_info.num_constraints),
+          s(r1cs_info.num_variables) {}
 
     libsnark::r1cs_constraint_system<Fr> const& constraint_system() const {
-      return pb.get_constraint_system_ref();
+      return r1cs_info.constraint_system;
     }
 
     std::vector<libsnark::r1cs_constraint<Fr>> const& constraints() const {
@@ -170,7 +175,7 @@ struct ParallelR1cs {
     }
 
     int64_t const n;
-    libsnark::protoboard<Fr> const& pb;
+    R1csInfo const& r1cs_info;
     std::vector<G1> const& com_w;
     std::vector<std::vector<Fr>> const& public_w;
     int64_t const g_offset;

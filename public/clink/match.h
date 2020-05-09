@@ -51,12 +51,13 @@ struct Match {
           com_y(com_y),
           com_y_r(com_y_r),
           g_offset(g_offset),
-          n((int64_t)x.size()),
-          gadget(circuit::MatchGadget(pb, k)),
-          s((int64_t)pb.num_variables()) {
+          n((int64_t)x.size()) {
+      libsnark::protoboard<Fr> pb;
+      circuit::MatchGadget gadget(pb, k);
       int64_t const primary_input_size = 0;
       pb.set_input_sizes(primary_input_size);
-
+      r1cs_info.reset(new R1csInfo(pb));
+      s = r1cs_info->num_variables;
       w.resize(s);
       for (auto& i : w) i.resize(n);
 
@@ -81,9 +82,8 @@ struct Match {
     int64_t const g_offset;
 
     int64_t const n;
-    libsnark::protoboard<Fr> pb;
-    circuit::MatchGadget gadget;
-    int64_t const s;
+    std::unique_ptr<R1csInfo> r1cs_info;
+    int64_t s;
     std::vector<std::vector<Fr>> mutable w;
   };
 
@@ -105,30 +105,30 @@ struct Match {
     };
     parallel::For<int64_t>(1, input.s - 1, parallel_f);
 
-    typename R1cs::ProveInput r1cs_input(input.pb, std::move(input.w), com_w,
-                                         com_w_r, input.g_offset);
+    typename R1cs::ProveInput r1cs_input(*input.r1cs_info, std::move(input.w),
+                                         com_w, com_w_r, input.g_offset);
     R1cs::Prove(proof.r1cs_proof, seed, std::move(r1cs_input));
     proof.com_w = std::move(com_w);
   }
 
   struct VerifyInput {
     VerifyInput(int64_t n, Fr const& k, int64_t g_offset)
-        : n(n),
-          k(k),
-          g_offset(g_offset),
-          gadget(circuit::MatchGadget(pb, k)),
-          m((int64_t)pb.num_constraints()),
-          s((int64_t)pb.num_variables()) {
+        : n(n), k(k), g_offset(g_offset) {
+      libsnark::protoboard<Fr> pb;
+      circuit::MatchGadget gadget(pb, k);
       int64_t const primary_input_size = 0;
       pb.set_input_sizes(primary_input_size);
+      r1cs_info.reset(new R1csInfo(pb));
+      m = r1cs_info->num_constraints;
+      s = r1cs_info->num_variables;
     }
     int64_t n;
     Fr const& k;
     int64_t const g_offset;
-    libsnark::protoboard<Fr> pb;
-    circuit::MatchGadget gadget;
-    int64_t const m;
-    int64_t const s;
+
+    std::unique_ptr<R1csInfo> r1cs_info;
+    int64_t m;
+    int64_t s;
     // since primary_input_size = 0, public_w is empty
     std::vector<std::vector<Fr>> public_w;
   };
@@ -146,7 +146,7 @@ struct Match {
     //  return false;
     //}
 
-    typename R1cs::VerifyInput pr_input(input.n, input.pb, proof.com_w,
+    typename R1cs::VerifyInput pr_input(input.n, *input.r1cs_info, proof.com_w,
                                         input.public_w, input.g_offset);
     return R1cs::Verify(proof.r1cs_proof, seed, pr_input);
   }
@@ -198,8 +198,7 @@ bool Match<Policy>::Test() {
 
   VerifyInput verify_input(n, k, g_offset);
   bool success = Verify(proof, seed, verify_input);
-  std::cout << __FILE__ << " " << __FN__ << ": " << success
-            << "\n\n\n\n\n\n";
+  std::cout << __FILE__ << " " << __FN__ << ": " << success << "\n\n\n\n\n\n";
   return success;
 }
 }  // namespace clink

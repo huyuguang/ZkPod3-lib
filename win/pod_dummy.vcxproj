@@ -137,9 +137,11 @@
     <ClInclude Include="..\public\circuit\fixed_point\max_gadget.h" />
     <ClInclude Include="..\public\circuit\fixed_point\misc.h" />
     <ClInclude Include="..\public\circuit\fixed_point\mul_gadget.h" />
+    <ClInclude Include="..\public\circuit\fixed_point\relu2_gadget.h" />
     <ClInclude Include="..\public\circuit\fixed_point\relu_gadget.h" />
     <ClInclude Include="..\public\circuit\fixed_point\sigmoid_gadget.h" />
     <ClInclude Include="..\public\circuit\fixed_point\sign_gadget.h" />
+    <ClInclude Include="..\public\circuit\fixed_point\precision_gadget.h" />
     <ClInclude Include="..\public\circuit\has0_gadget.h" />
     <ClInclude Include="..\public\circuit\match_gadget.h" />
     <ClInclude Include="..\public\circuit\mimc5.h" />
@@ -166,6 +168,7 @@
     <ClInclude Include="..\public\clink\substr.h" />
     <ClInclude Include="..\public\clink\substrpack.h" />
     <ClInclude Include="..\public\clink\vcp_mnist.h" />
+    <ClInclude Include="..\public\clink\vcp_mnist_demo.h" />
     <ClInclude Include="..\public\clink\vrs_basic.h" />
     <ClInclude Include="..\public\clink\vrs_cache.h" />
     <ClInclude Include="..\public\clink\vrs_large.h" />

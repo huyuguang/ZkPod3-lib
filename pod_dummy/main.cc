@@ -125,6 +125,7 @@ int main(int argc, char** argv) {
   bool circuit = false;
   bool opening = false;
   bool equality = false;
+  bool vcp_mnist = false;
   int64_t pack_n = 0;
   ParamIntStr substrpack;
   ParamIntStr matchpack;
@@ -179,7 +180,7 @@ int main(int argc, char** argv) {
         "pc_commitment", po::value<int64_t>(&pc_commitment_n), "")(
         "multiexp", po::value<int64_t>(&multiexp_n), "")(
         "disable_vrs_cache", "")("mcl", po::value<int64_t>(&mcl_n), "")(
-        "opening", "")("equality", "");
+        "opening", "")("equality", "")("vcp_mnist","");
 
     boost::program_options::variables_map vmap;
 
@@ -232,6 +233,10 @@ int main(int argc, char** argv) {
 
     if (vmap.count("equality")) {
       equality = true;
+    }
+
+    if (vmap.count("vcp_mnist")) {
+      vcp_mnist = true;
     }
 
   } catch (std::exception& e) {
@@ -578,6 +583,14 @@ int main(int argc, char** argv) {
 
   if (equality) {
     clink::Equality::Test();
+  }
+
+  if (vcp_mnist) {
+    if (policy == PolicyType::kOrdinary) {
+      clink::VcpMnist<groth09::OrdinaryPolicy>::Test();
+    } else {
+      clink::VcpMnist<groth09::SuccinctPolicy>::Test();
+    }
   }
 
   std::cout << "\n=============================\n";

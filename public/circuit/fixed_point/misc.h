@@ -50,11 +50,22 @@ class RationalConst {
   }
 
   bool IsOverflow(mpz_class const& abs_mpz, bool neg) const {
+    bool ret;
     if (neg) {
-      return abs_mpz > kMpzDN;
+      ret = abs_mpz > kMpzDN;
     } else {
-      return abs_mpz >= kMpzDN;
+      ret = abs_mpz >= kMpzDN;
     }
+#ifdef _DEBUG
+    if (ret) {
+      double double_x = abs_mpz.get_d();
+      double_x /= (double)(1ULL << N);
+      double_x = neg ? -double_x : double_x;
+      std::cout << "fixpoint overflow: "
+                << "<" << D << "," << N << ">" << double_x << "\n";
+    }
+#endif
+    return ret;
   }
 
   inline static mpz_class kMpzD3N;
