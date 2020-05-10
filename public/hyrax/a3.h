@@ -250,6 +250,45 @@ struct A3 {
         a[0] * (c * r_gamma + com_ext_sec.r_beta) + com_ext_sec.r_delta;
   }
 
+  static void BuildS(std::vector<Fr>& s, std::vector<Fr> const& c,
+                     std::vector<Fr> const& d, std::vector<Fr> const& cc) {
+    assert(c.size() == d.size());
+    auto round = c.size();
+    assert(s.size() <= (1ULL << round));
+
+    for (size_t k = 0; k < s.size(); ++k) {
+      if (k == 0) {
+        s[k] = FrOne();
+        for (size_t i = 0; i < round; ++i) {
+          s[k] *= d[i];
+        }
+      } else {
+        std::bitset<64> bits(k);
+        for (size_t i = 0; i < round; ++i) {
+          if (bits[round - i - 1]) {
+            bits[round - i - 1] = 0;
+            auto kk = bits.to_ulong();
+            s[k] = s[kk] * cc[i];
+            break;
+          }
+        }
+      }
+
+      //{
+      //  Fr check = FrOne();
+      //  std::bitset<64> bits(k);
+      //  for (size_t i = 0; i < round; ++i) {
+      //    if (bits[round - i - 1]) {
+      //      check *= c[i];
+      //    } else {
+      //      check *= d[i];
+      //    }
+      //  }
+      //  assert(s[k] == check);
+      //}
+    }
+  }
+
   static bool Verify(Proof const& proof, h256_t seed,
                      VerifyInput const& input) {
     assert(PcBase::kGSize >= proof.aligned_n());
@@ -258,52 +297,52 @@ struct A3 {
       return false;
     }
     CommitmentPub const& com_pub = input.com_pub;
-    auto a = input.a;
     CommitmentExtPub const& com_ext_pub = proof.com_ext_pub;
     int64_t round = (int64_t)misc::Log2UB(n);
-    auto gx = GetPcBase().CopyG(input.x_g_offset, n);
-    gx.resize(misc::Pow2UB(n));
-    std::fill(gx.begin() + n, gx.end(), G1Zero());
     auto const& h = PcH();
     auto const& gy = PcG(input.y_g_offset);
     G1 gamma = com_pub.xi + com_pub.tau;
 
-    UpdateSeed(seed, a, com_pub);
+    UpdateSeed(seed, input.a, com_pub);
+
+    std::vector<Fr> vec_c(round);
+    std::vector<Fr> vec_d(round);
+    std::vector<Fr> vec_cc(round);
+    std::vector<Fr> vec_dd(round);
 
     // recursive round
     for (int64_t loop = 0; loop < round; ++loop) {
-      std::vector<Fr> a1, a2;
-      Divide(a, a1, a2, FrZero());
-      std::vector<G1> g1, g2;
-      Divide(gx, g1, g2, G1Zero());
-
       auto const& gamma_neg_1 = com_ext_pub.gamma_neg_1[loop];
       auto const& gamma_pos_1 = com_ext_pub.gamma_pos_1[loop];
-
       UpdateSeed(seed, gamma_neg_1, gamma_pos_1);
-      Fr c = H256ToFr(seed);
-      Fr cc = c * c;
-      Fr c_inv = FrInv(c);
-      Fr cc_inv = FrInv(cc);
+      vec_c[loop] = H256ToFr(seed);
+      vec_cc[loop] = vec_c[loop] * vec_c[loop];
+    }
+    vec_d = vec_c;
+    FrInv(vec_d);
+    vec_dd = vec_cc;
+    FrInv(vec_dd);
 
-      gamma += gamma_neg_1 * cc + gamma_pos_1 * cc_inv;
-      a = a1 * c_inv + a2 * c;
-      gx = FuncO(g1, c_inv, g2, c);
+    for (int64_t loop = 0; loop < round; ++loop) {
+      auto const& gamma_neg_1 = com_ext_pub.gamma_neg_1[loop];
+      auto const& gamma_pos_1 = com_ext_pub.gamma_pos_1[loop];
+      gamma += gamma_neg_1 * vec_cc[loop] + gamma_pos_1 * vec_dd[loop];
     }
 
-    assert(gx.size() == 1);
-    assert(a.size() == 1);
-    // std::cout << "gx[0]: " << gx[0] << "\n";
-    // std::cout << "a[0]: " << a[0] << "\n";
-    // std::cout << "gamma: " << gamma << "\n";
+    std::vector<Fr> s(n);
+    BuildS(s, vec_c, vec_d, vec_cc);
+
+    auto base_g = GetPcBase().CopyG(input.x_g_offset, n);
+    G1 gx = MultiExpBdlo12(base_g, s);
+    Fr a = InnerProduct(input.a, s);
 
     // final round
     UpdateSeed(seed, com_ext_pub.delta, com_ext_pub.beta);
     Fr c = H256ToFr(seed);
     // std::cout << c << "\n";
     auto const& sub_proof = proof.sub_proof;
-    G1 left = (gamma * c + com_ext_pub.beta) * a[0] + com_ext_pub.delta;
-    G1 right = (gx[0] + gy * a[0]) * sub_proof.z1 + h * sub_proof.z2;
+    G1 left = (gamma * c + com_ext_pub.beta) * a + com_ext_pub.delta;
+    G1 right = (gx + gy * a) * sub_proof.z1 + h * sub_proof.z2;
     if (left != right) {
       assert(false);
       return false;
@@ -407,8 +446,7 @@ bool A3::Test(int64_t n) {
 
   VerifyInput verify_input(a, com_pub, x_g_offset, y_g_offset);
   bool success = Verify(proof, UpdateSeed, verify_input);
-  std::cout << __FILE__ << " " << __FN__ << ": " << success
-            << "\n\n\n\n\n\n";
+  std::cout << __FILE__ << " " << __FN__ << ": " << success << "\n\n\n\n\n\n";
   return success;
 }
 }  // namespace hyrax
