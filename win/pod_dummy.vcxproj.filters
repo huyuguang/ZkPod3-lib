@@ -77,8 +77,26 @@
     <Filter Include="public\circuit\fixed_point">
       <UniqueIdentifier>{e442436f-84fe-4d1d-8209-9c9e5cbf6d97}</UniqueIdentifier>
     </Filter>
-    <Filter Include="public\circuit\cnn">
+    <Filter Include="public\iop">
+      <UniqueIdentifier>{df0ee955-b6c2-43eb-9a93-5a330d4f5678}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="public\snark">
+      <UniqueIdentifier>{24bc130f-3692-49b0-83fe-e3762583d9f2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="public\clink\mnist">
+      <UniqueIdentifier>{b257c9a3-1f19-433d-aa19-9b4ac042801b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="public\circuit\mnist">
       <UniqueIdentifier>{ae44458c-240a-4b8f-990e-3cf40c57f274}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="public\circuit\vgg16">
+      <UniqueIdentifier>{26fa7f06-6737-4537-92f2-6175c3f3c3c0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="public\clink\vgg16">
+      <UniqueIdentifier>{ae4c759f-b5be-43f7-9f2f-07f110447198}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="public\clink\vrs">
+      <UniqueIdentifier>{a31686fd-df20-4cf5-8241-b2ec17b56b1e}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -259,21 +277,6 @@
     <ClInclude Include="..\public\clink\substrpack.h">
       <Filter>public\clink</Filter>
     </ClInclude>
-    <ClInclude Include="..\public\clink\vrs_basic.h">
-      <Filter>public\clink</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\clink\vrs_cache.h">
-      <Filter>public\clink</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\clink\vrs_large.h">
-      <Filter>public\clink</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\clink\vrs_pub.h">
-      <Filter>public\clink</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\clink\vrs_scheme.h">
-      <Filter>public\clink</Filter>
-    </ClInclude>
     <ClInclude Include="..\public\clink\clink.h">
       <Filter>public\clink</Filter>
     </ClInclude>
@@ -352,23 +355,98 @@
     <ClInclude Include="..\public\circuit\fixed_point\max_gadget.h">
       <Filter>public\circuit\fixed_point</Filter>
     </ClInclude>
-    <ClInclude Include="..\public\circuit\cnn\convolution.h">
-      <Filter>public\circuit\cnn</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\circuit\cnn\cnn.h">
-      <Filter>public\circuit\cnn</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\clink\vcp_mnist.h">
-      <Filter>public\clink</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\clink\vcp_mnist_demo.h">
-      <Filter>public\clink</Filter>
-    </ClInclude>
     <ClInclude Include="..\public\circuit\fixed_point\precision_gadget.h">
       <Filter>public\circuit\fixed_point</Filter>
     </ClInclude>
     <ClInclude Include="..\public\circuit\fixed_point\relu2_gadget.h">
       <Filter>public\circuit\fixed_point</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\iop\iop.h">
+      <Filter>public\iop</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\snark\snark.h">
+      <Filter>public\snark</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\clink\mnist\mnist.h">
+      <Filter>public\clink\mnist</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\clink\mnist\dbl.h">
+      <Filter>public\clink\mnist</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\clink\mnist\demo.h">
+      <Filter>public\clink\mnist</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\circuit\mnist\mnist.h">
+      <Filter>public\circuit\mnist</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\circuit\mnist\convolution.h">
+      <Filter>public\circuit\mnist</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\clink\vrs\vrs_large.h">
+      <Filter>public\clink\vrs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\clink\vrs\vrs_pub.h">
+      <Filter>public\clink\vrs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\clink\vrs\vrs_scheme.h">
+      <Filter>public\clink\vrs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\clink\vrs\vrs_basic.h">
+      <Filter>public\clink\vrs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\clink\vrs\vrs_cache.h">
+      <Filter>public\clink\vrs</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\clink\vgg16\publish.h">
+      <Filter>public\clink\vgg16</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\clink\vgg16\verify.h">
+      <Filter>public\clink\vgg16</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\clink\vgg16\vgg16.h">
+      <Filter>public\clink\vgg16</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\clink\vgg16\prove.h">
+      <Filter>public\clink\vgg16</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\circuit\vgg16\vgg16.h">
+      <Filter>public\circuit\vgg16</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\clink\vgg16\para_fr.h">
+      <Filter>public\clink\vgg16</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\clink\vgg16\para_dbl.h">
+      <Filter>public\clink\vgg16</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\clink\vgg16\para_pub.h">
+      <Filter>public\clink\vgg16</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\clink\vgg16\para_com.h">
+      <Filter>public\clink\vgg16</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\clink\vgg16\auxi_pub.h">
+      <Filter>public\clink\vgg16</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\clink\vgg16\image_com.h">
+      <Filter>public\clink\vgg16</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\clink\vgg16\infer.h">
+      <Filter>public\clink\vgg16</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\clink\vgg16\prove_dense.h">
+      <Filter>public\clink\vgg16</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\clink\vgg16\prove_pooling.h">
+      <Filter>public\clink\vgg16</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\clink\vgg16\prove_relubn.h">
+      <Filter>public\clink\vgg16</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\clink\vgg16\prove_conv.h">
+      <Filter>public\clink\vgg16</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\circuit\vgg16\ip_gadget.h">
+      <Filter>public\circuit\vgg16</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

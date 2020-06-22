@@ -3,11 +3,11 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LocalDebuggerWorkingDirectory>$(OutDir)</LocalDebuggerWorkingDirectory>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
-    <LocalDebuggerCommandArguments>--hyrax_a3=161</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>--vgg16_test "e:/vgg16_publish"</LocalDebuggerCommandArguments>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LocalDebuggerWorkingDirectory>$(OutDir)</LocalDebuggerWorkingDirectory>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
-    <LocalDebuggerCommandArguments>--hyrax_a3=161</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>--vgg16_test "e:/vgg16_publish"</LocalDebuggerCommandArguments>
   </PropertyGroup>
 </Project>

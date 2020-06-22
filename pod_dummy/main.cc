@@ -9,12 +9,13 @@
 #include "circuit/test_all.h"
 #include "clink/clink.h"
 #include "cmd/cmd.h"
+#include "debug/flags.h"
 #include "ecc/ecc.h"
 #include "groth09/groth09.h"
+#include "iop/iop.h"
 #include "log/tick.h"
 #include "misc/misc.h"
 #include "public.h"
-#include "debug/flags.h"
 
 bool InitAll(std::string const& data_dir) {
   InitEcc();
@@ -49,6 +50,45 @@ inline std::istream& operator>>(std::istream& in, ParamIntPair& t) {
     in >> t.x;
     in >> sperator;
     in >> t.y;
+  } catch (std::exception&) {
+    in.setstate(std::ios_base::failbit);
+  }
+  return in;
+}
+
+struct Param2Str {
+  bool valid() const { return !s1.empty() && !s2.empty(); }
+  std::string s1;
+  std::string s2;
+};
+
+inline std::istream& operator>>(std::istream& in, Param2Str& t) {
+  try {
+    char sperator;
+    in >> t.s1;
+    in >> sperator;
+    in >> t.s2;
+  } catch (std::exception&) {
+    in.setstate(std::ios_base::failbit);
+  }
+  return in;
+}
+
+struct Param3Str {
+  bool valid() const { return !s1.empty() && !s2.empty() && !s3.empty(); }
+  std::string s1;
+  std::string s2;
+  std::string s3;
+};
+
+inline std::istream& operator>>(std::istream& in, Param3Str& t) {
+  try {
+    char sperator;
+    in >> t.s1;
+    in >> sperator;
+    in >> t.s2;
+    in >> sperator;
+    in >> t.s3;
   } catch (std::exception&) {
     in.setstate(std::ios_base::failbit);
   }
@@ -126,6 +166,7 @@ int main(int argc, char** argv) {
   bool opening = false;
   bool equality = false;
   bool vcp_mnist = false;
+  bool iop = false;
   int64_t pack_n = 0;
   ParamIntStr substrpack;
   ParamIntStr matchpack;
@@ -138,6 +179,9 @@ int main(int argc, char** argv) {
   int64_t pc_commitment_n = 0;
   int64_t multiexp_n = 0;
   int64_t mcl_n = 0;
+  Param2Str vgg16_publish;
+  Param2Str vgg16_infer;
+  std::string vgg16_test;
 
   try {
     po::options_description options("command line options");
@@ -180,7 +224,13 @@ int main(int argc, char** argv) {
         "pc_commitment", po::value<int64_t>(&pc_commitment_n), "")(
         "multiexp", po::value<int64_t>(&multiexp_n), "")(
         "disable_vrs_cache", "")("mcl", po::value<int64_t>(&mcl_n), "")(
-        "opening", "")("equality", "")("vcp_mnist","");
+        "opening", "")("equality", "")("vcp_mnist", "")("iop", "")(
+        "vgg16_publish", po::value<Param2Str>(&vgg16_publish),
+        "\"para_path working_path\"")(
+        "vgg16_infer", po::value<Param2Str>(&vgg16_infer),
+        "\"image_path working_path\"")(
+        "vgg16_test", po::value<std::string>(&vgg16_test),
+        "working_path");
 
     boost::program_options::variables_map vmap;
 
@@ -239,6 +289,9 @@ int main(int argc, char** argv) {
       vcp_mnist = true;
     }
 
+    if (vmap.count("iop")) {
+      iop = true;
+    }
   } catch (std::exception& e) {
     std::cout << "Unknown parameters.\n"
               << e.what() << "\n"
@@ -578,19 +631,41 @@ int main(int argc, char** argv) {
   }
 
   if (opening) {
-    clink::Opening::Test();
+    rets["opending"] = clink::Opening::Test();
   }
 
   if (equality) {
-    clink::Equality::Test();
+    rets["equality"] = clink::Equality::Test();
   }
 
   if (vcp_mnist) {
     if (policy == PolicyType::kOrdinary) {
-      clink::VcpMnist<groth09::OrdinaryPolicy>::Test();
+      rets["vcp_mnist(ordinary)"] =
+          clink::Mnist<groth09::OrdinaryPolicy>::Test();
     } else {
-      clink::VcpMnist<groth09::SuccinctPolicy>::Test();
+      rets["vcp_mnist(succinct)"] =
+          clink::Mnist<groth09::SuccinctPolicy>::Test();
     }
+  }
+
+  if (iop) {
+    rets["iop"] = iop::Test();
+  }
+
+  if (vgg16_publish.valid()) {
+    rets["vgg16_publish"] =
+        clink::vgg16::Publish(vgg16_publish.s1, vgg16_publish.s2);
+  }
+
+  if (vgg16_infer.valid()) {
+    //clink::vgg16::dbl::Test();
+    rets["vgg16_infer"] = clink::vgg16::TestInfer(
+        vgg16_infer.s1, vgg16_infer.s2);
+  }
+
+  if (!vgg16_test.empty()) {
+    rets["vgg16_test"] = clink::vgg16::Test(
+        vgg16_test);
   }
 
   std::cout << "\n=============================\n";

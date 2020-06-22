@@ -299,10 +299,7 @@ struct A3 {
     CommitmentPub const& com_pub = input.com_pub;
     CommitmentExtPub const& com_ext_pub = proof.com_ext_pub;
     int64_t round = (int64_t)misc::Log2UB(n);
-    auto const& h = PcH();
-    auto const& gy = PcG(input.y_g_offset);
-    G1 gamma = com_pub.xi + com_pub.tau;
-
+    
     UpdateSeed(seed, input.a, com_pub);
 
     std::vector<Fr> vec_c(round);
@@ -323,23 +320,27 @@ struct A3 {
     vec_dd = vec_cc;
     FrInv(vec_dd);
 
+    std::vector<Fr> s(n);
+    BuildS(s, vec_c, vec_d, vec_cc);
+
+    auto get_g = [&input](int64_t i) -> G1 const& {
+      return PcG(input.x_g_offset + i);
+    };
+    G1 gx = MultiExpBdlo12<G1>(get_g, s, s.size());
+    Fr a = InnerProduct(input.a, s);
+
+    G1 gamma = com_pub.xi + com_pub.tau;
     for (int64_t loop = 0; loop < round; ++loop) {
       auto const& gamma_neg_1 = com_ext_pub.gamma_neg_1[loop];
       auto const& gamma_pos_1 = com_ext_pub.gamma_pos_1[loop];
       gamma += gamma_neg_1 * vec_cc[loop] + gamma_pos_1 * vec_dd[loop];
     }
 
-    std::vector<Fr> s(n);
-    BuildS(s, vec_c, vec_d, vec_cc);
-
-    auto base_g = GetPcBase().CopyG(input.x_g_offset, n);
-    G1 gx = MultiExpBdlo12(base_g, s);
-    Fr a = InnerProduct(input.a, s);
-
     // final round
     UpdateSeed(seed, com_ext_pub.delta, com_ext_pub.beta);
     Fr c = H256ToFr(seed);
-    // std::cout << c << "\n";
+    auto const& h = PcH();
+    auto const& gy = PcG(input.y_g_offset);
     auto const& sub_proof = proof.sub_proof;
     G1 left = (gamma * c + com_ext_pub.beta) * a + com_ext_pub.delta;
     G1 right = (gx + gy * a) * sub_proof.z1 + h * sub_proof.z2;

@@ -61,7 +61,7 @@
       <WarningLevel>Level4</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>USE_TBB;_WIN32_WINNT=0x0600;_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>BOOST_BIND_GLOBAL_PLACEHOLDERS;_DEBUG_CHECK;_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS;USE_TBB;_WIN32_WINNT=0x0600;_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>$(SolutionDir)/../thirdparty/csv;$(SolutionDir)/../thirdparty/yas/include;$(SolutionDir)/../thirdparty;$(SolutionDir)/../public</AdditionalIncludeDirectories>
@@ -74,7 +74,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ff.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)\..\depends\libsnark\msvc\lib\$(Platform)\$(Configuration)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
@@ -86,7 +86,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>USE_TBB;_WIN32_WINNT=0x0600;_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>BOOST_BIND_GLOBAL_PLACEHOLDERS;_DEBUG_CHECK;_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS;USE_TBB;_WIN32_WINNT=0x0600;_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>$(SolutionDir)/../thirdparty/csv;$(SolutionDir)/../thirdparty/yas/include;$(SolutionDir)/../thirdparty;$(SolutionDir)/../public</AdditionalIncludeDirectories>
@@ -101,7 +101,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ff.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)\..\depends\libsnark\msvc\lib\$(Platform)\$(Configuration)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
@@ -126,8 +126,6 @@
     <ClInclude Include="..\public\bp\protocol1.h" />
     <ClInclude Include="..\public\bp\protocol2.h" />
     <ClInclude Include="..\public\bp\protocol31.h" />
-    <ClInclude Include="..\public\circuit\cnn\cnn.h" />
-    <ClInclude Include="..\public\circuit\cnn\convolution.h" />
     <ClInclude Include="..\public\circuit\fixed_point\abs_gadget.h" />
     <ClInclude Include="..\public\circuit\fixed_point\add_gadget.h" />
     <ClInclude Include="..\public\circuit\fixed_point\div_gadget.h" />
@@ -146,12 +144,16 @@
     <ClInclude Include="..\public\circuit\match_gadget.h" />
     <ClInclude Include="..\public\circuit\mimc5.h" />
     <ClInclude Include="..\public\circuit\mimc5_gadget.h" />
+    <ClInclude Include="..\public\circuit\mnist\convolution.h" />
+    <ClInclude Include="..\public\circuit\mnist\mnist.h" />
     <ClInclude Include="..\public\circuit\poseidon.h" />
     <ClInclude Include="..\public\circuit\poseidon_gadget.h" />
     <ClInclude Include="..\public\circuit\sha256c.h" />
     <ClInclude Include="..\public\circuit\sha256c_gadget.h" />
     <ClInclude Include="..\public\circuit\substr_gadget.h" />
     <ClInclude Include="..\public\circuit\test_all.h" />
+    <ClInclude Include="..\public\circuit\vgg16\ip_gadget.h" />
+    <ClInclude Include="..\public\circuit\vgg16\vgg16.h" />
     <ClInclude Include="..\public\clink\details.h" />
     <ClInclude Include="..\public\clink\divide.h" />
     <ClInclude Include="..\public\clink\equality.h" />
@@ -159,6 +161,9 @@
     <ClInclude Include="..\public\clink\match.h" />
     <ClInclude Include="..\public\clink\matchpack.h" />
     <ClInclude Include="..\public\clink\matrix.h" />
+    <ClInclude Include="..\public\clink\mnist\demo.h" />
+    <ClInclude Include="..\public\clink\mnist\mnist.h" />
+    <ClInclude Include="..\public\clink\mnist\dbl.h" />
     <ClInclude Include="..\public\clink\opening.h" />
     <ClInclude Include="..\public\clink\overlap.h" />
     <ClInclude Include="..\public\clink\pack.h" />
@@ -167,13 +172,26 @@
     <ClInclude Include="..\public\clink\pod.h" />
     <ClInclude Include="..\public\clink\substr.h" />
     <ClInclude Include="..\public\clink\substrpack.h" />
-    <ClInclude Include="..\public\clink\vcp_mnist.h" />
-    <ClInclude Include="..\public\clink\vcp_mnist_demo.h" />
-    <ClInclude Include="..\public\clink\vrs_basic.h" />
-    <ClInclude Include="..\public\clink\vrs_cache.h" />
-    <ClInclude Include="..\public\clink\vrs_large.h" />
-    <ClInclude Include="..\public\clink\vrs_pub.h" />
-    <ClInclude Include="..\public\clink\vrs_scheme.h" />
+    <ClInclude Include="..\public\clink\vgg16\auxi_pub.h" />
+    <ClInclude Include="..\public\clink\vgg16\image_com.h" />
+    <ClInclude Include="..\public\clink\vgg16\infer.h" />
+    <ClInclude Include="..\public\clink\vgg16\para_com.h" />
+    <ClInclude Include="..\public\clink\vgg16\para_dbl.h" />
+    <ClInclude Include="..\public\clink\vgg16\para_fr.h" />
+    <ClInclude Include="..\public\clink\vgg16\para_pub.h" />
+    <ClInclude Include="..\public\clink\vgg16\prove.h" />
+    <ClInclude Include="..\public\clink\vgg16\prove_conv.h" />
+    <ClInclude Include="..\public\clink\vgg16\prove_dense.h" />
+    <ClInclude Include="..\public\clink\vgg16\prove_pooling.h" />
+    <ClInclude Include="..\public\clink\vgg16\prove_relubn.h" />
+    <ClInclude Include="..\public\clink\vgg16\publish.h" />
+    <ClInclude Include="..\public\clink\vgg16\verify.h" />
+    <ClInclude Include="..\public\clink\vgg16\vgg16.h" />
+    <ClInclude Include="..\public\clink\vrs\vrs_basic.h" />
+    <ClInclude Include="..\public\clink\vrs\vrs_cache.h" />
+    <ClInclude Include="..\public\clink\vrs\vrs_large.h" />
+    <ClInclude Include="..\public\clink\vrs\vrs_pub.h" />
+    <ClInclude Include="..\public\clink\vrs\vrs_scheme.h" />
     <ClInclude Include="..\public\cmd\cmd.h" />
     <ClInclude Include="..\public\cmd\match_query.h" />
     <ClInclude Include="..\public\cmd\substr_query.h" />
@@ -202,6 +220,7 @@
     <ClInclude Include="..\public\hyrax\a3.h" />
     <ClInclude Include="..\public\hyrax\details.h" />
     <ClInclude Include="..\public\hyrax\hyrax.h" />
+    <ClInclude Include="..\public\iop\iop.h" />
     <ClInclude Include="..\public\log\log.h" />
     <ClInclude Include="..\public\log\tick.h" />
     <ClInclude Include="..\public\misc\funcs.h" />
@@ -215,6 +234,7 @@
     <ClInclude Include="..\public\misc\vectorop.h" />
     <ClInclude Include="..\public\parallel\parallel.h" />
     <ClInclude Include="..\public\public.h" />
+    <ClInclude Include="..\public\snark\snark.h" />
     <ClInclude Include="..\public\utils\fst.h" />
     <ClInclude Include="..\public\utils\mkl_tree.h" />
     <ClInclude Include="..\public\utils\schnorr.h" />

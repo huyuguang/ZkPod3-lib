@@ -56,13 +56,22 @@ class RationalConst {
     } else {
       ret = abs_mpz >= kMpzDN;
     }
-#ifdef _DEBUG
+#ifdef _DEBUG_CHECK
     if (ret) {
       double double_x = abs_mpz.get_d();
-      double_x /= (double)(1ULL << N);
+      uint64_t n = N;
+      for (;;) {
+        if (n > 63) {
+          double_x /= (double)(1ULL << 63);
+          n -= 63;
+        } else {
+          double_x /= (double)(1ULL << n);
+          break;
+        }
+      }
       double_x = neg ? -double_x : double_x;
       std::cout << "fixpoint overflow: "
-                << "<" << D << "," << N << ">" << double_x << "\n";
+                << "<" << D << "," << N << ">, double_x=" << double_x << "\n";
     }
 #endif
     return ret;
@@ -92,24 +101,43 @@ class RationalConst {
 
 template <size_t D, size_t N>
 inline double RationalToDouble(Fr const& fr_x) {
-  static_assert(N < 64, "N too large");
   auto constances = RationalConst<D, N>();
   bool neg = fr_x.isNegative();
   mpz_class mpz_x = neg ? (-fr_x).getMpz() : fr_x.getMpz();
   if (constances.IsOverflow(mpz_x, neg)) {
     throw std::runtime_error(__FN__);
   }
+  
   double double_x = mpz_x.get_d();
-  double_x /= (double)(1ULL << N);
+  uint64_t n = N;
+  for (;;) {
+    if (n > 63) {
+      double_x /= (double)(1ULL << 63);
+      n -= 63;
+    } else {
+      double_x /= (double)(1ULL << n);
+      break;
+    }
+  }
   return neg ? -double_x : double_x;
 }
 
 template <size_t D, size_t N>
-inline Fr DoubleToRational(double double_x) {
-  static_assert(N < 64, "N too large");
+Fr DoubleToRational(double double_x) {
   auto constances = RationalConst<D, N>();
   bool neg = double_x < 0;
-  mpz_class mpz_x = std::abs(double_x) * (1ULL << N);
+  double_x = std::abs(double_x);
+  uint64_t n = N;
+  for (;;) {
+    if (n > 63) {
+      double_x *= (double)(1ULL << 63);
+      n -= 63;
+    } else {
+      double_x *= (double)(1ULL << n);
+      break;
+    }
+  }
+  mpz_class mpz_x = double_x;
   if (constances.IsOverflow(mpz_x, neg)) {
     throw std::runtime_error(__FN__);
   }
@@ -118,4 +146,31 @@ inline Fr DoubleToRational(double double_x) {
   if (neg) fr_x = -fr_x;
   return fr_x;
 }
+
+// NOTE
+// if a>=0
+//  ReducePrecision = (a+2^(D+N))/2^(N-M)-2^M = a/2^(N-M)+2^M-2^M = a/2^(N-M)
+// if a<0
+//  ReducePrecision = P - ((2^(D+N)-|a|)/2^(N-M)-2^M) = P - |a|/2^(N-M)
+// Must same with PrecisionGadget
+template <size_t D, size_t N, size_t M>
+Fr ReducePrecision(Fr const& a) {
+  static_assert(D + N < 253, "invalid D or N");
+  static_assert(N > M, "invalid N or M");
+
+  if (RationalConst<D, N>().IsOverflow(a)) {
+    throw std::runtime_error("oops");
+  }
+
+  auto a_off = a + RationalConst<D, N>().kFrDN;
+
+  mpz_class mpz_a_off = a_off.getMpz();
+  mpz_a_off /= (mpz_class(1) << (N - M));
+  Fr fr_x;
+  fr_x.setMpz(mpz_a_off);
+  fr_x -= RationalConst<D, M>().kFrDN;
+
+  return fr_x;
+}
+
 }  // namespace circuit::fixed_point

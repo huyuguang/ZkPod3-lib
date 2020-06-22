@@ -1,13 +1,6 @@
 #pragma once
 
-#include <stdint.h>
-
-#include <algorithm>
-#include <array>
-#include <boost/endian/conversion.hpp>
-#include <functional>
-#include <memory>
-#include <vector>
+#include "public.h"
 
 #include "ecc/ecc.h"
 #include "misc/misc.h"

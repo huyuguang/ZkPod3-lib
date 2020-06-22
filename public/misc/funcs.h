@@ -97,7 +97,7 @@ inline bool LoadTinyFile(std::string const& filename, std::string* text) {
   struct stat st;
   if (::stat(filename.c_str(), &st)) return false;
   std::size_t size = st.st_size;
-  if (size > 1024 * 1024) return false;
+  if (size > 1024 * 1024 * 100) return false;
 
   text->resize(size);
   if (size == 0) return true;

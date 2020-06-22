@@ -1,16 +1,6 @@
 #pragma once
 
-#include <algorithm>
-#include <array>
-#include <bitset>
-#include <boost/endian/conversion.hpp>
-#include <boost/filesystem.hpp>
-#include <boost/noncopyable.hpp>
-#include <iostream>
-#include <memory>
-#include <mutex>
-#include <numeric>
-#include <vector>
+#include "public.h"
 
 #include "./funcs.h"
 #include "./multiexp.h"

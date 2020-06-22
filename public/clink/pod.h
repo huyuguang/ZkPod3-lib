@@ -1,7 +1,7 @@
 #pragma once
 
-#include "./vrs_cache.h"
-#include "./vrs_large.h"
+#include "./vrs/vrs_cache.h"
+#include "./vrs/vrs_large.h"
 #include "debug/flags.h"
 #include "ecc/parallel_multiexp.h"
 

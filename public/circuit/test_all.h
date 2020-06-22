@@ -7,7 +7,7 @@
 #include "./poseidon_gadget.h"
 #include "./sha256c_gadget.h"
 #include "./substr_gadget.h"
-#include "./cnn/cnn.h"
+#include "./mnist/mnist.h"
 
 namespace circuit {
 inline bool Test() {

@@ -4,6 +4,8 @@
 #include "./div_gadget.h"
 #include "./mul_gadget.h"
 
+// http://www.machinedlearnings.com/2011/06/fast-approximate-logarithm-exponential.html
+
 namespace circuit::fixed_point {
 
 // e^x = limit(n->infinte) (1+x/n)^n

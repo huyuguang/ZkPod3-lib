@@ -1,12 +1,6 @@
 #pragma once
 
-#include <algorithm>
-#include <array>
-#include <boost/endian/conversion.hpp>
-#include <boost/filesystem.hpp>
-#include <boost/noncopyable.hpp>
-#include <numeric>
-#include <vector>
+#include "public.h"
 
 #include "./funcs.h"
 #include "./multiexp.h"
@@ -16,7 +10,7 @@
 // pedersen commitment base H&G
 class PcBase : boost::noncopyable {
  public:
-  static inline int64_t const kGSize = 1024 * 128;
+  static inline int64_t const kGSize = 4096 * 1025;
 
   PcBase(std::string const& file) {
     LoadInternal(file);
@@ -47,6 +41,12 @@ class PcBase : boost::noncopyable {
       throw std::invalid_argument(std::to_string(offset) + "," +
                                   std::to_string(count));
     }
+
+    if (count < kSigmaGInterval) {
+      return std::accumulate(g_.begin() + offset, g_.begin() + offset + count,
+                               G1Zero());
+    }
+
     int64_t index1 = (offset + kSigmaGInterval - 1) / kSigmaGInterval;
     int64_t index2 = (offset + count) / kSigmaGInterval;
     G1 ret = std::accumulate(sigma_g_.begin() + index1,
@@ -56,8 +56,13 @@ class PcBase : boost::noncopyable {
     ret = std::accumulate(g_.begin() + offset,
                           g_.begin() + index1 * kSigmaGInterval, ret);
 
-    assert(ret == std::accumulate(g_.begin() + offset,
-                                  g_.begin() + offset + count, G1Zero()));
+#ifdef _DEBUG_CHECK
+    if (ret != std::accumulate(g_.begin() + offset, g_.begin() + offset + count,
+                               G1Zero())) {
+      assert(false);
+      throw std::runtime_error("oops");
+    }
+#endif
     return ret;
   }
 

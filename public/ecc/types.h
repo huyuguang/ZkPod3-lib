@@ -1,17 +1,12 @@
 #pragma once
 
-#include <memory>
-#include <vector>
+#include "public.h"
 
 #ifdef _WIN32
 #pragma warning(push)
 #pragma warning(disable : 4191)
 #endif
 
-#include <cryptopp/keccak.h>
-#include <cryptopp/sha.h>
-
-#include <boost/endian/conversion.hpp>
 #include <mcl/bn256.hpp>
 #include <mcl/window_method.hpp>
 
