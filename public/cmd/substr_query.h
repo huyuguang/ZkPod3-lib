@@ -58,17 +58,17 @@ struct SubstrQuery {
 
   struct ProveInput {
     ProveInput(std::string const& key, typename Pod::CommitedData const& data_x,
-               int64_t x_g_offset, std::string const& data_dir)
+               pc::GetRefG const& get_gx, std::string const& data_dir)
         : key(key),
           data_x(data_x),
-          x_g_offset(x_g_offset),
+          get_gx(get_gx),
           data_dir(data_dir),
           n(data_x.n),
           s(data_x.s) {}
     std::string const& key;
     typename Pod::CommitedData const& data_x;
-    int64_t const x_g_offset;
-    int64_t const py_g_offset = 0;  // must be 0 because of Pod
+    pc::GetRefG const& get_gx;
+    pc::GetRefG const& get_gpy = pc::kGetRefG;  // must be 0 because of pod
     std::string data_dir;
     int64_t const n;
     int64_t const s;
@@ -87,7 +87,7 @@ struct SubstrQuery {
     Fr com_x_r = input.data_x.get_r(i);
 
     typename clink::SubstrPack<Policy>::ProveInput s_input(
-        input.key, x, com_x, com_x_r, input.x_g_offset, input.py_g_offset);
+        input.key, x, com_x, com_x_r, input.get_gx, input.get_gpy);
 
     clink::SubstrPack<Policy>::Prove(sp_output, seed, s_input);
   }
@@ -132,17 +132,17 @@ struct SubstrQuery {
 
   struct VerifyInput {
     VerifyInput(std::string const& key, int64_t s, std::vector<G1> const& com_x,
-                int64_t x_g_offset)
+                pc::GetRefG const& get_gx)
         : key(key),
           s(s),
           com_x(com_x),
-          x_g_offset(x_g_offset),
+          get_gx(get_gx),
           n((int64_t)com_x.size()) {}
     std::string const& key;
     int64_t const s;
     std::vector<G1> const& com_x;
-    int64_t const x_g_offset;
-    int64_t const py_g_offset = 0;  // must be 0 because of Pod use 0
+    pc::GetRefG const& get_gx;
+    pc::GetRefG const& get_gpy = pc::kGetRefG;
     int64_t const n;
   };
 
@@ -170,7 +170,7 @@ struct SubstrQuery {
     auto parallel_f = [&proof, &seed, s, &input](int64_t i) {
       auto const& sp_proof = proof.sp_proofs[i];
       typename clink::SubstrPack<Policy>::VerifyInput s_input(
-          s, input.key, input.x_g_offset, input.py_g_offset);
+          s, input.key, input.get_gx, input.get_gpy);
       return clink::SubstrPack<Policy>::Verify(sp_proof, seed, s_input);
     };
     parallel::For(&all_success, n, parallel_f);
@@ -231,13 +231,16 @@ bool SubstrQuery<Policy>::Test(int64_t n, int64_t s, std::string const& key,
     std::cout << "invalid parameter: k.size() must <= 31.\n";
     return false;
   }
-  if (s >= PcBase::kGSize / 2) {
-    std::cout << "invalid parameter: s must < " << PcBase::kGSize / 2 << "\n";
+  if (s >= pc::Base::kGSize / 2) {
+    std::cout << "invalid parameter: s must < " << pc::Base::kGSize / 2 << "\n";
     return false;
   }
 
   auto seed = misc::RandH256();
   int64_t x_g_offset = 0;
+  pc::GetRefG get_gx = [x_g_offset](int64_t i) -> G1 const& {
+    return pc::PcG()[x_g_offset + i];
+  };
 
   std::vector<std::vector<Fr>> x(n);
   auto parallel_f = [&x, s](int64_t i) {
@@ -276,8 +279,8 @@ bool SubstrQuery<Policy>::Test(int64_t n, int64_t s, std::string const& key,
   FrRand(com_x_r);
 
   std::vector<G1> com_x(n);
-  auto parallel_f2 = [&x, &com_x, &com_x_r, x_g_offset](int64_t i) {
-    com_x[i] = PcComputeCommitmentG(x_g_offset, x[i], com_x_r[i]);
+  auto parallel_f2 = [&x, &com_x, &com_x_r, &get_gx](int64_t i) {
+    com_x[i] = pc::PcComputeCommitmentG(get_gx, x[i], com_x_r[i]);
   };
   parallel::For(n, parallel_f2);
 
@@ -290,7 +293,7 @@ bool SubstrQuery<Policy>::Test(int64_t n, int64_t s, std::string const& key,
   data_x.get_r = [&com_x_r](int64_t i) -> Fr const& { return com_x_r[i]; };
   data_x.get_m = [&x](int64_t i, int64_t j) -> Fr const& { return x[i][j]; };
 
-  ProveInput prove_input(key, data_x, x_g_offset, data_dir);
+  ProveInput prove_input(key, data_x, get_gx, data_dir);
 
   ProveOutput prove_output;
   Prove(prove_output, seed, prove_input);
@@ -314,7 +317,7 @@ bool SubstrQuery<Policy>::Test(int64_t n, int64_t s, std::string const& key,
   }
 #endif
 
-  VerifyInput verify_input(key, s, com_x, x_g_offset);
+  VerifyInput verify_input(key, s, com_x, get_gx);
   typename Pod::VerifyOutput verify_output;
   if (!Verify(proof, seed, verify_input, verify_output)) {
     assert(false);

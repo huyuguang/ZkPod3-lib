@@ -1,26 +1,23 @@
 #pragma once
 
-#include "public.h"
-
 #include "./funcs.h"
 #include "./multiexp.h"
 #include "./types.h"
 #include "log/tick.h"
+#include "public.h"
+
+namespace pc {
+typedef std::function<Fr const&(int64_t i)> GetRefX;
+typedef std::function<G1 const&(int64_t i)> GetRefG;
 
 // pedersen commitment base H&G
-class PcBase : boost::noncopyable {
+class Base : boost::noncopyable {
  public:
   static inline int64_t const kGSize = 4096 * 1025;
 
-  PcBase(std::string const& file) {
-    LoadInternal(file);
-    BuildSigmaG();
-  }
+  Base(std::string const& file) { LoadInternal(file); }
 
-  PcBase() {
-    Create();
-    BuildSigmaG();
-  }
+  Base() { Create(); }
 
   G1 const& u() const& { return u_; }
   G1 const& h() const& { return h_; }
@@ -34,81 +31,6 @@ class PcBase : boost::noncopyable {
       std::cerr << e.what() << "\n";
       return false;
     }
-  }
-
-  G1 ComputeSigmaG(int64_t offset, uint64_t count) const {
-    if (offset < 0 || offset >= kGSize || (offset + count) > kGSize) {
-      throw std::invalid_argument(std::to_string(offset) + "," +
-                                  std::to_string(count));
-    }
-
-    if (count < kSigmaGInterval) {
-      return std::accumulate(g_.begin() + offset, g_.begin() + offset + count,
-                               G1Zero());
-    }
-
-    int64_t index1 = (offset + kSigmaGInterval - 1) / kSigmaGInterval;
-    int64_t index2 = (offset + count) / kSigmaGInterval;
-    G1 ret = std::accumulate(sigma_g_.begin() + index1,
-                             sigma_g_.begin() + index2, G1Zero());
-    ret = std::accumulate(g_.begin() + index2 * kSigmaGInterval,
-                          g_.begin() + offset + count, ret);
-    ret = std::accumulate(g_.begin() + offset,
-                          g_.begin() + index1 * kSigmaGInterval, ret);
-
-#ifdef _DEBUG_CHECK
-    if (ret != std::accumulate(g_.begin() + offset, g_.begin() + offset + count,
-                               G1Zero())) {
-      assert(false);
-      throw std::runtime_error("oops");
-    }
-#endif
-    return ret;
-  }
-
-  typedef std::function<Fr const&(int64_t i)> GetX;
-  G1 ComputeCommitmentG(int64_t g_offset, int64_t n, GetX const& x, Fr const& r,
-                        bool check_01) const {
-    if (g_offset < 0 || (kGSize < g_offset + n)) {
-      assert(false);
-      throw std::runtime_error(std::to_string(g_offset) + " + " +
-                               std::to_string(n) + " too large");
-    }
-    auto get_g = [this, g_offset](int64_t i) -> G1 const& {
-      return i ? g_[g_offset + i - 1] : h_;
-    };
-    auto get_f = [&x, &r](int64_t i) -> Fr const& { return i ? x(i - 1) : r; };
-    return MultiExpBdlo12<G1>(get_g, get_f, n + 1, check_01);
-  }
-
-  G1 ComputeCommitmentG(int64_t g_offset, std::vector<Fr> const& x, Fr const& r,
-                        bool check_01) const {
-    if (g_offset < 0 || (kGSize < g_offset + (int64_t)x.size())) {
-      assert(false);
-      throw std::runtime_error(std::to_string(g_offset) + " + " +
-                               std::to_string(x.size()) + " too large");
-    }
-    auto get_g = [this, g_offset](int64_t i) -> G1 const& {
-      return i ? g_[g_offset + i - 1] : h_;
-    };
-    auto get_f = [&x, &r](int64_t i) -> Fr const& { return i ? x[i - 1] : r; };
-    return MultiExpBdlo12<G1>(get_g, get_f, x.size() + 1, check_01);
-  }
-
-  G1 ComputeCommitmentG(int64_t g_offset, Fr const& x, Fr const& r) const {
-    if (g_offset == -1) return h_ * r + u_ * x;
-    if (g_offset < 0 || g_offset >= kGSize) {
-      assert(false);
-      throw std::runtime_error(std::to_string(g_offset) + " too large");
-    }
-    return h_ * r + g_[g_offset] * x;
-  }
-
-  std::vector<G1> CopyG(size_t offset, size_t count) const {
-    assert(offset + count <= kGSize);
-    auto begin = g_.begin() + offset;
-    auto end = begin + count;
-    return std::vector<G1>(begin, end);
   }
 
  private:
@@ -179,19 +101,6 @@ class PcBase : boost::noncopyable {
     }
   }
 
-  void BuildSigmaG() {
-    static_assert(kGSize % kSigmaGInterval == 0 && kGSize >= kSigmaGInterval,
-                  "");
-    sigma_g_.resize(kGSize / kSigmaGInterval);
-
-    auto parallel_f = [this](int64_t i) {
-      auto begin = g_.data() + i * kSigmaGInterval;
-      auto end = begin + kSigmaGInterval;
-      sigma_g_[i] = std::accumulate(begin, end, G1Zero());
-    };
-    parallel::For(sigma_g_.size(), parallel_f);
-  }
-
   enum {
     kFpBinSize = 32,
     kG1BufSize = 1 + kFpBinSize * 2,
@@ -243,26 +152,23 @@ class PcBase : boost::noncopyable {
   }
 
  private:
-  static inline size_t const kSigmaGInterval = 32;
-  static_assert(kGSize % kSigmaGInterval == 0 && kGSize >= kSigmaGInterval, "");
   G1 u_;
   G1 h_;
   std::array<G1, kGSize> g_;
-  std::vector<G1> sigma_g_;
 };
 
-inline PcBase& GetPcBase(std::string const& file = "") {
-  static std::unique_ptr<PcBase> _instance_(new PcBase(file));
+inline Base& GetPcBase(std::string const& file = "") {
+  static std::unique_ptr<Base> _instance_(new Base(file));
   return *_instance_;
 }
 
-inline bool operator==(PcBase const& a, PcBase const& b) {
+inline bool operator==(Base const& a, Base const& b) {
   if (a.h() != b.h()) return false;
   if (a.g() != b.g()) return false;
   return true;
 }
 
-inline bool operator!=(PcBase const& a, PcBase const& b) { return !(a == b); }
+inline bool operator!=(Base const& a, Base const& b) { return !(a == b); }
 
 inline bool OpenOrCreatePdsPub(std::string const& file) {
   auto Load = [](std::string const& file) {
@@ -280,7 +186,7 @@ inline bool OpenOrCreatePdsPub(std::string const& file) {
     boost::system::error_code ec;
     boost::filesystem::remove(file, ec);
 
-    std::unique_ptr<PcBase> base(new PcBase);
+    std::unique_ptr<Base> base(new Base);
     if (!base->Save(file)) {
       std::cerr << "Save ecc pds file" << file << " failed.\n";
       return false;
@@ -296,34 +202,9 @@ inline bool OpenOrCreatePdsPub(std::string const& file) {
   }
 }
 
-inline G1 PcComputeSigmaG(int64_t offset, uint64_t count) {
+inline std::array<G1, Base::kGSize> const& PcG() {
   auto const& base = GetPcBase();
-  return base.ComputeSigmaG(offset, count);
-}
-
-inline G1 PcComputeCommitmentG(int64_t g_offset, int64_t n,
-                               PcBase::GetX const& x, Fr const& r,
-                               bool check_01 = false) {
-  auto const& base = GetPcBase();
-  return base.ComputeCommitmentG(g_offset, n, x, r, check_01);
-}
-
-inline G1 PcComputeCommitmentG(int64_t g_offset, int64_t n, Fr const* x,
-                               Fr const& r, bool check_01 = false) {
-  auto const& base = GetPcBase();
-  auto get_x = [x](int64_t i) -> Fr const& { return x[i]; };
-  return base.ComputeCommitmentG(g_offset, n, get_x, r, check_01);
-}
-
-inline G1 PcComputeCommitmentG(int64_t g_offset, std::vector<Fr> const& x,
-                               Fr const& r, bool check_01 = false) {
-  auto const& base = GetPcBase();
-  return base.ComputeCommitmentG(g_offset, x, r, check_01);
-}
-
-inline G1 PcComputeCommitmentG(int64_t g_offset, Fr const& x, Fr const& r) {
-  auto const& base = GetPcBase();
-  return base.ComputeCommitmentG(g_offset, x, r);
+  return base.g();
 }
 
 inline G1 const& PcG(int64_t i) {
@@ -333,6 +214,11 @@ inline G1 const& PcG(int64_t i) {
   } else {
     return base.g()[i];
   }
+}
+
+inline G1 const& PcU() {
+  auto const& base = GetPcBase();
+  return base.u();
 }
 
 inline G1 const& PcH() {
@@ -345,24 +231,118 @@ inline G1 const& PcHG(int64_t i) {
   return PcG(i - 1);
 }
 
+inline GetRefG const kGetRefG = [](int64_t i) -> G1 const& {
+  if (i >= Base::kGSize) throw std::runtime_error("oops");
+  return pc::PcG()[i];
+};
+
+inline G1 PcComputeCommitmentG(int64_t n, GetRefG const& g, G1 const& h,
+                               GetRefX const& x, Fr const& r,
+                               bool check_01 = false) {
+  auto get_g = [&g, &h](int64_t i) -> G1 const& { return i ? g(i - 1) : h; };
+  auto get_f = [&x, &r](int64_t i) -> Fr const& { return i ? x(i - 1) : r; };
+  return MultiExpBdlo12<G1>(get_g, get_f, n + 1, check_01);
+}
+
+inline G1 PcComputeCommitmentG(int64_t n, GetRefG const& g, GetRefX const& x,
+                               Fr const& r, bool check_01 = false) {
+  return PcComputeCommitmentG(n, g, PcH(), x, r, check_01);
+}
+
+inline G1 PcComputeCommitmentG(int64_t n, GetRefG const& g, Fr const* x,
+                               Fr const& r, bool check_01 = false) {
+  auto get_f = [&x](int64_t i) -> Fr const& { return x[i]; };
+  return PcComputeCommitmentG(n, g, get_f, r, check_01);
+}
+
+inline G1 PcComputeCommitmentG(GetRefG const& g, std::vector<Fr> const& x,
+                               Fr const& r, bool check_01 = false) {
+  return PcComputeCommitmentG(x.size(), g, x.data(), r, check_01);
+}
+
+inline G1 PcComputeCommitmentG(int64_t n, G1 const* g, G1 const& h, Fr const* x,
+                               Fr const& r, bool check_01 = false) {
+  auto get_g = [&g, &h](int64_t i) -> G1 const& { return i ? g[i - 1] : h; };
+  auto get_f = [&x, &r](int64_t i) -> Fr const& { return i ? x[i - 1] : r; };
+  return MultiExpBdlo12<G1>(get_g, get_f, n + 1, check_01);
+}
+
+inline G1 PcComputeCommitmentG(int64_t n, G1 const* g, Fr const* x, Fr const& r,
+                               bool check_01 = false) {
+  return PcComputeCommitmentG(n, g, PcH(), x, r, check_01);
+}
+
+inline G1 PcComputeCommitmentG(int64_t n, Fr const* x, Fr const& r,
+                               bool check_01 = false) {
+  return PcComputeCommitmentG(n, PcG().data(), PcH(), x, r, check_01);
+}
+
+inline G1 PcComputeCommitmentG(std::vector<Fr> const& x, Fr const& r,
+                               bool check_01 = false) {
+  return PcComputeCommitmentG(x.size(), x.data(), r, check_01);
+}
+
+inline G1 PcComputeCommitmentG(int64_t n, GetRefX const& x, Fr const& r,
+                               bool check_01 = false) {
+  auto get_g = [](int64_t i) -> G1 const& { return PcG(i); };
+  return PcComputeCommitmentG(n, get_g, PcH(), x, r, check_01);
+}
+
+inline G1 PcComputeCommitmentG(G1 const& g, G1 const& h, Fr const& x,
+                               Fr const& r) {
+  return g * x + h * r;
+}
+
+inline G1 PcComputeCommitmentG(G1 const& g, Fr const& x, Fr const& r) {
+  return g * x + PcH() * r;
+}
+
+inline G1 PcComputeCommitmentG(Fr const& x, Fr const& r) {
+  return PcG(0) * x + PcH() * r;
+}
+
+inline std::vector<G1> CopyG(GetRefG const& get_g, int64_t n) {
+  std::vector<G1> ret(n);
+  for (int64_t i = 0; i < n; ++i) {
+    ret[i] = get_g(i);
+  }
+  return ret;
+}
+
+inline G1 PcComputeSigmaG(GetRefG const& get_g, int64_t n) {
+  G1 ret = G1Zero();
+  for (int64_t i = 0; i < n; ++i) {
+    ret += get_g(i);
+  }
+  return ret;
+}
+
+inline G1 PcComputeSigmaG(size_t offset, int64_t n) {
+  G1 ret = G1Zero();
+  for (int64_t i = 0; i < n; ++i) {
+    ret += PcG(i + offset);
+  }
+  return ret;
+}
+
 inline bool TestPcCommitment(int64_t n) {
-  if (n > PcBase::kGSize) return false;
+  if (n > Base::kGSize) return false;
   std::vector<Fr> x(n);
   FrRand(x);
   Fr r = FrRand();
+  auto& base = GetPcBase();
   G1 left, right;
   {
     Tick tick("multiexp1");
-    left = PcComputeCommitmentG(0, x, r);
+    left = PcComputeCommitmentG(n, base.g().data(), base.h(), x.data(), r);
   }
   {
     Tick tick("multiexp2");
-    auto& base = GetPcBase();
     right = MultiExp(base.g().data(), x.data(), n) + base.h() * r;
   }
 
   bool success = left == right;
-  std::cout << __FILE__ << " " << __FN__ << ": " << success
-            << "\n\n\n\n\n\n";
+  std::cout << __FILE__ << " " << __FN__ << ": " << success << "\n\n\n\n\n\n";
   return success;
 }
+}  // namespace pc

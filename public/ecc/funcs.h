@@ -1104,6 +1104,21 @@ inline bool operator==(G2WM const& a, G2WM const& b) {
 
 inline bool operator!=(G2WM const& a, G2WM const& b) { return !(a == b); }
 
+inline std::vector<Fr> SplitFr(Fr const& fr, int64_t n) {
+  std::vector<Fr> ret(n);
+  if (n == 1) {
+    ret[0] = fr;
+  } else {
+    FrRand(ret.data(), n - 1);
+    auto sum_exclude_last =
+        std::accumulate(ret.begin(), ret.begin() + n - 1, FrZero());
+    ret.back() = fr - sum_exclude_last;
+
+    assert(fr == std::accumulate(ret.begin(), ret.end(), FrZero()));
+  }
+  return ret;
+}
+
 #include <cybozu/benchmark.hpp>
 #include <mcl/bn256.hpp>
 inline bool TestMcl(int64_t n) {

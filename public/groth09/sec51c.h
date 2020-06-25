@@ -11,6 +11,7 @@
 // X, Y: secret vector<Fr>, size = n
 // z: secret Fr
 // open: com(gx, X), com(gy, Y), com(gz, z). gx, gy maybe overlapped, gz can not
+// gyt MUST NOT overlapped with gy
 // prove: z = <X, Y o t>
 // proof size: 2log(n) Fr and 4 G1
 // prove cost: 
@@ -25,28 +26,34 @@ struct Sec51c {
     std::vector<Fr> const& t;   // size = n
     std::vector<Fr> const& yt;  // yt = y o t
     Fr const z;                 // z = <x, y o t>
-    int64_t const x_g_offset;
-    int64_t const y_g_offset;
-    int64_t const z_g_offset;
+    pc::GetRefG const& get_gx;
+    pc::GetRefG const& get_gy;
+    pc::GetRefG get_gyt;
+    G1 const& gz;
 
     int64_t n() const { return (int64_t)x.size(); }
     ProveInput(std::vector<Fr> const& x, std::vector<Fr> const& y,
                std::vector<Fr> const& t, std::vector<Fr> const& yt, Fr const& z,
-               int64_t x_g_offset, int64_t y_g_offset, int64_t z_g_offset)
+               pc::GetRefG const& get_gx, pc::GetRefG const& get_gy,
+               G1 const& gz)
         : x(x),
           y(y),
           t(t),
           yt(yt),
           z(z),
-          x_g_offset(x_g_offset),
-          y_g_offset(y_g_offset),
-          z_g_offset(z_g_offset) {
+          get_gx(get_gx),
+          get_gy(get_gy),          
+          gz(gz) {
       assert(!x.empty());
       assert(x.size() == y.size());
       assert(x.size() == t.size());
       assert(x.size() == yt.size());
       assert(yt == HadamardProduct(y, t));
       assert(z == InnerProduct(x, yt));
+      get_gyt = [this](int64_t i) -> G1 const& {
+        size_t offset = pc::GetPcBase().kGSize - this->n();
+        return pc::PcG()[offset + i];
+      };
     }
   };
 
@@ -86,18 +93,17 @@ struct Sec51c {
 
     // prove yt = <y o t>
     Fr com_yt_r = FrRand();
-    int64_t yt_g_offset = SelectYtOffset(input.n(), input.x_g_offset);
-    proof.com_yt = PcComputeCommitmentG(yt_g_offset, input.yt, com_yt_r);
+    proof.com_yt = pc::PcComputeCommitmentG(input.get_gyt, input.yt, com_yt_r);
     UpdateSeed(seed, proof.com_yt);
-    ProveYt(proof, seed, input, com_pub, com_sec, com_yt_r, yt_g_offset);
+    ProveYt(proof, seed, input, com_pub, com_sec, com_yt_r);
 
     // now we have com(yt_g_offset, yt, com_yt_r), want to prove <x, yt> == z
-    std::vector<G1> g1 = GetPcBase().CopyG(input.x_g_offset, input.n());
-    std::vector<G1> g2 = GetPcBase().CopyG(yt_g_offset, input.n());
+    std::vector<G1> g1 = pc::CopyG(input.get_gx, input.n());
+    std::vector<G1> g2 = pc::CopyG(input.get_gyt, input.n());
     std::vector<Fr> x_copy = input.x;
     std::vector<Fr> yt_copy = input.yt;
-    bp::p31::ProveInput input_bp(std::move(g1), std::move(g2), PcH(),
-                                PcG(input.z_g_offset), std::move(x_copy),
+    bp::p31::ProveInput input_bp(std::move(g1), std::move(g2), pc::PcH(),
+                                input.gz, std::move(x_copy),
                                 std::move(yt_copy), input.z);
     bp::p31::CommitmentPub com_pub_bp;
     bp::p31::CommitmentSec com_sec_bp;
@@ -111,29 +117,36 @@ struct Sec51c {
 
   struct VerifyInput {
     VerifyInput(std::vector<Fr> const& t, CommitmentPub const& com_pub,
-                int64_t x_g_offset, int64_t y_g_offset, int64_t z_g_offset)
+                pc::GetRefG const& get_gx, pc::GetRefG const& get_gy,
+                G1 const& gz)
         : t(t),
           com_pub(com_pub),
-          x_g_offset(x_g_offset),
-          y_g_offset(y_g_offset),
-          z_g_offset(z_g_offset) {}
+          get_gx(get_gx),
+          get_gy(get_gy),
+          gz(gz) {
+      get_gyt = [this](int64_t i) -> G1 const& {
+        size_t offset = pc::GetPcBase().kGSize - this->n();
+        return pc::PcG()[offset + i];
+      };
+    }
     int64_t n() const { return (int64_t)t.size(); }
     std::vector<Fr> const& t;
     CommitmentPub const& com_pub;
-    int64_t const x_g_offset;
-    int64_t const y_g_offset;
-    int64_t const z_g_offset;
+    pc::GetRefG const& get_gx;
+    pc::GetRefG const& get_gy;
+    pc::GetRefG get_gyt;
+    G1 const& gz;
   };
 
   static bool VerifyYt(Proof const& proof, h256_t seed,
-                       VerifyInput const& input, int64_t yt_g_offset) {
+                       VerifyInput const& input) {
     std::vector<Fr> e(input.n());
     ComputeFst1(seed, "sec51c", e);
     auto et = HadamardProduct(e, input.t);
 
     using eip = clink::EqualIp<hyrax::A3>;
-    eip::VerifyInput input_eip(e, proof.com_yt, yt_g_offset, et,
-                               input.com_pub.b, input.y_g_offset);
+    eip::VerifyInput input_eip(e, proof.com_yt, input.get_gyt, et,
+                               input.com_pub.b, input.get_gy);
     return eip::Verify(seed, proof.proof_eip, input_eip);
   }
 
@@ -141,19 +154,18 @@ struct Sec51c {
                      VerifyInput const& input) {
     UpdateSeed(seed, input.com_pub, input.t);
     UpdateSeed(seed, proof.com_yt);
-    int64_t yt_g_offset = SelectYtOffset(input.n(), input.x_g_offset);
-    if (!VerifyYt(proof, seed, input, yt_g_offset)) {
+    if (!VerifyYt(proof, seed, input)) {
       assert(false);
       return false;
     }
 
-    std::vector<G1> g1 = GetPcBase().CopyG(input.x_g_offset, input.n());
-    std::vector<G1> g2 = GetPcBase().CopyG(yt_g_offset, input.n());
+    std::vector<G1> g1 = pc::CopyG(input.get_gx, input.n());
+    std::vector<G1> g2 = pc::CopyG(input.get_gyt, input.n());
     bp::p31::CommitmentPub com_pub_bp;
     com_pub_bp.p = input.com_pub.a + proof.com_yt;
     com_pub_bp.q = input.com_pub.c;
-    bp::p31::VerifyInput input_p3(std::move(g1), std::move(g2), PcH(),
-                                 PcG(input.z_g_offset), com_pub_bp);
+    bp::p31::VerifyInput input_p3(std::move(g1), std::move(g2), pc::PcH(),
+                                 input.gz, com_pub_bp);
 
     return bp::p31::Verify(proof.proof_bp, seed, std::move(input_p3));
   }
@@ -167,13 +179,13 @@ struct Sec51c {
 
     std::array<parallel::Task, 3> tasks;
     tasks[0] = [&com_pub, &input, &com_sec]() {
-      com_pub.a = PcComputeCommitmentG(input.x_g_offset, input.x, com_sec.r);
+      com_pub.a = pc::PcComputeCommitmentG(input.get_gx, input.x, com_sec.r);
     };
     tasks[1] = [&com_pub, &input, &com_sec]() {
-      com_pub.b = PcComputeCommitmentG(input.y_g_offset, input.y, com_sec.s);
+      com_pub.b = pc::PcComputeCommitmentG(input.get_gy, input.y, com_sec.s);
     };
     tasks[2] = [&com_pub, &input, &com_sec]() {
-      com_pub.c = PcComputeCommitmentG(input.z_g_offset, input.z, com_sec.t);
+      com_pub.c = pc::PcComputeCommitmentG(input.gz, input.z, com_sec.t);
     };
     parallel::Invoke(tasks);
   }
@@ -181,16 +193,6 @@ struct Sec51c {
   static bool Test(int64_t n);
 
  private:
-  static int64_t SelectYtOffset(int64_t n, int64_t x_g_offset) {
-    auto kGSize = PcBase::kGSize;
-    if (x_g_offset >= n) return x_g_offset - n;
-    if (x_g_offset + 2 * n < kGSize) return x_g_offset + n;
-    // since kMaxUnitPerZkp <= (int64_t)PcBase::kGSize/3,
-    // the exception should never been throw
-    std::cout << __FN__ << " oops, n: " << n
-              << ", x_g_offset: " << x_g_offset << "\n";
-    throw std::runtime_error("invalid x_g_offset");
-  }
 
   static void UpdateSeed(h256_t& seed, CommitmentPub const& com_pub,
                          std::vector<Fr> const& t) {
@@ -210,8 +212,7 @@ struct Sec51c {
 
   static void ProveYt(Proof& proof, h256_t seed, ProveInput const& input,
                       CommitmentPub const& com_pub,
-                      CommitmentSec const& com_sec, Fr const& com_yt_r,
-                      int64_t yt_g_offset) {
+                      CommitmentSec const& com_sec, Fr const& com_yt_r) {
     std::vector<Fr> e(input.n());
     ComputeFst1(seed, "sec51c", e);
 
@@ -221,9 +222,9 @@ struct Sec51c {
 
     // prove <yt, e> == <y, et>
     using eip = clink::EqualIp<hyrax::A3>;
-    eip::ProveInput input_eip(input.yt, e, proof.com_yt, com_yt_r, yt_g_offset,
-                              input.y, et, com_pub.b, com_sec.s,
-                              input.y_g_offset, yte);
+    eip::ProveInput input_eip(input.yt, e, proof.com_yt, com_yt_r,
+                              input.get_gyt, input.y, et, com_pub.b, com_sec.s,
+                              input.get_gy, yte);
     eip::Prove(proof.proof_eip, seed, input_eip);
   }
 };
@@ -255,11 +256,17 @@ bool Sec51c::Test(int64_t n) {
 
   int64_t x_g_offset = 10;
   int64_t y_g_offset = 30;
-  int64_t z_g_offset = -1;
+  pc::GetRefG get_gx = [x_g_offset](int64_t i) -> G1 const& {
+    return pc::PcG()[x_g_offset + i];
+  };
+  pc::GetRefG get_gy = [y_g_offset](int64_t i) -> G1 const& {
+    return pc::PcG()[y_g_offset + i];
+  };
+
   std::vector<Fr> yt(n);
   yt = HadamardProduct(y, t);
   Fr z = InnerProduct(x, yt);
-  ProveInput prove_input(x, y, t, yt, z, x_g_offset, y_g_offset, z_g_offset);
+  ProveInput prove_input(x, y, t, yt, z, get_gx, get_gy, pc::PcU());
 
   CommitmentPub com_pub;
   CommitmentSec com_sec;
@@ -286,7 +293,7 @@ bool Sec51c::Test(int64_t n) {
   }
 #endif
 
-  VerifyInput verify_input(t, com_pub, x_g_offset, y_g_offset, z_g_offset);
+  VerifyInput verify_input(t, com_pub, get_gx, get_gy, pc::PcU());
   bool success = Verify(proof, seed, verify_input);
   std::cout << __FILE__ << " " << __FN__ << ": " << success
             << "\n\n\n\n\n\n";

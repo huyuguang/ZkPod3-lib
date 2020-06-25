@@ -14,16 +14,17 @@ namespace hyrax {
 struct A2 {
   struct ProveInput {
     ProveInput(std::vector<Fr> const& x, std::vector<Fr> const& a, Fr const& y,
-               int64_t x_g_offset, int64_t y_g_offset)
-        : x(x), a(a), y(y), x_g_offset(x_g_offset), y_g_offset(y_g_offset) {
+               pc::GetRefG const& get_gx, G1 const& gy)
+        : x(x), a(a), y(y), get_gx(get_gx), gy(gy) {
+      assert(x.size() == a.size() && !a.empty());
       assert(y == InnerProduct(x, a));
     }
     int64_t n() const { return (int64_t)x.size(); }
     std::vector<Fr> const& x;  // x.size = n
     std::vector<Fr> const& a;  // a.size = n
     Fr const y;                // y = <x, a>
-    int64_t const x_g_offset;
-    int64_t const y_g_offset;
+    pc::GetRefG const get_gx;
+    G1 const gy;
   };
 
   struct CommitmentPub {
@@ -93,15 +94,12 @@ struct A2 {
 
   struct VerifyInput {
     VerifyInput(std::vector<Fr> const& a, CommitmentPub const& com_pub,
-                int64_t x_g_offset, int64_t y_g_offset)
-        : a(a),
-          com_pub(com_pub),
-          x_g_offset(x_g_offset),
-          y_g_offset(y_g_offset) {}
+                pc::GetRefG const& get_gx, G1 const& gy)
+        : a(a), com_pub(com_pub), get_gx(get_gx), gy(gy) {}
     std::vector<Fr> const& a;  // a.size = n
     CommitmentPub const& com_pub;
-    int64_t const x_g_offset;
-    int64_t const y_g_offset;
+    pc::GetRefG const get_gx;
+    G1 const gy;
   };
 
   // com(n) + com(1) + ip(n)
@@ -118,8 +116,8 @@ struct A2 {
       auto const& xi = com_pub.xi;
       auto const& delta = com_ext_pub.delta;
       G1 left = xi * challenge + delta;
-      G1 right = PcComputeCommitmentG(input.x_g_offset, sub_proof.z,
-                                      sub_proof.z_delta);
+      G1 right = pc::PcComputeCommitmentG(input.get_gx, sub_proof.z,
+                                          sub_proof.z_delta);
       ret1 = left == right;
     };
 
@@ -130,8 +128,7 @@ struct A2 {
       auto const& beta = com_ext_pub.beta;
       G1 left = tau * challenge + beta;
       auto ip_za = InnerProduct(sub_proof.z, input.a);
-      G1 right =
-          PcComputeCommitmentG(input.y_g_offset, ip_za, sub_proof.z_beta);
+      G1 right = pc::PcComputeCommitmentG(input.gy, ip_za, sub_proof.z_beta);
       ret2 = left == right;
     };
     parallel::Invoke(tasks, true);
@@ -146,11 +143,10 @@ struct A2 {
     std::array<parallel::Task, 2> tasks;
     tasks[0] = [&com_pub, &input, &com_sec]() {
       com_pub.xi =
-          PcComputeCommitmentG(input.x_g_offset, input.x, com_sec.r_xi);
+          pc::PcComputeCommitmentG(input.get_gx, input.x, com_sec.r_xi);
     };
     tasks[1] = [&com_pub, &input, &com_sec]() {
-      com_pub.tau =
-          PcComputeCommitmentG(input.y_g_offset, input.y, com_sec.r_tau);
+      com_pub.tau = pc::PcComputeCommitmentG(input.gy, input.y, com_sec.r_tau);
     };
     parallel::Invoke(tasks, true);
   }
@@ -168,13 +164,12 @@ struct A2 {
 
     std::array<parallel::Task, 2> tasks;
     tasks[0] = [&com_ext_pub, &com_ext_sec, &input]() {
-      com_ext_pub.delta = PcComputeCommitmentG(input.x_g_offset, com_ext_sec.d,
-                                               com_ext_sec.r_delta);
+      com_ext_pub.delta = pc::PcComputeCommitmentG(input.get_gx, com_ext_sec.d,
+                                                   com_ext_sec.r_delta);
     };
     tasks[1] = [&com_ext_pub, &input, &com_ext_sec]() {
-      com_ext_pub.beta = PcComputeCommitmentG(
-          input.y_g_offset, InnerProduct(input.a, com_ext_sec.d),
-          com_ext_sec.r_beta);
+      com_ext_pub.beta = pc::PcComputeCommitmentG(
+          input.gy, InnerProduct(input.a, com_ext_sec.d), com_ext_sec.r_beta);
     };
     parallel::Invoke(tasks, true);
 
@@ -207,8 +202,6 @@ struct A2 {
                     CommitmentPub com_pub, CommitmentSec com_sec) {
     Tick tick(__FN__);
 
-    assert(PcBase::kGSize >= input.n());
-
     CommitmentExtSec com_ext_sec;
     ComputeCommitmentExt(proof.com_ext_pub, com_ext_sec, input);
 
@@ -221,7 +214,6 @@ struct A2 {
   static bool Verify(Proof const& proof, h256_t seed,
                      VerifyInput const& input) {
     // Tick tick(__FN__);
-    assert(PcBase::kGSize >= proof.n());
     if (input.a.size() != proof.sub_proof.z.size() || input.a.empty())
       return false;
 
@@ -295,9 +287,11 @@ bool A2::Test(int64_t n) {
   h256_t UpdateSeed = misc::RandH256();
 
   int64_t x_g_offset = 30;
-  int64_t y_g_offset = -1;
+  pc::GetRefG get_gx = [x_g_offset](int64_t i) -> G1 const& {
+    return pc::PcG()[x_g_offset + i];
+  };
   auto z = InnerProduct(x, a);
-  ProveInput prove_input(x, a, z, x_g_offset, y_g_offset);
+  ProveInput prove_input(x, a, z, get_gx, pc::PcU());
 
   CommitmentPub com_pub;
   CommitmentSec com_sec(FrRand(), FrRand());
@@ -324,10 +318,9 @@ bool A2::Test(int64_t n) {
   }
 #endif
 
-  VerifyInput verify_input(a, com_pub, x_g_offset, y_g_offset);
+  VerifyInput verify_input(a, com_pub, get_gx, pc::PcU());
   bool success = Verify(proof, UpdateSeed, verify_input);
-  std::cout << __FILE__ << " " << __FN__ << ": " << success
-            << "\n\n\n\n\n\n";
+  std::cout << __FILE__ << " " << __FN__ << ": " << success << "\n\n\n\n\n\n";
   return success;
 }
 }  // namespace hyrax

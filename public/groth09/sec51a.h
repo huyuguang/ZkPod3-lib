@@ -19,17 +19,22 @@ struct Sec51a {
     std::vector<Fr> const& x;  // size = n
     std::vector<Fr> const& y;  // size = n
     Fr const z;                // z = <x,y>
-    int64_t const x_g_offset;
-    int64_t const y_g_offset;
-    int64_t const z_g_offset;
+    pc::GetRefG const& get_gx;
+    pc::GetRefG const& get_gy;
+    G1 const& gz;
+    bool const gx_equal_gy;
     ProveInput(std::vector<Fr> const& x, std::vector<Fr> const& y, Fr const& z,
-               int64_t x_g_offset, int64_t y_g_offset, int64_t z_g_offset)
+               pc::GetRefG const& get_gx, pc::GetRefG const& get_gy,
+               G1 const& gz)
         : x(x),
           y(y),
           z(z),
-          x_g_offset(x_g_offset),
-          y_g_offset(y_g_offset),
-          z_g_offset(z_g_offset) {
+          get_gx(get_gx),
+          get_gy(get_gy),
+          gz(gz),
+          gx_equal_gy(get_gx(0) == get_gy(0) &&
+                      get_gx(x.size() - 1) == get_gy(y.size() - 1)) {
+      // gx_equal_gy not absolutely safe but enough
       assert(x.size() == y.size() && !x.empty());
       assert(z == InnerProduct(x, y));
     }
@@ -118,13 +123,13 @@ struct Sec51a {
 
     std::array<parallel::Task, 3> tasks;
     tasks[0] = [&com_pub, &input, &com_sec]() {
-      com_pub.a = PcComputeCommitmentG(input.x_g_offset, input.x, com_sec.r);
+      com_pub.a = pc::PcComputeCommitmentG(input.get_gx, input.x, com_sec.r);
     };
     tasks[1] = [&com_pub, &input, &com_sec]() {
-      com_pub.b = PcComputeCommitmentG(input.y_g_offset, input.y, com_sec.s);
+      com_pub.b = pc::PcComputeCommitmentG(input.get_gy, input.y, com_sec.s);
     };
     tasks[2] = [&com_pub, &input, &com_sec]() {
-      com_pub.c = PcComputeCommitmentG(input.z_g_offset, input.z, com_sec.t);
+      com_pub.c = pc::PcComputeCommitmentG(input.gz, input.z, com_sec.t);
     };
     parallel::Invoke(tasks);
   }
@@ -150,17 +155,17 @@ struct Sec51a {
 
     std::array<parallel::Task, 3> tasks;
     tasks[0] = [&com_ext_pub, &com_ext_sec, &input]() {
-      com_ext_pub.ad = PcComputeCommitmentG(input.x_g_offset, com_ext_sec.dx,
+      com_ext_pub.ad = pc::PcComputeCommitmentG(input.get_gx, com_ext_sec.dx,
                                             com_ext_sec.rd);
     };
     tasks[1] = [&com_ext_pub, &com_ext_sec, &input]() {
-      com_ext_pub.bd = PcComputeCommitmentG(input.y_g_offset, com_ext_sec.dy,
+      com_ext_pub.bd = pc::PcComputeCommitmentG(input.get_gy, com_ext_sec.dy,
                                             com_ext_sec.sd);
     };
     tasks[2] = [&com_ext_pub, &com_ext_sec, &xdy_dxy, &input]() {
       com_ext_pub.c1 =
-          PcComputeCommitmentG(input.z_g_offset, xdy_dxy, com_ext_sec.t1);
-      com_ext_pub.c0 = PcComputeCommitmentG(input.z_g_offset, com_ext_sec.dz,
+          pc::PcComputeCommitmentG(input.gz, xdy_dxy, com_ext_sec.t1);
+      com_ext_pub.c0 = pc::PcComputeCommitmentG(input.gz, com_ext_sec.dz,
                                             com_ext_sec.t0);
     };
     parallel::Invoke(tasks);
@@ -204,16 +209,18 @@ struct Sec51a {
   }
 
   struct VerifyInput {
-    VerifyInput(CommitmentPub const& com_pub, int64_t x_g_offset,
-                int64_t y_g_offset, int64_t z_g_offset)
+    VerifyInput(CommitmentPub const& com_pub, pc::GetRefG const& get_gx,
+                pc::GetRefG const& get_gy, G1 const& gz)
         : com_pub(com_pub),
-          x_g_offset(x_g_offset),
-          y_g_offset(y_g_offset),
-          z_g_offset(z_g_offset) {}
+          get_gx(get_gx),
+          get_gy(get_gy),
+          gz(gz),
+          gx_equal_gy(get_gx(0) == get_gy(0)) {}
     CommitmentPub const& com_pub;
-    int64_t const x_g_offset;
-    int64_t const y_g_offset;
-    int64_t const z_g_offset;
+    pc::GetRefG const get_gx;
+    pc::GetRefG const get_gy;
+    G1 const gz;
+    bool const gx_equal_gy;
   };
 
   static bool VerifyInternal(VerifyInput const& input, Fr const& challenge,
@@ -229,12 +236,12 @@ struct Sec51a {
     auto const& e = challenge;
     std::vector<int64_t> rets;
     std::vector<parallel::Task> tasks;
-    if (input.x_g_offset == input.y_g_offset) {
+    if (input.gx_equal_gy) {
       // if x_g_offset == y_g_offset, we can combine the verification
+      auto const& get_g = input.get_gx;
       tasks.resize(2);
       rets.resize(2);
-      tasks[0] = [&rets, &com_pub, &e, &com_ext_pub, &sub_proof, &input]() {
-        auto g_offset = input.x_g_offset;
+      tasks[0] = [&rets, &com_pub, &e, &com_ext_pub, &sub_proof, &get_g]() {
         Fr alpha = FrRand();
         // (a^e * a_d)^alpha * b^e * b_d
         G1 left = (com_pub.a * e + com_ext_pub.ad) * alpha +
@@ -242,7 +249,7 @@ struct Sec51a {
         // com(alpha * fx + fy,alpha * rx + sy)
         std::vector<Fr> alpha_fx_fy = sub_proof.fx * alpha + sub_proof.fy;
         Fr alpha_rx_sy = alpha * sub_proof.rx + sub_proof.sy;
-        G1 right = PcComputeCommitmentG(g_offset, alpha_fx_fy, alpha_rx_sy);
+        G1 right = pc::PcComputeCommitmentG(get_g, alpha_fx_fy, alpha_rx_sy);
         rets[0] = left == right;
         assert(rets[0]);
       };
@@ -254,7 +261,7 @@ struct Sec51a {
         G1 left = (com_pub.a * e + com_ext_pub.ad);
         // com(fx,rx)
         G1 right =
-            PcComputeCommitmentG(input.x_g_offset, sub_proof.fx, sub_proof.rx);
+            pc::PcComputeCommitmentG(input.get_gx, sub_proof.fx, sub_proof.rx);
         rets[0] = left == right;
         assert(rets[0]);
       };
@@ -263,7 +270,7 @@ struct Sec51a {
         G1 left = com_pub.b * e + com_ext_pub.bd;
         // com(fy,sy)
         G1 right =
-            PcComputeCommitmentG(input.y_g_offset, sub_proof.fy, sub_proof.sy);
+            pc::PcComputeCommitmentG(input.get_gy, sub_proof.fy, sub_proof.sy);
         rets[1] = left == right;
         assert(rets[1]);
       };
@@ -275,7 +282,7 @@ struct Sec51a {
       G1 left = com_pub.c * e2_square + com_ext_pub.c1 * e + com_ext_pub.c0;
       Fr fz = InnerProduct(sub_proof.fx, sub_proof.fy);
 
-      G1 right = PcComputeCommitmentG(input.z_g_offset, fz, sub_proof.tz);
+      G1 right = pc::PcComputeCommitmentG(input.gz, fz, sub_proof.tz);
       rets.back() = left == right;
       assert(rets.back());
     };
@@ -292,9 +299,6 @@ struct Sec51a {
                     CommitmentPub const& com_pub,
                     CommitmentSec const& com_sec) {
     // Tick tick(__FN__);
-
-    assert(PcBase::kGSize >= input.n());
-
     CommitmentExtSec com_ext_sec;
     ComputeComExt(proof.com_ext_pub, com_ext_sec, input);
 
@@ -307,8 +311,6 @@ struct Sec51a {
   static bool Verify(Proof const& proof, h256_t seed,
                      VerifyInput const& input) {
     // Tick tick(__FN__);
-    assert(PcBase::kGSize >= proof.n());
-
     UpdateSeed(seed, input.com_pub, proof.com_ext_pub);
     Fr challenge = H256ToFr(seed);
 
@@ -370,8 +372,14 @@ inline bool Sec51a::Test(int64_t n) {
 
   int64_t x_g_offset = 5;
   int64_t y_g_offset = 10;
-  int64_t z_g_offset = -1;
-  ProveInput prove_input(x, y, z, x_g_offset, y_g_offset, z_g_offset);
+  pc::GetRefG get_gx = [x_g_offset](int64_t i) -> G1 const& {
+    return pc::PcG()[x_g_offset + i];
+  };
+  pc::GetRefG get_gy = [y_g_offset](int64_t i) -> G1 const& {
+    return pc::PcG()[y_g_offset + i];
+  };
+  
+  ProveInput prove_input(x, y, z, get_gx, get_gy, pc::PcU());
 
   CommitmentPub com_pub;
   CommitmentSec com_sec;
@@ -398,7 +406,7 @@ inline bool Sec51a::Test(int64_t n) {
   }
 #endif
 
-  VerifyInput verify_input(com_pub, x_g_offset, y_g_offset, z_g_offset);
+  VerifyInput verify_input(com_pub, get_gx, get_gy, pc::PcU());
   bool success = Verify(proof, seed, verify_input);
   std::cout << __FILE__ << " " << __FN__ << ": " << success
             << "\n\n\n\n\n\n";

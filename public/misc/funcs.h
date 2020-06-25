@@ -180,4 +180,5 @@ void PrintArray(std::array<Fr, N> const& a) {
   }
   std::cout << "\n";
 }
+
 }  // namespace misc

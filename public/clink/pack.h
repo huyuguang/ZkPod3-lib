@@ -20,16 +20,16 @@ struct Pack {
 
   struct ProveInput {
     ProveInput(std::vector<Fr> const& x, G1 const& com_x, Fr const& com_x_r,
-               int64_t x_g_offset, std::vector<Fr> const& y, G1 const& com_y,
-               Fr const& com_y_r, int64_t y_g_offset)
+               pc::GetRefG const& get_gx, std::vector<Fr> const& y,
+               G1 const& com_y, Fr const& com_y_r, pc::GetRefG const& get_gy)
         : x(x),
           com_x(com_x),
           com_x_r(com_x_r),
-          x_g_offset(x_g_offset),
+          get_gx(get_gx),
           y(y),
           com_y(com_y),
           com_y_r(com_y_r),
-          y_g_offset(y_g_offset) {
+          get_gy(get_gy) {
 #ifdef _DEBUG
       assert((xn() + 252) / 253 == yn());
       assert(FrBitsToFrs(x) == y);
@@ -47,11 +47,11 @@ struct Pack {
     std::vector<Fr> const& x;
     G1 const& com_x;
     Fr const& com_x_r;
-    int64_t const x_g_offset;
+    pc::GetRefG const& get_gx;
     std::vector<Fr> const& y;
     G1 const& com_y;
     Fr const& com_y_r;
-    int64_t const y_g_offset;
+    pc::GetRefG const& get_gy;
   };
 
   static void Prove(Proof& proof, h256_t seed, ProveInput const& input) {
@@ -85,26 +85,26 @@ struct Pack {
     assert(z == InnerProduct(input.x, a));
 
     typename EqualIp<HyraxA>::ProveInput eip_input(
-        input.x, a, input.com_x, input.com_x_r, input.x_g_offset, input.y, b,
-        input.com_y, input.com_y_r, input.y_g_offset, z);
+        input.x, a, input.com_x, input.com_x_r, input.get_gx, input.y, b,
+        input.com_y, input.com_y_r, input.get_gy, z);
     EqualIp<HyraxA>::Prove(proof, seed, eip_input);
   }
 
   struct VerifyInput {
-    VerifyInput(int64_t xn, G1 const& com_x, int64_t x_g_offset,
-                G1 const& com_y, int64_t y_g_offset)
+    VerifyInput(int64_t xn, G1 const& com_x, pc::GetRefG const& get_gx,
+                G1 const& com_y, pc::GetRefG const& get_gy)
         : xn(xn),
           yn((xn + 252) / 253),
           com_x(com_x),
-          x_g_offset(x_g_offset),
+          get_gx(get_gx),
           com_y(com_y),
-          y_g_offset(y_g_offset) {}
+          get_gy(get_gy) {}
     int64_t const xn;
     int64_t const yn;
     G1 const& com_x;
-    int64_t const x_g_offset;
+    pc::GetRefG const& get_gx;
     G1 const& com_y;
-    int64_t const y_g_offset;
+    pc::GetRefG const& get_gy;
   };
 
   // NOET: n is x.size()
@@ -136,7 +136,7 @@ struct Pack {
     a.resize(xn);
 
     typename EqualIp<HyraxA>::VerifyInput eip_input(
-        a, input.com_x, input.x_g_offset, b, input.com_y, input.y_g_offset);
+        a, input.com_x, input.get_gx, b, input.com_y, input.get_gy);
     return EqualIp<HyraxA>::Verify(seed, proof, eip_input);
   }
 
@@ -157,17 +157,23 @@ template <typename HyraxA>
 bool Pack<HyraxA>::Test(int64_t xn) {
   int64_t x_g_offset = 2990;
   int64_t y_g_offset = 670;
+  pc::GetRefG get_gx = [x_g_offset](int64_t i) -> G1 const& {
+    return pc::PcG()[x_g_offset + i];
+  };
+  pc::GetRefG get_gy = [y_g_offset](int64_t i) -> G1 const& {
+    return pc::PcG()[y_g_offset + i];
+  };
+
   auto seed = misc::RandH256();
   std::vector<Fr> x(xn);
   for (auto& i : x) i = rand() % 2;
   auto y = FrBitsToFrs(x);
   auto com_x_r = FrRand();
-  auto com_x = PcComputeCommitmentG(x_g_offset, x, com_x_r);
+  auto com_x = pc::PcComputeCommitmentG(get_gx, x, com_x_r);
   auto com_y_r = FrRand();
-  auto com_y = PcComputeCommitmentG(y_g_offset, y, com_y_r);
+  auto com_y = pc::PcComputeCommitmentG(get_gy, y, com_y_r);
 
-  ProveInput prove_input(x, com_x, com_x_r, x_g_offset, y, com_y, com_y_r,
-                         y_g_offset);
+  ProveInput prove_input(x, com_x, com_x_r, get_gx, y, com_y, com_y_r, get_gy);
   Proof proof;
   Prove(proof, seed, prove_input);
 
@@ -189,10 +195,9 @@ bool Pack<HyraxA>::Test(int64_t xn) {
   }
 #endif
 
-  VerifyInput verify_input(xn, com_x, x_g_offset, com_y, y_g_offset);
+  VerifyInput verify_input(xn, com_x, get_gx, com_y, get_gy);
   bool success = Verify(proof, seed, verify_input);
-  std::cout << __FILE__ << " " << __FN__ << ": " << success
-            << "\n\n\n\n\n\n";
+  std::cout << __FILE__ << " " << __FN__ << ": " << success << "\n\n\n\n\n\n";
   return success;
 }
 }  // namespace clink

@@ -58,41 +58,37 @@ struct Sec53a {
   };
 
   struct VerifyInput {
-    VerifyInput(CommitmentPub const& com_pub, int64_t x_g_offset,
-                int64_t y_g_offset, int64_t z_g_offset)
-        : com_pub(com_pub),
-          x_g_offset(x_g_offset),
-          y_g_offset(y_g_offset),
-          z_g_offset(z_g_offset) {}
+    VerifyInput(CommitmentPub const& com_pub, pc::GetRefG const& get_gx,
+                pc::GetRefG const& get_gy, G1 const& gz)
+        : com_pub(com_pub), get_gx(get_gx), get_gy(get_gy), gz(gz) {}
     CommitmentPub const& com_pub;
-    int64_t g_offset = 0;
     int64_t m() const { return com_pub.m(); }
     bool CheckFormat() const { return com_pub.CheckFormat(); }
-    int64_t const x_g_offset;
-    int64_t const y_g_offset;
-    int64_t const z_g_offset;
+    pc::GetRefG const& get_gx;
+    pc::GetRefG const& get_gy;
+    G1 const& gz;
   };
 
   struct ProveInput {
     std::vector<std::vector<Fr>> x;
     std::vector<std::vector<Fr>> y;
     Fr z;
-    int64_t const x_g_offset;
-    int64_t const y_g_offset;
-    int64_t const z_g_offset;
+    pc::GetRefG const& get_gx;
+    pc::GetRefG const& get_gy;
+    G1 const& gz;
 
     int64_t m() const { return x.size(); }
     int64_t n() const { return x[0].size(); }
 
     ProveInput(std::vector<std::vector<Fr>> ix, std::vector<std::vector<Fr>> iy,
-               Fr const& z, int64_t x_g_offset, int64_t y_g_offset,
-               int64_t z_g_offset)
+               Fr const& z, pc::GetRefG const& get_gx,
+               pc::GetRefG const& get_gy, G1 const& gz)
         : x(std::move(ix)),
           y(std::move(iy)),
           z(z),
-          x_g_offset(x_g_offset),
-          y_g_offset(y_g_offset),
-          z_g_offset(z_g_offset) {
+          get_gx(get_gx),
+          get_gy(get_gy),
+          gz(gz) {
 #ifdef _DEBUG
       assert(!x.empty() && x.size() == y.size());
       Fr check_z = FrZero();
@@ -191,13 +187,13 @@ struct Sec53a {
 
     auto parallel_f = [&input, &com_pub, &com_sec](int64_t i) mutable {
       com_pub->a[i] =
-          PcComputeCommitmentG(input.x_g_offset, input.x[i], com_sec.r[i]);
+          pc::PcComputeCommitmentG(input.get_gx, input.x[i], com_sec.r[i]);
       com_pub->b[i] =
-          PcComputeCommitmentG(input.y_g_offset, input.y[i], com_sec.s[i]);
+          pc::PcComputeCommitmentG(input.get_gy, input.y[i], com_sec.s[i]);
     };
     parallel::For(m, parallel_f, n < 16 * 1024);
 
-    com_pub->c = PcComputeCommitmentG(input.z_g_offset, input.z, com_sec.t);
+    com_pub->c = pc::PcComputeCommitmentG(input.gz, input.z, com_sec.t);
   }
 
   static void ComputeCom(ProveInput const& input, CommitmentPub* com_pub,
@@ -221,9 +217,8 @@ struct Sec53a {
     // Tick tick(__FN__);
     assert(input.m() == 1);
 
-    Sec51a::ProveInput input_51(input.x[0], input.y[0], input.z,
-                                input.x_g_offset, input.y_g_offset,
-                                input.z_g_offset);
+    Sec51a::ProveInput input_51(input.x[0], input.y[0], input.z, input.get_gx,
+                                input.get_gy, input.gz);
     Sec51a::CommitmentPub com_pub_51(com_pub.a[0], com_pub.b[0], com_pub.c);
     Sec51a::CommitmentSec com_sec_51(com_sec.r[0], com_sec.s[0], com_sec.t);
     Sec51a::Prove(proof.proof_51, seed, input_51, com_pub_51, com_sec_51);
@@ -324,8 +319,8 @@ struct Sec53a {
     // compute cl, cu
     Fr tl = FrRand();
     Fr tu = FrRand();
-    G1 cl = PcComputeCommitmentG(input.z_g_offset, sigma_xy1, tl);
-    G1 cu = PcComputeCommitmentG(input.z_g_offset, sigma_xy2, tu);
+    G1 cl = pc::PcComputeCommitmentG(input.gz, sigma_xy1, tl);
+    G1 cu = pc::PcComputeCommitmentG(input.gz, sigma_xy2, tu);
     proof.com_ext_pub.cl.push_back(cl);
     proof.com_ext_pub.cu.push_back(cu);
 
@@ -350,8 +345,6 @@ struct Sec53a {
   static void Prove(Proof& proof, h256_t seed, ProveInput input,
                     CommitmentPub com_pub, CommitmentSec com_sec) {
     // Tick tick(__FN__);
-    assert(PcBase::kGSize >= input.n());
-
     while (input.m() > 1) {
       ProveRecursive(proof, seed, input, com_pub, com_sec);
     }
@@ -400,8 +393,8 @@ struct Sec53a {
     assert(com_pub.m() == 1);
 
     Sec51a::CommitmentPub com_pub_51(com_pub.a[0], com_pub.b[0], com_pub.c);
-    Sec51a::VerifyInput verifier_input_51(com_pub_51, input.x_g_offset,
-                                          input.y_g_offset, input.z_g_offset);
+    Sec51a::VerifyInput verifier_input_51(com_pub_51, input.get_gx,
+                                          input.get_gy, input.gz);
     return Sec51a::Verify(proof.proof_51, seed, verifier_input_51);
   }
 
@@ -457,9 +450,15 @@ bool Sec53a::Test(int64_t m, int64_t n) {
 
   int64_t x_g_offset = 20;
   int64_t y_g_offset = 240;
-  int64_t z_g_offset = -1;
-  ProveInput prove_input(std::move(x), std::move(y), z, x_g_offset, y_g_offset,
-                         z_g_offset);
+  pc::GetRefG get_gx = [x_g_offset](int64_t i) -> G1 const& {
+    return pc::PcG()[x_g_offset + i];
+  };
+  pc::GetRefG get_gy = [y_g_offset](int64_t i) -> G1 const& {
+    return pc::PcG()[y_g_offset + i];
+  };
+
+  ProveInput prove_input(std::move(x), std::move(y), z, get_gx, get_gy,
+                         pc::PcU());
   CommitmentPub com_pub;
   CommitmentSec com_sec;
   ComputeCom(prove_input, &com_pub, &com_sec);
@@ -487,10 +486,9 @@ bool Sec53a::Test(int64_t m, int64_t n) {
   }
 #endif
 
-  VerifyInput verify_input(com_pub, x_g_offset, y_g_offset, z_g_offset);
+  VerifyInput verify_input(com_pub, get_gx, get_gy, pc::PcU());
   bool success = Verify(proof, seed, verify_input);
-  std::cout << __FILE__ << " " << __FN__ << ": " << success
-            << "\n\n\n\n\n\n";
+  std::cout << __FILE__ << " " << __FN__ << ": " << success << "\n\n\n\n\n\n";
   return success;
 }
 }  // namespace groth09

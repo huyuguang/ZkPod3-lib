@@ -27,7 +27,7 @@ bool InitAll(std::string const& data_dir) {
   //}
 
   auto ecc_pds_file = data_dir + "/" + "pds_pub.bin";
-  if (!OpenOrCreatePdsPub(ecc_pds_file)) {
+  if (!pc::OpenOrCreatePdsPub(ecc_pds_file)) {
     std::cerr << "Open or create pds pub file " << ecc_pds_file << " failed\n";
     return false;
   }
@@ -333,7 +333,7 @@ int main(int argc, char** argv) {
   }
 
   if (pc_commitment_n) {
-    rets["pc_commiment"] = TestPcCommitment(pc_commitment_n);
+    rets["pc_commiment"] = pc::TestPcCommitment(pc_commitment_n);
   }
 
   if (bp_p1_n) {

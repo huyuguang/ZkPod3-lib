@@ -17,16 +17,17 @@ struct Divide {
 
   struct ProveInput {
     ProveInput(std::vector<Fr> const& x, G1 const& com_x, Fr const& com_x_r,
-               int64_t x_g_offset, int64_t sn, std::vector<G1> const& com_s,
-               std::vector<Fr> const& com_s_r, int64_t s_g_offset)
+               pc::GetRefG const& get_gx, int64_t sn,
+               std::vector<G1> const& com_s, std::vector<Fr> const& com_s_r,
+               pc::GetRefG const& get_gs)
         : x(x),
           com_x(com_x),
           com_x_r(com_x_r),
-          x_g_offset(x_g_offset),
+          get_gx(get_gx),
           sn(sn),
           com_s(com_s),
           com_s_r(com_s_r),
-          s_g_offset(s_g_offset) {
+          get_gs(get_gs) {
       assert(sn > 0);
       assert(x.size() % sn == 0);
       assert(x.size() / sn == com_s.size());
@@ -35,11 +36,11 @@ struct Divide {
     std::vector<Fr> const& x;
     G1 const& com_x;
     Fr const& com_x_r;
-    int64_t const x_g_offset;
+    pc::GetRefG const& get_gx;
     int64_t const sn;
     std::vector<G1> const& com_s;
     std::vector<Fr> const& com_s_r;
-    int64_t const s_g_offset;
+    pc::GetRefG const& get_gs;
   };
 
   static void UpdateSeed(h256_t& seed, G1 const& com_x, int64_t sn,
@@ -85,7 +86,7 @@ struct Divide {
     // com_y_r, com_y
     Fr com_y_r = InnerProduct(input.com_s_r, d);
     G1 com_y =
-        PcComputeCommitmentG(input.s_g_offset, y, com_y_r);  // multiexp(sn+1)
+        pc::PcComputeCommitmentG(input.get_gs, y, com_y_r);  // multiexp(sn+1)
 #ifdef _DEBUG
     G1 check_com_y = MultiExpBdlo12(input.com_s, d);  // multiexp(n/sn)
     assert(check_com_y == com_y);
@@ -96,25 +97,21 @@ struct Divide {
     assert(z == InnerProduct(y, e));
 
     typename EqualIp<HyraxA>::ProveInput eip_input(
-        input.x, f, input.com_x, input.com_x_r, input.x_g_offset, y, e, com_y,
-        com_y_r, input.s_g_offset, z);
+        input.x, f, input.com_x, input.com_x_r, input.get_gx, y, e, com_y,
+        com_y_r, input.get_gs, z);
 
     EqualIp<HyraxA>::Prove(proof, seed, eip_input);
   }
 
   struct VerifyInput {
-    VerifyInput(int64_t sn, G1 const& com_x, int64_t x_g_offset,
-                std::vector<G1> const& com_s, int64_t s_g_offset)
-        : sn(sn),
-          com_x(com_x),
-          x_g_offset(x_g_offset),
-          com_s(com_s),
-          s_g_offset(s_g_offset) {}
+    VerifyInput(int64_t sn, G1 const& com_x, pc::GetRefG const& get_gx,
+                std::vector<G1> const& com_s, pc::GetRefG const& get_gs)
+        : sn(sn), com_x(com_x), get_gx(get_gx), com_s(com_s), get_gs(get_gs) {}
     int64_t const sn;
     G1 const& com_x;
-    int64_t const x_g_offset;
+    pc::GetRefG const& get_gx;
     std::vector<G1> const& com_s;
-    int64_t const s_g_offset;
+    pc::GetRefG const& get_gs;
   };
 
   static bool Verify(h256_t seed, VerifyInput const& input,
@@ -140,7 +137,7 @@ struct Divide {
     G1 com_y = MultiExpBdlo12(input.com_s, d);  // multiexp(com_s.size())
 
     typename EqualIp<HyraxA>::VerifyInput eip_input(
-        f, input.com_x, input.x_g_offset, e, com_y, input.s_g_offset);
+        f, input.com_x, input.get_gx, e, com_y, input.get_gs);
     return EqualIp<HyraxA>::Verify(seed, proof, eip_input);
   }
 
@@ -153,10 +150,17 @@ bool Divide<HyraxA>::Test() {
 
   int64_t x_g_offset = 50;
   int64_t s_g_offset = 770;
+  pc::GetRefG get_gx = [x_g_offset](int64_t i) -> G1 const& {
+    return pc::PcG()[x_g_offset + i];
+  };
+  pc::GetRefG get_gs = [s_g_offset](int64_t i) -> G1 const& {
+    return pc::PcG()[s_g_offset + i];
+  };
+
   std::vector<Fr> x(15);
   FrRand(x);
   Fr com_x_r = FrRand();
-  G1 com_x = PcComputeCommitmentG(x_g_offset, x, com_x_r);
+  G1 com_x = pc::PcComputeCommitmentG(get_gx, x, com_x_r);
 
   int64_t sn = 3;
   int64_t m = x.size() / sn;
@@ -167,11 +171,10 @@ bool Divide<HyraxA>::Test() {
     auto end = begin + sn;
     std::vector<Fr> s(begin, end);
     com_s_r[i] = FrRand();
-    com_s[i] = PcComputeCommitmentG(s_g_offset, s, com_s_r[i]);
+    com_s[i] = pc::PcComputeCommitmentG(get_gs, s, com_s_r[i]);
   }
 
-  ProveInput prove_input(x, com_x, com_x_r, x_g_offset, sn, com_s, com_s_r,
-                         s_g_offset);
+  ProveInput prove_input(x, com_x, com_x_r, get_gx, sn, com_s, com_s_r, get_gs);
   Proof proof;
   Prove(proof, seed, prove_input);
 
@@ -193,10 +196,9 @@ bool Divide<HyraxA>::Test() {
   }
 #endif
 
-  VerifyInput verify_input(sn, com_x, x_g_offset, com_s, s_g_offset);
+  VerifyInput verify_input(sn, com_x, get_gx, com_s, get_gs);
   bool success = Verify(seed, verify_input, proof);
-  std::cout << __FILE__ << " " << __FN__ << ": " << success
-            << "\n\n\n\n\n\n";
+  std::cout << __FILE__ << " " << __FN__ << ": " << success << "\n\n\n\n\n\n";
   return success;
 }
 }  // namespace clink

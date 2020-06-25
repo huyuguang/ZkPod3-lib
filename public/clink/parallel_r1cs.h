@@ -34,11 +34,11 @@ struct ParallelR1cs {
   struct ProveInput {
     ProveInput(R1csInfo const& r1cs_info, std::vector<std::vector<Fr>>&& w,
                std::vector<G1> const& com_w, std::vector<Fr> const& com_w_r,
-               int64_t g_offset)
+               pc::GetRefG const& get_g)
         : r1cs_info(r1cs_info),
           com_w(com_w),
           com_w_r(com_w_r),
-          g_offset(g_offset),
+          get_g(get_g),
           m(r1cs_info.num_constraints),
           s(r1cs_info.num_variables),
           n((int64_t)w[0].size()) {
@@ -47,7 +47,7 @@ struct ParallelR1cs {
       assert((int64_t)com_w.size() == s);
       assert((int64_t)com_w_r.size() == s);
       for (int64_t i = 0; i < s; ++i) {
-        assert(com_w[i] == PcComputeCommitmentG(g_offset, w[i], com_w_r[i]));
+        assert(com_w[i] == pc::PcComputeCommitmentG(get_g, w[i], com_w_r[i]));
       }
       for (size_t i = 0; i < constraint_system().primary_input_size; ++i) {
         assert(com_w_r[i] == 0);
@@ -90,7 +90,7 @@ struct ParallelR1cs {
     R1csInfo const& r1cs_info;
     std::vector<G1> const& com_w;
     std::vector<Fr> const& com_w_r;
-    int64_t const g_offset;
+    pc::GetRefG const& get_g;
     int64_t const m;
     int64_t const s;
     int64_t const n;
@@ -110,12 +110,12 @@ struct ParallelR1cs {
     // prove hadamard product
     typename Sec43::ProveInput input_43(
         m, std::move(input.x), std::move(input.y), std::move(input.z),
-        input.g_offset, input.g_offset, input.g_offset);
+        input.get_g, input.get_g, input.get_g);
 
     typename Sec43::CommitmentPub com_pub;
     typename Sec43::CommitmentSec com_sec;
     BuildHpCom(m, n, input.com_w, input.com_w_r, input.constraints(),
-               input.g_offset, com_pub, com_sec);
+               input.get_g, com_pub, com_sec);
     DebugCheckHpCom(m, input_43, com_pub, com_sec);
 
     Sec43::AlignData(input_43, com_pub, com_sec);
@@ -126,12 +126,13 @@ struct ParallelR1cs {
   struct VerifyInput {
     VerifyInput(int64_t n, R1csInfo const& r1cs_info,
                 std::vector<G1> const& com_w,
-                std::vector<std::vector<Fr>> const& public_w, int64_t g_offset)
+                std::vector<std::vector<Fr>> const& public_w,
+                pc::GetRefG const& get_g)
         : n(n),
           r1cs_info(r1cs_info),
           com_w(com_w),
           public_w(public_w),
-          g_offset(g_offset),
+          get_g(get_g),
           m(r1cs_info.num_constraints),
           s(r1cs_info.num_variables) {}
 
@@ -164,7 +165,7 @@ struct ParallelR1cs {
       bool all_success = false;
       auto parallel_f = [this](int64_t i) {
         return com_w[i] ==
-               PcComputeCommitmentG(g_offset, public_w[i], FrZero());
+               pc::PcComputeCommitmentG(get_g, public_w[i], FrZero());
       };
       parallel::For(&all_success, (int64_t)public_w.size(), parallel_f);
       if (!all_success) {
@@ -178,7 +179,7 @@ struct ParallelR1cs {
     R1csInfo const& r1cs_info;
     std::vector<G1> const& com_w;
     std::vector<std::vector<Fr>> const& public_w;
-    int64_t const g_offset;
+    pc::GetRefG const& get_g;
     int64_t const m;
     int64_t const s;
   };
@@ -196,11 +197,11 @@ struct ParallelR1cs {
 
     typename Sec43::CommitmentPub com_pub;
     BuildHpCom(input.m, input.n, input.com_w, input.constraints(),
-               input.g_offset, com_pub);
+               input.get_g, com_pub);
     com_pub.Align();
     typename Sec43::VerifyInput input_43(input.m, input.n, com_pub,
-                                         input.g_offset, input.g_offset,
-                                         input.g_offset);
+                                         input.get_g, input.get_g,
+                                         input.get_g);
     return Sec43::Verify(proof, seed, input_43);
   }
 
@@ -228,7 +229,7 @@ struct ParallelR1cs {
       int64_t m, int64_t n, std::vector<G1> const& com_w,
       std::vector<Fr> const& com_w_r,
       std::vector<libsnark::r1cs_constraint<Fr>> const& constraints,
-      int64_t g_offset, typename Sec43::CommitmentPub& com_pub,
+      pc::GetRefG const& get_g, typename Sec43::CommitmentPub& com_pub,
       typename Sec43::CommitmentSec& com_sec) {
     com_pub.a.resize(m);
     G1Zero(com_pub.a);
@@ -243,7 +244,7 @@ struct ParallelR1cs {
     com_sec.t.resize(m);
     FrZero(com_sec.t);
 
-    auto pds_sigma_g = PcComputeSigmaG(g_offset, n);
+    auto pds_sigma_g = pc::PcComputeSigmaG(get_g, n);
     auto parallel_f = [&com_pub, &com_sec, &com_w, &com_w_r, &pds_sigma_g,
                        &constraints](int64_t i) {
       auto& com_pub_a = com_pub.a[i];
@@ -279,17 +280,17 @@ struct ParallelR1cs {
 
       auto const& xi = input.x[i];
       G1 check_com_pub_a =
-          PcComputeCommitmentG(input.x_g_offset, xi, com_sec_r);
+          pc::PcComputeCommitmentG(input.get_gx, xi, com_sec_r);
       assert(check_com_pub_a == com_pub_a);
 
       auto const& yi = input.y[i];
       G1 check_com_pub_b =
-          PcComputeCommitmentG(input.y_g_offset, yi, com_sec_s);
+          pc::PcComputeCommitmentG(input.get_gy, yi, com_sec_s);
       assert(check_com_pub_b == com_pub_b);
 
       auto const& zi = input.z[i];
       G1 check_com_pub_c =
-          PcComputeCommitmentG(input.z_g_offset, zi, com_sec_t);
+          pc::PcComputeCommitmentG(input.get_gz, zi, com_sec_t);
       assert(check_com_pub_c == com_pub_c);
     }
 #else
@@ -317,7 +318,7 @@ struct ParallelR1cs {
   static void BuildHpCom(
       int64_t m, int64_t n, std::vector<G1> const& com_w,
       std::vector<libsnark::r1cs_constraint<Fr>> const& constraints,
-      int64_t g_offset, typename Sec43::CommitmentPub& com_pub) {
+      pc::GetRefG const& get_g, typename Sec43::CommitmentPub& com_pub) {
     com_pub.a.resize(m);
     G1Zero(com_pub.a);
     com_pub.b.resize(m);
@@ -325,7 +326,7 @@ struct ParallelR1cs {
     com_pub.c.resize(m);
     G1Zero(com_pub.c);
 
-    auto pds_sigma_g = PcComputeSigmaG(g_offset, n);
+    auto pds_sigma_g = pc::PcComputeSigmaG(get_g, n);
     auto parallel_f = [&com_pub, &com_w, &pds_sigma_g,
                        &constraints](int64_t i) {
       auto& com_pub_a = com_pub.a[i];

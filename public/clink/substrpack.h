@@ -53,16 +53,17 @@ struct SubstrPack {
 
   struct ProveInput {
     ProveInput(std::string const& k, std::vector<Fr> const& x, G1 const& com_x,
-               Fr const& com_x_r, int64_t x_g_offset, int64_t py_g_offset)
+               Fr const& com_x_r, pc::GetRefG const& get_gx,
+               pc::GetRefG const& get_gpy)
         : k(k),
           x(x),
           com_x(com_x),
           com_x_r(com_x_r),
           n((int64_t)x.size()),
-          x_g_offset(x_g_offset),
-          py_g_offset(py_g_offset) {
+          get_gx(get_gx),
+          get_gpy(get_gpy) {
 #ifdef _DEBUG
-      assert(com_x == PcComputeCommitmentG(x_g_offset, x, com_x_r, true));
+      assert(com_x == pc::PcComputeCommitmentG(get_gx, x, com_x_r, true));
 #endif
     }
     std::string const& k;
@@ -70,8 +71,8 @@ struct SubstrPack {
     G1 const& com_x;
     Fr const& com_x_r;
     int64_t const n;
-    int64_t const x_g_offset;
-    int64_t const py_g_offset;
+    pc::GetRefG const& get_gx;
+    pc::GetRefG const& get_gpy;
   };
 
   static void Prove(ProveOutput& output, h256_t seed, ProveInput const& input) {
@@ -86,11 +87,11 @@ struct SubstrPack {
 
     output.com_y_r = FrRand();
     auto com_y =
-        PcComputeCommitmentG(input.x_g_offset, output.y, output.com_y_r, true);
+        pc::PcComputeCommitmentG(input.get_gx, output.y, output.com_y_r, true);
 
     typename Substr<Policy>::ProveInput s_input(
         input.k, input.x, input.com_x, input.com_x_r, output.y, com_y,
-        output.com_y_r, input.x_g_offset);
+        output.com_y_r, input.get_gx);
     auto& substr_proof = output.substr_proof;
     Substr<Policy>::Prove(substr_proof, seed, s_input);
     assert(substr_proof.com_w.back() == com_y);
@@ -98,36 +99,36 @@ struct SubstrPack {
     // pack y to pack_y
     output.pack_y = FrBitsToFrs(output.y);
     output.com_pack_y_r = FrRand();
-    output.com_pack_y = PcComputeCommitmentG(input.py_g_offset, output.pack_y,
+    output.com_pack_y = pc::PcComputeCommitmentG(input.get_gpy, output.pack_y,
                                              output.com_pack_y_r);
     auto& pack_proof = output.pack_proof;
     typename Pack<HyraxA>::ProveInput p_input(
-        output.y, com_y, output.com_y_r, input.x_g_offset, output.pack_y,
-        output.com_pack_y, output.com_pack_y_r, input.py_g_offset);
+        output.y, com_y, output.com_y_r, input.get_gx, output.pack_y,
+        output.com_pack_y, output.com_pack_y_r, input.get_gpy);
 
     clink::Pack<HyraxA>::Prove(pack_proof, seed, p_input);
   }
 
   struct VerifyInput {
-    VerifyInput(int64_t n, std::string const& k, int64_t const x_g_offset,
-                int64_t const py_g_offset)
-        : n(n), k(k), x_g_offset(x_g_offset), py_g_offset(py_g_offset) {}
+    VerifyInput(int64_t n, std::string const& k, pc::GetRefG const& get_gx,
+                pc::GetRefG const& get_gpy)
+        : n(n), k(k), get_gx(get_gx), get_gpy(get_gpy) {}
     int64_t n;
     std::string const& k;
-    int64_t const x_g_offset;
-    int64_t const py_g_offset;
+    pc::GetRefG const& get_gx;
+    pc::GetRefG const& get_gpy;
   };
 
   static bool Verify(Proof const& proof, h256_t seed,
                      VerifyInput const& input) {
     typename Substr<Policy>::VerifyInput s_input(input.n, input.k,
-                                                 input.x_g_offset);
+                                                 input.get_gx);
     if (!Substr<Policy>::Verify(proof.substr_proof, seed, s_input))
       return false;
 
     G1 const& com_y = proof.substr_proof.com_w.back();
     typename Pack<HyraxA>::VerifyInput p_input(
-        input.n, com_y, input.x_g_offset, proof.com_pack_y, input.py_g_offset);
+        input.n, com_y, input.get_gx, proof.com_pack_y, input.get_gpy);
     return Pack<HyraxA>::Verify(proof.pack_proof, seed, p_input);
   }
 
@@ -140,14 +141,21 @@ bool SubstrPack<Policy>::Test(int64_t n, std::string const& k) {
     std::cout << "invalid parameter: k.size() must <= 31.\n";
     return false;
   }
-  if (n >= PcBase::kGSize / 2) {
-    std::cout << "invalid parameter: n must < " << PcBase::kGSize / 2 << "\n";
+  if (n >= pc::Base::kGSize / 2) {
+    std::cout << "invalid parameter: n must < " << pc::Base::kGSize / 2 << "\n";
     return false;
   }
 
   auto seed = misc::RandH256();
   int64_t x_g_offset = 0;    // any value
   int64_t py_g_offset = 20;  // any value
+  pc::GetRefG get_gx = [x_g_offset](int64_t i) -> G1 const& {
+    return pc::PcG()[x_g_offset + i];
+  };
+  pc::GetRefG get_gpy = [py_g_offset](int64_t i) -> G1 const& {
+    return pc::PcG()[py_g_offset + i];
+  };
+
   std::vector<Fr> x(n);
   for (int64_t i = 0; i < n; ++i) {
     x[i] = PackStrToFr(misc::RandString(31).c_str());
@@ -162,9 +170,9 @@ bool SubstrPack<Policy>::Test(int64_t n, std::string const& k) {
   }
 
   auto com_x_r = FrRand();
-  auto com_x = PcComputeCommitmentG(x_g_offset, x, com_x_r);
+  auto com_x = pc::PcComputeCommitmentG(get_gx, x, com_x_r);
 
-  ProveInput prove_input(k, x, com_x, com_x_r, x_g_offset, py_g_offset);
+  ProveInput prove_input(k, x, com_x, com_x_r, get_gx, get_gpy);
   ProveOutput output;
   Prove(output, seed, prove_input);
 
@@ -192,7 +200,7 @@ bool SubstrPack<Policy>::Test(int64_t n, std::string const& k) {
   }
 #endif
 
-  VerifyInput verify_input(n, k, x_g_offset, py_g_offset);
+  VerifyInput verify_input(n, k, get_gx, get_gpy);
   bool success = Verify(proof, seed, verify_input);
   std::cout << __FILE__ << " " << __FN__ << ": " << success
             << "\n\n\n\n\n\n";

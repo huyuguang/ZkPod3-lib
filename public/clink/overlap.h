@@ -36,7 +36,7 @@ struct Overlap {
     ProveInput(std::vector<Fr> const& x, std::vector<Fr> const& y,
                std::vector<OverlapPosition> const& overlap, G1 const& com_x,
                G1 const& com_y, Fr const& com_x_r, Fr const& com_y_r,
-               int64_t x_g_offset, int64_t y_g_offset)
+               pc::GetRefG const& get_gx, pc::GetRefG const& get_gy)
         : x(x),
           y(y),
           overlap(overlap),
@@ -44,8 +44,8 @@ struct Overlap {
           com_y(com_y),
           com_x_r(com_x_r),
           com_y_r(com_y_r),
-          x_g_offset(x_g_offset),
-          y_g_offset(y_g_offset) {}
+          get_gx(get_gx),
+          get_gy(get_gy) {}
     std::vector<Fr> const& x;
     std::vector<Fr> const& y;
     std::vector<OverlapPosition> const& overlap;
@@ -53,8 +53,8 @@ struct Overlap {
     G1 const& com_y;
     Fr const& com_x_r;
     Fr const& com_y_r;
-    int64_t const x_g_offset;
-    int64_t const y_g_offset;
+    pc::GetRefG const& get_gx;
+    pc::GetRefG const& get_gy;
     int64_t xn() const { return (int64_t)x.size(); }
     int64_t yn() const { return (int64_t)y.size(); }
   };
@@ -80,28 +80,28 @@ struct Overlap {
     assert(z == InnerProduct(input.y, b));
 
     typename EqualIp<HyraxA>::ProveInput eip_input(
-        input.x, a, input.com_x, input.com_x_r, input.x_g_offset, input.y, b,
-        input.com_y, input.com_y_r, input.y_g_offset, z);
+        input.x, a, input.com_x, input.com_x_r, input.get_gx, input.y, b,
+        input.com_y, input.com_y_r, input.get_gy, z);
     EqualIp<HyraxA>::Prove(proof, seed, eip_input);
   }
 
   struct VerifyInput {
-    VerifyInput(int64_t xn, G1 const& com_x, int64_t x_g_offset, int64_t yn,
-                G1 const& com_y, int64_t y_g_offset,
+    VerifyInput(int64_t xn, G1 const& com_x, pc::GetRefG const& get_gx, int64_t yn,
+                G1 const& com_y, pc::GetRefG const& get_gy,
                 std::vector<OverlapPosition> const& overlap)
         : xn(xn),
           com_x(com_x),
-          x_g_offset(x_g_offset),
+          get_gx(get_gx),
           yn(yn),
           com_y(com_y),
-          y_g_offset(y_g_offset),
+          get_gy(get_gy),
           overlap(overlap) {}
     int64_t const xn;
     G1 const& com_x;
-    int64_t const x_g_offset;
+    pc::GetRefG const& get_gx;
     int64_t const yn;
     G1 const& com_y;
-    int64_t const y_g_offset;
+    pc::GetRefG const& get_gy;
     std::vector<OverlapPosition> const& overlap;
   };
 
@@ -121,7 +121,7 @@ struct Overlap {
     }
 
     typename EqualIp<HyraxA>::VerifyInput eip_input(
-        a, input.com_x, input.x_g_offset, b, input.com_y, input.y_g_offset);
+        a, input.com_x, input.get_gx, b, input.com_y, input.get_gy);
     return EqualIp<HyraxA>::Verify(seed, proof, eip_input);
   }
 
@@ -134,6 +134,12 @@ bool Overlap<HyraxA>::Test() {
 
   int64_t x_g_offset = 20;
   int64_t y_g_offset = 40;
+  pc::GetRefG get_gx = [x_g_offset](int64_t i) -> G1 const& {
+    return pc::PcG()[x_g_offset + i];
+  };
+  pc::GetRefG get_gy = [y_g_offset](int64_t i) -> G1 const& {
+    return pc::PcG()[y_g_offset + i];
+  };
 
   std::vector<Fr> x(10);
   FrRand(x);
@@ -159,12 +165,12 @@ bool Overlap<HyraxA>::Test() {
   overlap[4].y = 4;
 
   Fr com_x_r = FrRand();
-  G1 com_x = PcComputeCommitmentG(x_g_offset, x, com_x_r);
+  G1 com_x = pc::PcComputeCommitmentG(get_gx, x, com_x_r);
   Fr com_y_r = FrRand();
-  G1 com_y = PcComputeCommitmentG(y_g_offset, y, com_y_r);
+  G1 com_y = pc::PcComputeCommitmentG(get_gy, y, com_y_r);
 
   ProveInput prove_input(x, y, overlap, com_x, com_y, com_x_r, com_y_r,
-                         x_g_offset, y_g_offset);
+                         get_gx, get_gy);
 
   Proof proof;
   Prove(proof, seed, prove_input);
@@ -189,7 +195,7 @@ bool Overlap<HyraxA>::Test() {
 
   auto xn = (int64_t)x.size();
   auto yn = (int64_t)y.size();
-  VerifyInput verify_input(xn, com_x, x_g_offset, yn, com_y, y_g_offset,
+  VerifyInput verify_input(xn, com_x, get_gx, yn, com_y, get_gy,
                            overlap);
   bool success = Verify(seed, verify_input, proof);
   std::cout << __FILE__ << " " << __FN__ << ": " << success

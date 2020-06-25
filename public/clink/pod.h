@@ -23,7 +23,7 @@ struct Pod {
   typedef std::function<Fr const&(int64_t i)> GetR;
   typedef std::function<G1 const&(int64_t i)> GetCom;
 
-  constexpr static int64_t kVwGOffset = -1;
+  static G1 const& kVwG() { return pc::PcU(); }
 
   // com is base on g_offset = 0
   struct CommitedData {
@@ -135,7 +135,7 @@ struct Pod {
     output.proved_data.k.resize(n + 1);
     auto parallel_f_k = [&v, &output, s](uint64_t i) {
       Fr const* vi0 = &v[i * (s + 1)];
-      output.proved_data.k[i] = MultiExpBdlo12<G1>(PcHG, vi0, s + 1);
+      output.proved_data.k[i] = MultiExpBdlo12<G1>(pc::PcHG, vi0, s + 1);
       output.proved_data.k[i].normalize();
     };
     parallel::For(n + 1, parallel_f_k);
@@ -214,13 +214,13 @@ struct Pod {
       }
 
       // MultiExp(n*(s+1))! 70% of the time here.
-      auto get_g = [s](int64_t ij) -> G1 const& { return PcHG(ij % (s + 1)); };
+      auto get_g = [s](int64_t ij) -> G1 const& { return pc::PcHG(ij % (s + 1)); };
       G1 right1 =
           ParallelMultiExpBdlo12<G1>(get_g, proved_data.em, n * (s + 1));
       if (left1 != right1) return;
 
       G1 left2 = MultiExpBdlo12(proved_data.k, output.w);
-      G1 right2 = MultiExpBdlo12<G1>(PcHG, proved_data.vw, s + 1);
+      G1 right2 = MultiExpBdlo12<G1>(pc::PcHG, proved_data.vw, s + 1);
       if (left2 != right2) return;
       ret[0] = 1;
     };
@@ -309,14 +309,13 @@ struct Pod {
   }
 
   static bool CheckCommitedData(CommitedData const& data) {
-    if (!data.n || !data.s || data.s > PcBase::kGSize) return false;
+    if (!data.n || !data.s || data.s > pc::Base::kGSize) return false;
 
     bool all_success = false;
     auto parallel_f = [&data](int64_t i) {
-      auto x = [&data, i](int64_t j) -> Fr const& { return data.get_m(i, j); };
+      auto get_x = [&data, i](int64_t j) -> Fr const& { return data.get_m(i, j); };
       auto const& r = data.get_r(i);
-      int64_t g_offset = 0;
-      return PcComputeCommitmentG(g_offset, data.s, x, r) == data.get_com(i);
+      return pc::PcComputeCommitmentG(data.s, get_x, r) == data.get_com(i);
     };
     parallel::For(&all_success, data.n, parallel_f);
     return all_success;
@@ -334,7 +333,7 @@ struct Pod {
     VrsProveInput vrs_prove_input(plain.size(), output.secret.key,
                                   output.secret.key_com_r, std::move(get_p),
                                   std::move(get_w), output.proved_data.vw_com_r,
-                                  kVwGOffset);
+                                  kVwG());
     VrsProveOutput vrs_output;
     Vrs::Prove(output.proved_data.vrs_proofs, vrs_output, seed,
                std::move(vrs_prove_input), std::move(cached_var_coms),
@@ -362,7 +361,7 @@ struct Pod {
     };
 
     VrsVerifyInput vrs_input(output.plain.size(), std::move(get_p),
-                             std::move(get_w), kVwGOffset);
+                             std::move(get_w), kVwG());
 
     if (!Vrs::Verify(vrs_output, proved_data.vrs_proofs, seed,
                      std::move(vrs_input))) {
@@ -373,7 +372,7 @@ struct Pod {
     auto const& vw = proved_data.vw;
     output.sigma_vw = parallel::Accumulate(vw.begin(), vw.end(), FrZero());
     G1 check_vw_com =
-        PcComputeCommitmentG(kVwGOffset, output.sigma_vw, proved_data.vw_com_r);
+        pc::PcComputeCommitmentG(kVwG(), output.sigma_vw, proved_data.vw_com_r);
     if (Vrs::SumProofsComVw(proved_data.vrs_proofs) != check_vw_com) {
       assert(false);
       return false;
@@ -397,8 +396,7 @@ bool Pod<Scheme, Policy>::Test(int64_t n, int64_t s,
 
   std::vector<G1> com(n);
   auto parallel_f = [&m, &com, &r, s](int64_t i) {
-    int64_t g_offset = 0;
-    com[i] = PcComputeCommitmentG(g_offset, s, m.data() + i * s, r[i]);
+    com[i] = pc::PcComputeCommitmentG(s, m.data() + i * s, r[i]);
     com[i].normalize();
   };
   parallel::For(n, parallel_f);

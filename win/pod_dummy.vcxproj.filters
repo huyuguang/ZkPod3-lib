@@ -448,5 +448,23 @@
     <ClInclude Include="..\public\circuit\vgg16\ip_gadget.h">
       <Filter>public\circuit\vgg16</Filter>
     </ClInclude>
+    <ClInclude Include="..\public\clink\vgg16\context.h">
+      <Filter>public\clink\vgg16</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\clink\vgg16\policy.h">
+      <Filter>public\clink\vgg16</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\clink\vgg16\verify_dense.h">
+      <Filter>public\clink\vgg16</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\clink\vgg16\verify_pooling.h">
+      <Filter>public\clink\vgg16</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\clink\vgg16\verify_relubn.h">
+      <Filter>public\clink\vgg16</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\clink\vgg16\verify_conv.h">
+      <Filter>public\clink\vgg16</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

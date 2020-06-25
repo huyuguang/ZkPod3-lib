@@ -197,4 +197,5 @@ void For(bool* all_success, T begin, T end, F& f, bool direct = false) {
   auto f2 = [all_success, begin, &f](T i) { return f(begin + i); };
   For(all_success, count, f2, direct);
 }
+
 }  // namespace parallel

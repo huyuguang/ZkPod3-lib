@@ -43,36 +43,36 @@ struct EqualIp {
     std::vector<Fr> const& a;
     G1 const& com_x;
     Fr const& com_x_r;
-    int64_t const x_g_offset;
+    pc::GetRefG const& get_gx;
     std::vector<Fr> const& y;
     std::vector<Fr> const& b;
     G1 const& com_y;
     Fr const& com_y_r;
-    int64_t const y_g_offset;
+    pc::GetRefG const& get_gy;
     Fr const& z;
-    int64_t const z_g_offset = -1;
+    G1 const& gz = pc::PcU();
 
     ProveInput(std::vector<Fr> const& x, std::vector<Fr> const& a,
-               G1 const& com_x, Fr const& com_x_r, int64_t x_g_offset,
+               G1 const& com_x, Fr const& com_x_r, pc::GetRefG const& get_gx,
                std::vector<Fr> const& y, std::vector<Fr> const& b,
-               G1 const& com_y, Fr const& com_y_r, int64_t y_g_offset,
+               G1 const& com_y, Fr const& com_y_r, pc::GetRefG const& get_gy,
                Fr const& z)
         : x(x),
           a(a),
           com_x(com_x),
           com_x_r(com_x_r),
-          x_g_offset(x_g_offset),
+          get_gx(get_gx),
           y(y),
           b(b),
           com_y(com_y),
           com_y_r(com_y_r),
-          y_g_offset(y_g_offset),
+          get_gy(get_gy),
           z(z) {
 #ifdef _DEBUG
       assert(!a.empty() && a.size() == x.size());
       assert(!b.empty() && b.size() == y.size());
-      assert(com_x == PcComputeCommitmentG(x_g_offset, x, com_x_r));
-      assert(com_y == PcComputeCommitmentG(y_g_offset, y, com_y_r));
+      assert(com_x == pc::PcComputeCommitmentG(get_gx, x, com_x_r));
+      assert(com_y == pc::PcComputeCommitmentG(get_gy, y, com_y_r));
       assert(z == InnerProduct(x, a));
       assert(z == InnerProduct(y, b));
 #endif
@@ -81,10 +81,10 @@ struct EqualIp {
 
   static void Prove(Proof& proof, h256_t const& seed, ProveInput const& input) {
     Fr r_tau = FrRand();
-    proof.com_z = PcComputeCommitmentG(input.z_g_offset, input.z, r_tau);
+    proof.com_z = pc::PcComputeCommitmentG(input.gz, input.z, r_tau);
 
     typename HyraxA::ProveInput input1(input.x, input.a, input.z,
-                                       input.x_g_offset, input.z_g_offset);
+                                       input.get_gx, input.gz);
     typename HyraxA::CommitmentSec com_sec1;
     com_sec1.r_xi = input.com_x_r;
     com_sec1.r_tau = r_tau;
@@ -93,7 +93,7 @@ struct EqualIp {
     com_pub1.tau = proof.com_z;
 
     typename HyraxA::ProveInput input2(input.y, input.b, input.z,
-                                       input.y_g_offset, input.z_g_offset);
+                                       input.get_gy, input.gz);
     typename HyraxA::CommitmentSec com_sec2;
     com_sec2.r_xi = input.com_y_r;
     com_sec2.r_tau = r_tau;
@@ -115,21 +115,22 @@ struct EqualIp {
   }
 
   struct VerifyInput {
-    VerifyInput(std::vector<Fr> const& a, G1 const& com_x, int64_t x_g_offset,
-                std::vector<Fr> const& b, G1 const& com_y, int64_t y_g_offset)
+    VerifyInput(std::vector<Fr> const& a, G1 const& com_x,
+                pc::GetRefG const& get_gx, std::vector<Fr> const& b,
+                G1 const& com_y, pc::GetRefG const& get_gy)
         : a(a),
           com_x(com_x),
-          x_g_offset(x_g_offset),
+          get_gx(get_gx),
           b(b),
           com_y(com_y),
-          y_g_offset(y_g_offset) {}
+          get_gy(get_gy) {}
     std::vector<Fr> const& a;
     G1 const& com_x;
-    int64_t const x_g_offset;
+    pc::GetRefG const& get_gx;
     std::vector<Fr> const& b;
     G1 const& com_y;
-    int64_t const y_g_offset;
-    int64_t const z_g_offset = -1;
+    pc::GetRefG const& get_gy;
+    G1 const& gz = pc::PcU();
   };
 
   static bool Verify(h256_t const& seed, Proof const& proof,
@@ -140,16 +141,16 @@ struct EqualIp {
       typename HyraxA::CommitmentPub com_pub;
       com_pub.xi = input.com_x;
       com_pub.tau = proof.com_z;
-      typename HyraxA::VerifyInput a_input(input.a, com_pub, input.x_g_offset,
-                                           input.z_g_offset);
+      typename HyraxA::VerifyInput a_input(input.a, com_pub, input.get_gx,
+                                           input.gz);
       rets[0] = HyraxA::Verify(proof.p1, seed, a_input);
     };
     tasks[1] = [&proof, &input, &rets, &seed]() {
       typename HyraxA::CommitmentPub com_pub;
       com_pub.xi = input.com_y;
       com_pub.tau = proof.com_z;
-      typename HyraxA::VerifyInput a_input(input.b, com_pub, input.y_g_offset,
-                                           input.z_g_offset);
+      typename HyraxA::VerifyInput a_input(input.b, com_pub, input.get_gy,
+                                           input.gz);
       rets[1] = HyraxA::Verify(proof.p2, seed, a_input);
     };
 
@@ -184,15 +185,21 @@ bool EqualIp<HyraxA>::Test(int64_t xn, int64_t yn) {
 
   int64_t x_g_offset = 10;
   int64_t y_g_offset = 40;
+  pc::GetRefG get_gx = [x_g_offset](int64_t i) -> G1 const& {
+    return pc::PcG()[x_g_offset + i];
+  };
+  pc::GetRefG get_gy = [y_g_offset](int64_t i) -> G1 const& {
+    return pc::PcG()[y_g_offset + i];
+  };
 
   Fr com_x_r = FrRand();
-  G1 com_x = PcComputeCommitmentG(x_g_offset, x, com_x_r);
+  G1 com_x = pc::PcComputeCommitmentG(get_gx, x, com_x_r);
 
   Fr com_y_r = FrRand();
-  G1 com_y = PcComputeCommitmentG(y_g_offset, y, com_y_r);
+  G1 com_y = pc::PcComputeCommitmentG(get_gy, y, com_y_r);
 
-  ProveInput prove_input(x, a, com_x, com_x_r, x_g_offset, y, b, com_y, com_y_r,
-                         y_g_offset, z);
+  ProveInput prove_input(x, a, com_x, com_x_r, get_gx, y, b, com_y, com_y_r,
+                         get_gy, z);
   Proof proof;
   Prove(proof, seed, prove_input);
 
@@ -214,7 +221,7 @@ bool EqualIp<HyraxA>::Test(int64_t xn, int64_t yn) {
   }
 #endif
 
-  VerifyInput verify_input(a, com_x, x_g_offset, b, com_y, y_g_offset);
+  VerifyInput verify_input(a, com_x, get_gx, b, com_y, get_gy);
   bool success = Verify(seed, proof, verify_input);
   std::cout << __FILE__ << " " << __FN__ << ": " << success
             << "\n\n\n\n\n\n";

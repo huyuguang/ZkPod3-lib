@@ -17,13 +17,8 @@ namespace groth09 {
 
 template <typename Sec53, typename HyraxA>
 struct Sec43b {
-  // input_53's z_g_offset can be any value, here just use input.z_g_offset or
-  // -1
-  static int64_t SelectSec53Zoffset(int64_t x_g_offset, int64_t y_g_offset,
-                                    int64_t z_g_offset) {
-    if (x_g_offset != -1 && y_g_offset != -1 && z_g_offset != -1) return -1;
-    return z_g_offset;
-  }
+  // input_53's gz can be any value, here just use pc::PcU()
+  static G1 const& SelectSec53Gz() { return pc::PcU(); }
 
   struct CommitmentPub {
     std::vector<G1> a;  // a.size = m
@@ -65,7 +60,7 @@ struct Sec43b {
 
   struct Proof {
     G1 c;
-    typename Sec53::Proof proof_53;   // 2*log(m)+4 G1, 2n+3 Fr
+    typename Sec53::Proof proof_53;  // 2*log(m)+4 G1, 2n+3 Fr
     typename HyraxA::Proof proof_a;  // 2 G1, n+2 Fr
 
     bool operator==(Proof const& right) const {
@@ -91,9 +86,9 @@ struct Sec43b {
     std::vector<std::vector<Fr>> x;  // m*n
     std::vector<std::vector<Fr>> y;
     std::vector<std::vector<Fr>> z;
-    int64_t const x_g_offset;
-    int64_t const y_g_offset;
-    int64_t const z_g_offset;
+    pc::GetRefG const& get_gx;
+    pc::GetRefG const& get_gy;
+    pc::GetRefG const& get_gz;
 
     int64_t m() const { return x.size(); }
     int64_t n() const { return x[0].size(); }
@@ -107,15 +102,15 @@ struct Sec43b {
 
     ProveInput(int64_t original_m, std::vector<std::vector<Fr>>&& ix,
                std::vector<std::vector<Fr>>&& iy,
-               std::vector<std::vector<Fr>>&& iz, int64_t x_g_offset,
-               int64_t y_g_offset, int64_t z_g_offset)
+               std::vector<std::vector<Fr>>&& iz, pc::GetRefG const& get_gx,
+               pc::GetRefG const& get_gy, pc::GetRefG const& get_gz)
         : original_m(original_m),
           x(std::move(ix)),
           y(std::move(iy)),
           z(std::move(iz)),
-          x_g_offset(x_g_offset),
-          y_g_offset(y_g_offset),
-          z_g_offset(z_g_offset) {
+          get_gx(get_gx),
+          get_gy(get_gy),
+          get_gz(get_gz) {
       // Tick tick(__FN__);
       assert(!x.empty());
       assert(x.size() == y.size());
@@ -145,15 +140,15 @@ struct Sec43b {
         x[i] = vf0;
         y[i] = vf0;
         z[i] = vf0;
-        //auto& xi = x[i];
-        //xi.resize(n());
-        //std::fill(xi.begin(), xi.end(), f0);
-        //auto& yi = y[i];
-        //yi.resize(n());
-        //std::fill(yi.begin(), yi.end(), f0);
-        //auto& zi = z[i];
-        //zi.resize(n());
-        //std::fill(zi.begin(), zi.end(), f0);
+        // auto& xi = x[i];
+        // xi.resize(n());
+        // std::fill(xi.begin(), xi.end(), f0);
+        // auto& yi = y[i];
+        // yi.resize(n());
+        // std::fill(yi.begin(), yi.end(), f0);
+        // auto& zi = z[i];
+        // zi.resize(n());
+        // std::fill(zi.begin(), zi.end(), f0);
       }
     }
   };
@@ -177,11 +172,11 @@ struct Sec43b {
 
     auto parallel_f = [&com_sec, &com_pub, &input](int64_t i) {
       com_pub.a[i] =
-          PcComputeCommitmentG(input.x_g_offset, input.x[i], com_sec.r[i]);
+          pc::PcComputeCommitmentG(input.get_gx, input.x[i], com_sec.r[i]);
       com_pub.b[i] =
-          PcComputeCommitmentG(input.y_g_offset, input.y[i], com_sec.s[i]);
+          pc::PcComputeCommitmentG(input.get_gy, input.y[i], com_sec.s[i]);
       com_pub.c[i] =
-          PcComputeCommitmentG(input.z_g_offset, input.z[i], com_sec.t[i]);
+          pc::PcComputeCommitmentG(input.get_gz, input.z[i], com_sec.t[i]);
     };
     parallel::For(m, parallel_f);
   }
@@ -262,11 +257,9 @@ struct Sec43b {
         }
       }
 
-      auto input_53_z_g_offset = SelectSec53Zoffset(
-          input.x_g_offset, input.y_g_offset, input.z_g_offset);
       typename Sec53::ProveInput input_53(
           std::move(input_x), std::move(input_y), t, std::move(input_yt), z,
-          input.x_g_offset, input.y_g_offset, input_53_z_g_offset);
+          input.get_gx, input.get_gy, SelectSec53Gz());
 
       {
         // Tick tickz("Sec53 compute com_sec_53 com_pub_53");
@@ -290,7 +283,7 @@ struct Sec43b {
 
         com_pub_53.b = com_pub.b;
         com_pub_53.c =
-            PcComputeCommitmentG(input_53.z_g_offset, input_53_z, com_sec_53.t);
+            pc::PcComputeCommitmentG(input_53.gz, input_53_z, com_sec_53.t);
         proof.c = com_pub_53.c;  // verifier can not compute c by com_pub.c
         com_pub_53_c = com_pub_53.c;
       }
@@ -315,12 +308,8 @@ struct Sec43b {
       };
       parallel::For(n, parallel_f, n < 16 * 1024);
 
-      auto input_a2_x_g_offset = input.z_g_offset;
-      auto input_a2_y_g_offset = SelectSec53Zoffset(
-          input.x_g_offset, input.y_g_offset, input.z_g_offset);
-
-      typename HyraxA::ProveInput input_hy(
-          zk, t, input_53_z, input_a2_x_g_offset, input_a2_y_g_offset);
+      typename HyraxA::ProveInput input_hy(zk, t, input_53_z, input.get_gz,
+                                           SelectSec53Gz());
 
       com_sec_hy.r_xi = InnerProduct(com_sec.t, k);
       com_sec_hy.r_tau = com_sec_53_t;
@@ -333,7 +322,7 @@ struct Sec43b {
       com_pub_hy.xi = MultiExpBdlo12(com_pub.c, k);
 #ifdef _DEBUG
       auto check_xi =
-          PcComputeCommitmentG(input.z_g_offset, input_hy.x, com_sec_hy.r_xi);
+          pc::PcComputeCommitmentG(input.get_gz, input_hy.x, com_sec_hy.r_xi);
       assert(check_xi == com_pub_hy.xi);
 #endif
 
@@ -344,19 +333,20 @@ struct Sec43b {
 
   struct VerifyInput {
     VerifyInput(int64_t m, int64_t n, CommitmentPub const& com_pub,
-                int64_t x_g_offset, int64_t y_g_offset, int64_t z_g_offset)
+                pc::GetRefG const& get_gx, pc::GetRefG const& get_gy,
+                pc::GetRefG const& get_gz)
         : m(misc::Pow2UB(m)),
           n(n),
           com_pub(com_pub),
-          x_g_offset(x_g_offset),
-          y_g_offset(y_g_offset),
-          z_g_offset(z_g_offset) {}
+          get_gx(get_gx),
+          get_gy(get_gy),
+          get_gz(get_gz) {}
     int64_t const m;
     int64_t const n;
     CommitmentPub const& com_pub;
-    int64_t const x_g_offset;
-    int64_t const y_g_offset;
-    int64_t const z_g_offset;
+    pc::GetRefG const& get_gx;
+    pc::GetRefG const& get_gy;
+    pc::GetRefG const& get_gz;
   };
 
   static bool Verify(Proof const& proof, h256_t seed,
@@ -383,12 +373,8 @@ struct Sec43b {
       };
       parallel::For(m, parallel_f, m < 1024);
 
-      auto intput_53_z_g_offset = SelectSec53Zoffset(
-          input.x_g_offset, input.y_g_offset, input.z_g_offset);
-
-      typename Sec53::VerifyInput input_53(t, com_pub_53, input.x_g_offset,
-                                           input.y_g_offset,
-                                           intput_53_z_g_offset);
+      typename Sec53::VerifyInput input_53(t, com_pub_53, input.get_gx,
+                                           input.get_gy, SelectSec53Gz());
       ret_53 = Sec53::Verify(proof.proof_53, seed, input_53);
       assert(ret_53);
     };
@@ -397,11 +383,8 @@ struct Sec43b {
     tasks[1] = [&ret_a2, &com_pub, &proof, &t, &k, &seed, &input]() {
       typename HyraxA::CommitmentPub com_pub_hy(MultiExpBdlo12(com_pub.c, k),
                                                 proof.c);
-      auto input_a2_x_g_offset = input.z_g_offset;
-      auto input_a2_y_g_offset = SelectSec53Zoffset(
-          input.x_g_offset, input.y_g_offset, input.z_g_offset);
-      typename HyraxA::VerifyInput input_hy(t, com_pub_hy, input_a2_x_g_offset,
-                                            input_a2_y_g_offset);
+      typename HyraxA::VerifyInput input_hy(t, com_pub_hy, input.get_gz,
+                                            SelectSec53Gz());
       ret_a2 = HyraxA::Verify(proof.proof_a, seed, input_hy);
       assert(ret_a2);
     };
@@ -445,9 +428,18 @@ bool Sec43b<Sec53, HyraxA>::Test(int64_t m, int64_t n) {
   int64_t x_g_offset = 0;
   int64_t y_g_offset = 0;
   int64_t z_g_offset = 0;
+  pc::GetRefG get_gx = [x_g_offset](int64_t i) -> G1 const& {
+    return pc::PcG()[x_g_offset + i];
+  };
+  pc::GetRefG get_gy = [y_g_offset](int64_t i) -> G1 const& {
+    return pc::PcG()[y_g_offset + i];
+  };
+  pc::GetRefG get_gz = [z_g_offset](int64_t i) -> G1 const& {
+    return pc::PcG()[z_g_offset + i];
+  };
 
-  ProveInput prove_input(m, std::move(x), std::move(y), std::move(z),
-                         x_g_offset, y_g_offset, z_g_offset);
+  ProveInput prove_input(m, std::move(x), std::move(y), std::move(z), get_gx,
+                         get_gy, get_gz);
   CommitmentPub com_pub;
   CommitmentSec com_sec;
   ComputeCom(com_pub, com_sec, prove_input);
@@ -475,10 +467,9 @@ bool Sec43b<Sec53, HyraxA>::Test(int64_t m, int64_t n) {
   }
 #endif
 
-  VerifyInput verify_input(m, n, com_pub, x_g_offset, y_g_offset, z_g_offset);
+  VerifyInput verify_input(m, n, com_pub, get_gx, get_gy, get_gz);
   bool success = Verify(proof, seed, verify_input);
-  std::cout << __FILE__ << " " << __FN__ << ": " << success
-            << "\n\n\n\n\n\n";
+  std::cout << __FILE__ << " " << __FN__ << ": " << success << "\n\n\n\n\n\n";
   return success;
 }
 }  // namespace groth09

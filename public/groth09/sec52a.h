@@ -29,27 +29,24 @@ struct Sec52a {
   };
 
   struct VerifyInput {
-    VerifyInput(CommitmentPub const& com_pub, int64_t x_g_offset,
-                int64_t y_g_offset, int64_t z_g_offset)
-        : com_pub(com_pub),
-          x_g_offset(x_g_offset),
-          y_g_offset(y_g_offset),
-          z_g_offset(z_g_offset) {}
+    VerifyInput(CommitmentPub const& com_pub, pc::GetRefG const& get_gx,
+                pc::GetRefG const& get_gy, G1 const& gz)
+        : com_pub(com_pub), get_gx(get_gx), get_gy(get_gy), gz(gz) {}
     CommitmentPub const& com_pub;
     int64_t m() const { return com_pub.m(); }
     bool CheckFormat() const { return com_pub.CheckFormat(); }
-    int64_t const x_g_offset;
-    int64_t const y_g_offset;
-    int64_t const z_g_offset;
+    pc::GetRefG const& get_gx;
+    pc::GetRefG const& get_gy;
+    G1 const& gz;
   };
 
   struct ProveInput {
     std::vector<std::vector<Fr>> const& x;  // m*n
     std::vector<std::vector<Fr>> const& y;  // m*n
     Fr const z;
-    int64_t const x_g_offset;
-    int64_t const y_g_offset;
-    int64_t const z_g_offset;
+    pc::GetRefG const& get_gx;
+    pc::GetRefG const& get_gy;
+    G1 const& gz;
     std::vector<Fr> const sum_xy;  // m * 2 - 1
 
     int64_t m() const { return x.size(); }
@@ -57,13 +54,14 @@ struct Sec52a {
 
     ProveInput(std::vector<std::vector<Fr>> const& x,
                std::vector<std::vector<Fr>> const& y, Fr const& z,
-               int64_t x_g_offset, int64_t y_g_offset, int64_t z_g_offset)
+               pc::GetRefG const& get_gx, pc::GetRefG const& get_gy,
+               G1 const& gz)
         : x(x),
           y(y),
           z(z),
-          x_g_offset(x_g_offset),
-          y_g_offset(y_g_offset),
-          z_g_offset(z_g_offset),
+          get_gx(get_gx),
+          get_gy(get_gy),
+          gz(gz),
           sum_xy(BuildSumXY()) {
 #ifdef _DEBUG
       assert(x.size() == y.size() && !x.empty());
@@ -143,13 +141,13 @@ struct Sec52a {
 
     auto parallel_f = [&input, &com_pub, &com_sec](int64_t i) {
       com_pub.a[i] =
-          PcComputeCommitmentG(input.x_g_offset, input.x[i], com_sec.r[i]);
+          pc::PcComputeCommitmentG(input.get_gx, input.x[i], com_sec.r[i]);
       com_pub.b[i] =
-          PcComputeCommitmentG(input.y_g_offset, input.y[i], com_sec.s[i]);
+          pc::PcComputeCommitmentG(input.get_gy, input.y[i], com_sec.s[i]);
     };
     parallel::For(m, parallel_f);
 
-    com_pub.c = PcComputeCommitmentG(input.z_g_offset, input.z, com_sec.t);
+    com_pub.c = pc::PcComputeCommitmentG(input.gz, input.z, com_sec.t);
   }
 
   static void ComputeComExt(CommitmentExtPub& com_ext_pub,
@@ -169,7 +167,7 @@ struct Sec52a {
     auto parallel_f = [&input, &com_ext_pub, &com_ext_sec](int64_t l) {
       auto const& sum_xy = input.sum_xy[l];
       com_ext_pub.cl[l] =
-          PcComputeCommitmentG(input.z_g_offset, sum_xy, com_ext_sec.tl[l]);
+          pc::PcComputeCommitmentG(input.gz, sum_xy, com_ext_sec.tl[l]);
     };
     parallel::For(m * 2 - 1, parallel_f);
 
@@ -197,7 +195,6 @@ struct Sec52a {
     Tick tick(__FN__);
     auto m = input.m();
     auto n = input.n();
-    assert(PcBase::kGSize >= input.n());
 
     CommitmentExtSec com_ext_sec;
     ComputeComExt(proof.com_ext_pub, com_ext_sec, input, com_pub, com_sec);
@@ -230,8 +227,8 @@ struct Sec52a {
     parallel::For(n, parallel_fy);
 
     Fr z = InnerProduct(x, y);
-    Sec51a::ProveInput input_51(x, y, z, input.x_g_offset, input.y_g_offset,
-                                input.z_g_offset);
+    Sec51a::ProveInput input_51(x, y, z, input.get_gx, input.get_gy,
+                                input.gz);
 
     assert(input_51.z == InnerProduct(input.sum_xy, e_pow));
 
@@ -258,13 +255,13 @@ struct Sec52a {
 
 #ifdef _DEBUG
     auto check_a =
-        PcComputeCommitmentG(input_51.x_g_offset, input_51.x, com_sec_51.r);
+        pc::PcComputeCommitmentG(input_51.get_gx, input_51.x, com_sec_51.r);
     assert(check_a == com_pub_51.a);
     auto check_b =
-        PcComputeCommitmentG(input_51.y_g_offset, input_51.y, com_sec_51.s);
+        pc::PcComputeCommitmentG(input_51.get_gy, input_51.y, com_sec_51.s);
     assert(check_b == com_pub_51.b);
     auto check_c =
-        PcComputeCommitmentG(input_51.z_g_offset, input_51.z, com_sec_51.t);
+        pc::PcComputeCommitmentG(input_51.gz, input_51.z, com_sec_51.t);
     assert(check_c == com_pub_51.c);
 #endif
 
@@ -274,7 +271,6 @@ struct Sec52a {
   static bool Verify(Proof const& proof, h256_t seed,
                      VerifyInput const& input) {
     auto m = proof.m();
-    assert(PcBase::kGSize >= proof.n());
 
     auto const& com_pub = input.com_pub;
     auto const& com_ext_pub = proof.com_ext_pub;
@@ -302,8 +298,8 @@ struct Sec52a {
     };
     parallel::Invoke(tasks);
 
-    Sec51a::VerifyInput input_51(com_pub_51, input.x_g_offset, input.y_g_offset,
-                                 input.z_g_offset);
+    Sec51a::VerifyInput input_51(com_pub_51, input.get_gx, input.get_gy,
+                                 input.gz);
     return Sec51a::Verify(proof.proof_51, seed, input_51);
   }
 
@@ -330,12 +326,18 @@ struct Sec52a {
 
     int64_t x_g_offset = 10;
     int64_t y_g_offset = 40;
-    int64_t z_g_offset = -1;
+    pc::GetRefG get_gx = [x_g_offset](int64_t i) -> G1 const& {
+      return pc::PcG()[x_g_offset + i];
+    };
+    pc::GetRefG get_gy = [y_g_offset](int64_t i) -> G1 const& {
+      return pc::PcG()[y_g_offset + i];
+    };
+
     Fr z = FrZero();
     for (size_t i = 0; i < x.size(); ++i) {
       z += InnerProduct(x[i], y[i]);
     }
-    ProveInput prove_input(x, y, z, x_g_offset, y_g_offset, z_g_offset);
+    ProveInput prove_input(x, y, z, get_gx, get_gy, pc::PcU());
     CommitmentPub com_pub;
     CommitmentSec com_sec;
     ComputeCom(com_pub, com_sec, prove_input);
@@ -343,7 +345,7 @@ struct Sec52a {
     Proof proof;
     Prove(proof, seed, prove_input, com_pub, com_sec);
 
-    VerifyInput verify_input(com_pub, x_g_offset, y_g_offset, z_g_offset);
+    VerifyInput verify_input(com_pub, get_gx, get_gy, pc::PcU());
     bool success = Verify(proof, seed, verify_input);
     std::cout << __FILE__ << " " << __FN__ << ": " << success
               << "\n\n\n\n\n\n";

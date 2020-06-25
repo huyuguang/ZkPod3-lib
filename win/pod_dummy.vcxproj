@@ -61,7 +61,7 @@
       <WarningLevel>Level4</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>BOOST_BIND_GLOBAL_PLACEHOLDERS;_DEBUG_CHECK;_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS;USE_TBB;_WIN32_WINNT=0x0600;_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG_CHECK;BOOST_BIND_GLOBAL_PLACEHOLDERS;_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS;USE_TBB;_WIN32_WINNT=0x0600;_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>$(SolutionDir)/../thirdparty/csv;$(SolutionDir)/../thirdparty/yas/include;$(SolutionDir)/../thirdparty;$(SolutionDir)/../public</AdditionalIncludeDirectories>
@@ -86,7 +86,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>BOOST_BIND_GLOBAL_PLACEHOLDERS;_DEBUG_CHECK;_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS;USE_TBB;_WIN32_WINNT=0x0600;_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG_CHECK;BOOST_BIND_GLOBAL_PLACEHOLDERS;_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS;USE_TBB;_WIN32_WINNT=0x0600;_CRT_NONSTDC_NO_DEPRECATE;_CRT_SECURE_NO_WARNINGS;;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>$(SolutionDir)/../thirdparty/csv;$(SolutionDir)/../thirdparty/yas/include;$(SolutionDir)/../thirdparty;$(SolutionDir)/../public</AdditionalIncludeDirectories>
@@ -173,12 +173,14 @@
     <ClInclude Include="..\public\clink\substr.h" />
     <ClInclude Include="..\public\clink\substrpack.h" />
     <ClInclude Include="..\public\clink\vgg16\auxi_pub.h" />
+    <ClInclude Include="..\public\clink\vgg16\context.h" />
     <ClInclude Include="..\public\clink\vgg16\image_com.h" />
     <ClInclude Include="..\public\clink\vgg16\infer.h" />
     <ClInclude Include="..\public\clink\vgg16\para_com.h" />
     <ClInclude Include="..\public\clink\vgg16\para_dbl.h" />
     <ClInclude Include="..\public\clink\vgg16\para_fr.h" />
     <ClInclude Include="..\public\clink\vgg16\para_pub.h" />
+    <ClInclude Include="..\public\clink\vgg16\policy.h" />
     <ClInclude Include="..\public\clink\vgg16\prove.h" />
     <ClInclude Include="..\public\clink\vgg16\prove_conv.h" />
     <ClInclude Include="..\public\clink\vgg16\prove_dense.h" />
@@ -186,6 +188,10 @@
     <ClInclude Include="..\public\clink\vgg16\prove_relubn.h" />
     <ClInclude Include="..\public\clink\vgg16\publish.h" />
     <ClInclude Include="..\public\clink\vgg16\verify.h" />
+    <ClInclude Include="..\public\clink\vgg16\verify_conv.h" />
+    <ClInclude Include="..\public\clink\vgg16\verify_dense.h" />
+    <ClInclude Include="..\public\clink\vgg16\verify_pooling.h" />
+    <ClInclude Include="..\public\clink\vgg16\verify_relubn.h" />
     <ClInclude Include="..\public\clink\vgg16\vgg16.h" />
     <ClInclude Include="..\public\clink\vrs\vrs_basic.h" />
     <ClInclude Include="..\public\clink\vrs\vrs_cache.h" />

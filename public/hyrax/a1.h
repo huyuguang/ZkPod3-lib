@@ -11,16 +11,16 @@
 namespace hyrax {
 struct A1 {
   struct ProveInput {
-    ProveInput(Fr const& x, Fr const& y, Fr const& z, int64_t x_g_offset,
-               int64_t y_g_offset)
-        : x(x), y(y), z(z), x_g_offset(x_g_offset), y_g_offset(y_g_offset) {
+    ProveInput(Fr const& x, Fr const& y, Fr const& z, G1 const& gx,
+               G1 const& gy)
+        : x(x), y(y), z(z), gx(gx), gy(gy) {
       assert(z == x * y);
     }
     Fr const x;
     Fr const y;
     Fr const z;
-    int64_t const x_g_offset;
-    int64_t const y_g_offset;
+    G1 const gx;
+    G1 const gy;
   };
 
   struct CommitmentPub {
@@ -87,42 +87,38 @@ struct A1 {
   };
 
   struct VerifyInput {
-    VerifyInput(CommitmentPub const& com_pub, int64_t x_g_offset,
-                int64_t y_g_offset)
-        : com_pub(com_pub), x_g_offset(x_g_offset), y_g_offset(y_g_offset) {}
+    VerifyInput(CommitmentPub const& com_pub, G1 const& gx, G1 const& gy)
+        : com_pub(com_pub), gx(gx), gy(gy) {}
     CommitmentPub const& com_pub;
-    int64_t const x_g_offset;
-    int64_t const y_g_offset;
+    G1 const gx;
+    G1 const gy;
   };
 
   static bool VerifyInternal(VerifyInput const& input, Fr const& c,
                              CommitmentExtPub const& com_ext_pub,
                              SubProof const& sub_proof) {
     // Tick tick(__FN__);
-    auto const& gx = PcG(input.x_g_offset);
-    auto const& gy = PcG(input.y_g_offset);
-    auto const& h = PcH();
     auto const& com_pub = input.com_pub;
 
     std::array<parallel::Task, 3> tasks;
     bool ret0 = false;
-    tasks[0] = [&ret0, &com_pub, &com_ext_pub, &c, &sub_proof, &gx, &h]() {
+    tasks[0] = [&ret0, &com_pub, &com_ext_pub, &c, &sub_proof, &input]() {
       G1 left = com_ext_pub.alpha + com_pub.x * c;
-      G1 right = gx * sub_proof.z1 + h * sub_proof.z2;
+      G1 right = input.gx * sub_proof.z1 + pc::PcH() * sub_proof.z2;
       ret0 = left == right;
     };
 
     bool ret1 = false;
-    tasks[1] = [&ret1, &com_pub, &com_ext_pub, &c, &sub_proof, &gy, &h]() {
+    tasks[1] = [&ret1, &com_pub, &com_ext_pub, &c, &sub_proof, &input]() {
       G1 left = com_ext_pub.beta + com_pub.y * c;
-      G1 right = gy * sub_proof.z3 + h * sub_proof.z4;
+      G1 right = input.gy * sub_proof.z3 + pc::PcH() * sub_proof.z4;
       ret1 = left == right;
     };
 
     bool ret2 = false;
-    tasks[2] = [&ret2, &com_pub, &com_ext_pub, &c, &sub_proof, &h]() {
+    tasks[2] = [&ret2, &com_pub, &com_ext_pub, &c, &sub_proof, &input]() {
       G1 left = com_ext_pub.delta + com_pub.z * c;
-      G1 right = com_pub.x * sub_proof.z3 + h * sub_proof.z5;
+      G1 right = com_pub.x * sub_proof.z3 + pc::PcH() * sub_proof.z5;
       ret2 = left == right;
     };
 
@@ -135,10 +131,10 @@ struct A1 {
   static void ComputeCom(CommitmentPub& com_pub, CommitmentSec& com_sec,
                          ProveInput const& input) {
     // Tick tick(__FN__);
-    auto const& gx = PcG(input.x_g_offset);
-    auto const& gy = PcG(input.y_g_offset);
-    auto const& gz = gx;
-    auto const& h = PcH();
+    auto const& gx = input.gx;
+    auto const& gy = input.gy;
+    auto const& gz = input.gx;
+    auto const& h = pc::PcH();
 
     com_sec.r_x = FrRand();
     com_sec.r_y = FrRand();
@@ -163,9 +159,9 @@ struct A1 {
                                    ProveInput const& input,
                                    CommitmentPub const& com_pub) {
     // Tick tick(__FN__);
-    auto const& gx = PcG(input.x_g_offset);
-    auto const& gy = PcG(input.y_g_offset);
-    auto const& h = PcH();
+    auto const& gx = input.gx;
+    auto const& gy = input.gy;
+    auto const& h = pc::PcH();
 
     com_ext_sec.b1 = FrRand();
     com_ext_sec.b2 = FrRand();
@@ -278,10 +274,13 @@ inline bool A1::Test() {
 
   int64_t x_g_offset = 1;
   int64_t y_g_offset = 10;
+  G1 const& gx = pc::PcG(x_g_offset);
+  G1 const& gy = pc::PcG(y_g_offset);
+
   Fr x = FrRand();
   Fr y = FrRand();
   Fr z = x * y;
-  ProveInput prove_input(x, y, z, x_g_offset, y_g_offset);
+  ProveInput prove_input(x, y, z, gx, gy);
 
   CommitmentPub com_pub;
   CommitmentSec com_sec;
@@ -308,10 +307,9 @@ inline bool A1::Test() {
   }
 #endif
 
-  VerifyInput verify_input(com_pub, x_g_offset, y_g_offset);
+  VerifyInput verify_input(com_pub, gx, gy);
   bool success = Verify(proof, UpdateSeed, verify_input);
-  std::cout << __FILE__ << " " << __FN__ << ": " << success
-            << "\n\n\n\n\n\n";
+  std::cout << __FILE__ << " " << __FN__ << ": " << success << "\n\n\n\n\n\n";
   return success;
 }
 }  // namespace hyrax
