@@ -466,5 +466,11 @@
     <ClInclude Include="..\public\clink\vgg16\verify_conv.h">
       <Filter>public\clink\vgg16</Filter>
     </ClInclude>
+    <ClInclude Include="..\public\circuit\vgg16\relubn_gadget.h">
+      <Filter>public\circuit\vgg16</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\circuit\vgg16\pooling_gadget.h">
+      <Filter>public\circuit\vgg16</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

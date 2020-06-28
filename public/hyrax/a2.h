@@ -199,7 +199,8 @@ struct A2 {
   }
 
   static void Prove(Proof& proof, h256_t seed, ProveInput const& input,
-                    CommitmentPub com_pub, CommitmentSec com_sec) {
+                    CommitmentPub const& com_pub,
+                    CommitmentSec const& com_sec) {
     Tick tick(__FN__);
 
     CommitmentExtSec com_ext_sec;
