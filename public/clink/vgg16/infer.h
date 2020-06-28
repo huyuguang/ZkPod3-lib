@@ -10,8 +10,8 @@ namespace clink::vgg16 {
 
 // input type: <D,N>
 // output type: <D, 2N>
-inline void InferConv(Para::ConvLayer const& layer,
-                      Image const& input_image, Image& output_image) {
+inline void InferConv(Para::ConvLayer const& layer, Image const& input_image,
+                      Image& output_image) {
   Tick tick(__FN__);
   namespace fp = circuit::fp;
   size_t const C = layer.channel_count();
@@ -66,8 +66,9 @@ inline void InferConv(Para::ConvLayer const& layer,
 
   std::vector<Fr> x(KCDD);
 
-  //for (size_t i = 0; i < KCDD; ++i) {
-  //  x[i] = std::inner_product(c[i].begin(), c[i].end(), p[i].begin(), FrZero());
+  // for (size_t i = 0; i < KCDD; ++i) {
+  //  x[i] = std::inner_product(c[i].begin(), c[i].end(), p[i].begin(),
+  //  FrZero());
   //}
   auto parallel_f1 = [&x, &c, &p](int64_t i) {
     x[i] = std::inner_product(c[i].begin(), c[i].end(), p[i].begin(), FrZero());
@@ -118,29 +119,30 @@ inline void InferReluBn(Para::BnLayer const& layer, Image const& input_image,
       for (size_t k = 0; k < input_data[0][0].size(); ++k) {
         auto& in_data = input_data[i][j][k];
         auto& out_data = output_data[i][j][k];
-        //std::cout << "infer alpha: " << alpha << "\n";
-        //std::cout << "infer beta: " << beta << "\n";
-        //std::cout << "infer mu: " << mu << "\n";
+        // std::cout << "infer alpha: " << alpha << "\n";
+        // std::cout << "infer beta: " << beta << "\n";
+        // std::cout << "infer mu: " << mu << "\n";
 
         // relu
-        //std::cout << "infer a : " << in_data << "\n";
+        // std::cout << "infer a : " << in_data << "\n";
 
         out_data = fp::ReducePrecision<8, 24 * 2, 24>(in_data);
-        //std::cout << "infer a2 : " << out_data << "\n";
-        
+        // std::cout << "infer a2 : " << out_data << "\n";
+
         out_data = out_data.isNegative() ? 0 : out_data;
-        //std::cout << "infer b : " << out_data << "\n";
+        // std::cout << "infer b : " << out_data << "\n";
 
         // bn
         out_data =
             alpha * (out_data - mu) + beta * fp::RationalConst<8, 24>().kFrN;
-        //std::cout << "infer c : " << out_data << "\n";
+        // std::cout << "infer c : " << out_data << "\n";
 
-        // NOTE: output_data[i][j][k] is <D,2N>                                 
+        // NOTE: output_data[i][j][k] is <D,2N>
         // now we need to convert <D,2N> to <D,N>
         out_data = fp::ReducePrecision<8, 24 * 2, 24>(out_data);
-        //std::cout << "infer ret : " << out_data << "\n\n";
-        //std::cout << fp::RationalToDouble<8, 24>(output_data[i][j][k]) << "\n";
+        // std::cout << "infer ret : " << out_data << "\n\n";
+        // std::cout << fp::RationalToDouble<8, 24>(output_data[i][j][k]) <<
+        // "\n";
 
 #ifdef _DEBUG_CHECK
         libsnark::protoboard<Fr> pb;
@@ -155,10 +157,10 @@ inline void InferReluBn(Para::BnLayer const& layer, Image const& input_image,
           std::cout << "\n\noops:\n";
           throw std::runtime_error("oops");
         }
-#endif 
+#endif
       }
     }
-  }  
+  }
 
 #ifdef _DEBUG
   std::vector<std::vector<std::vector<Fr>>> debug_data(output_data.size());
@@ -177,8 +179,7 @@ inline void InferReluBn(Para::BnLayer const& layer, Image const& input_image,
 
 // input type: <D,N>
 // output type: <D,N>
-inline void InferMaxPooling(Image const& input_image,
-                            Image& output_image) {
+inline void InferMaxPooling(Image const& input_image, Image& output_image) {
   Tick tick(__FN__);
   namespace fp = circuit::fp;
   auto const& input_data = input_image.pixels;
@@ -198,9 +199,9 @@ inline void InferMaxPooling(Image const& input_image,
         rect_mpz[2] = rect_fr[2].getMpz();
         rect_mpz[3] = rect_fr[3].getMpz();
         mpz_class max_value =
-            *std::max_element(rect_mpz.begin(), rect_mpz.end());        
+            *std::max_element(rect_mpz.begin(), rect_mpz.end());
         output_data[i][j][k].setMpz(max_value);
-        output_data[i][j][k] = output_data[i][j][k] - FrDN;            
+        output_data[i][j][k] = output_data[i][j][k] - FrDN;
       }
     }
   }
@@ -221,8 +222,8 @@ inline void InferMaxPooling(Image const& input_image,
 
 // input type: <D,N>
 // output type: <D,2N>
-inline void InferDense(Para::DenseLayer const& layer,
-                       Image const& input_image, Image& output_image) {
+inline void InferDense(Para::DenseLayer const& layer, Image const& input_image,
+                       Image& output_image) {
   Tick tick(__FN__);
   namespace fp = circuit::fp;
   auto const& input_data = input_image.pixels;
@@ -236,13 +237,14 @@ inline void InferDense(Para::DenseLayer const& layer,
   input.back() = fp::RationalConst<8, 24>().kFrN;
 
   for (size_t i = 0; i < output_data.size(); ++i) {
-    //for (size_t j = 0; j < input.size(); ++j) {
+    // for (size_t j = 0; j < input.size(); ++j) {
     //  std::cout << fp::RationalToDouble<8, 24>(input[j]) << ";";
     //  std::cout << fp::RationalToDouble<8, 24>(layer.weight[i][j]) << "\n";
     //}
     output_data[i][0][0] = std::inner_product(
         input.begin(), input.end(), layer.weight[i].begin(), FrZero());
-    //std::cout << fp::RationalToDouble<8, 24 + 24>(output_data[i][0][0]) << "\n";
+    // std::cout << fp::RationalToDouble<8, 24 + 24>(output_data[i][0][0]) <<
+    // "\n";
   }
 }
 
@@ -269,7 +271,7 @@ inline void Infer(Para const& para, dbl::Image const& dbl_image,
   InferReluBn(para.bn_layer(2), *images[6], *images[7]);
 
   InferConv(para.conv_layer(3), *images[7], *images[8]);
-  
+
   InferReluBn(para.bn_layer(3), *images[8], *images[9]);
 
   InferMaxPooling(*images[9], *images[10]);
@@ -303,9 +305,9 @@ inline void Infer(Para const& para, dbl::Image const& dbl_image,
   InferMaxPooling(*images[23], *images[24]);
 
   InferConv(para.conv_layer(10), *images[24], *images[25]);
-  
+
   InferReluBn(para.bn_layer(10), *images[25], *images[26]);
-  
+
   InferConv(para.conv_layer(11), *images[26], *images[27]);
 
   InferReluBn(para.bn_layer(11), *images[27], *images[28]);

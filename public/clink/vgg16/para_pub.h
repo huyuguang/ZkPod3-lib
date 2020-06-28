@@ -87,4 +87,13 @@ inline const std::array<std::pair<LayerType, size_t>, 34> kLayerTypeOrders{
      {kReluBn, 10}, {kConv, 11},   {kReluBn, 11}, {kConv, 12},   {kReluBn, 12},
      {kPooling, 4}, {kDense, 0},   {kReluBn, 13}, {kDense, 1}}};
 
+inline const std::array<size_t, 13> kConvLayers{0,  2,  5,  7,  10, 12, 14,
+                                                17, 19, 21, 24, 26, 28};
+
+inline const std::array<size_t, 2> kDenseLayers{31, 33};
+
+inline const std::array<size_t, 14> kReluBnLayers{1,  3,  6,  8,  11, 13, 15,
+                                                  18, 20, 22, 25, 27, 29, 32};
+
+inline const std::array<size_t, 5> kPoolingLayers{4, 9, 16, 23, 30};
 }  // namespace clink::vgg16

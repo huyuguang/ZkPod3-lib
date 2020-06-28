@@ -36,10 +36,11 @@ static bool VerifyDense(DenseProof const& proof, h256_t seed,
   // std::cout << "verify, com_e: " << com_e << "\n";
   // std::cout << "verify, com_y: " << input.com_y << "\n";
   // std::cout << "verify, com_z: " << proof.com_z << "\n";
-  groth09::Sec51a::CommitmentPub com_pub_51(com_e, input.com_x, proof.com_z);
-  groth09::Sec51a::VerifyInput input_51(com_pub_51, pc::kGetRefG, pc::kGetRefG,
+  Sec51::CommitmentPub com_pub_51(com_e, input.com_x, proof.com_z);
+  std::vector<Fr> t(M + 1, FrOne());
+  Sec51::VerifyInput input_51(t, com_pub_51, pc::kGetRefG, pc::kGetRefG,
                                         pc::PcG(0));
-  if (!groth09::Sec51a::Verify(proof.proof_51, seed, input_51)) {
+  if (!Sec51::Verify(proof.proof_51, seed, input_51)) {
     assert(false);
     return false;
   }

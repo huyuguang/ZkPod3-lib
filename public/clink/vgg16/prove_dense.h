@@ -62,7 +62,7 @@ struct ProveDenseInput {
 struct DenseProof {
   G1 com_y;
   G1 com_z;
-  groth09::Sec51a::Proof proof_51;
+  Sec51::Proof proof_51;
   HyraxA::Proof proof_hy;
 
   bool operator==(DenseProof const& b) const {
@@ -139,12 +139,12 @@ static void ProveDense(h256_t seed, ProveDenseInput<M, N> const& input,
   // std::cout << "prove, com_e: " << com_e << "\n";
   // std::cout << "prove, com_data: " << input.com_data << "\n";
   // std::cout << "prove, com_z: " << com_z << "\n";
-  groth09::Sec51a::ProveInput input_51(e, input.x, z, pc::kGetRefG,
-                                       pc::kGetRefG, pc::PcG(0));
-  groth09::Sec51a::CommitmentPub com_pub_51(com_e, input.com_x, proof.com_z);
-  groth09::Sec51a::CommitmentSec com_sec_51(com_e_r, input.com_x_r, com_z_r);
-  groth09::Sec51a::Prove(proof.proof_51, seed, input_51, com_pub_51,
-                         com_sec_51);
+  std::vector<Fr> t(e.size(), FrOne());
+  Sec51::ProveInput input_51(e, input.x, t, input.x, z, pc::kGetRefG,
+                             pc::kGetRefG, pc::PcG(0));
+  Sec51::CommitmentPub com_pub_51(com_e, input.com_x, proof.com_z);
+  Sec51::CommitmentSec com_sec_51(com_e_r, input.com_x_r, com_z_r);
+  Sec51::Prove(proof.proof_51, seed, input_51, com_pub_51, com_sec_51);
 }
 
 inline void DenseProve0(h256_t seed, ProveContext const& context,

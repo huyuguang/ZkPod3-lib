@@ -340,12 +340,10 @@ inline void OneConvOutputProve(h256_t seed, ProveContext const& context,
                                OneConvOutputPub& pub) {
   Tick tick(__FN__);
   namespace fp = circuit::fp;
-  size_t const order = kLayerTypeOrders[layer].second;
-  auto const& output_image = *context.const_images()[layer + 1];
+  size_t const order = kLayerTypeOrders[layer].second;  
   auto K = kImageInfos[layer + 1].channel_count;
   auto C = kImageInfos[layer].channel_count;
-  auto D = kImageInfos[layer].dimension;
-  Para::ConvLayer const& para_conv = context.para().conv_layer(order);
+  auto D = kImageInfos[layer].dimension;  
 
   G1 const& cx = r1cs_pub.com_w[r1cs_pub.r1cs_ret_index];
   Fr const& rx = r1cs_sec.ry;
@@ -383,6 +381,8 @@ inline void OneConvOutputProve(h256_t seed, ProveContext const& context,
   }
 
 #ifdef _DEBUG_CHECK
+  auto const& output_image = *context.const_images()[layer + 1];
+  Para::ConvLayer const& para_conv = context.para().conv_layer(order);
   auto const& bias = para_conv.bias;  // vector<Fr>, size=K
   for (size_t i = 0; i < K; ++i) {
     for (size_t j = 0; j < D; ++j) {

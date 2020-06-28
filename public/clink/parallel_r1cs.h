@@ -42,7 +42,7 @@ struct ParallelR1cs {
           m(r1cs_info.num_constraints),
           s(r1cs_info.num_variables),
           n((int64_t)w[0].size()) {
-#ifdef _DEBUG_CHECK
+#ifdef _DEBUG
       if ((int64_t)w.size() != s) throw std::runtime_error("opps");
       if ((int64_t)com_w.size() != s) throw std::runtime_error("opps");
       if ((int64_t)com_w_r.size() != s) throw std::runtime_error("opps");
