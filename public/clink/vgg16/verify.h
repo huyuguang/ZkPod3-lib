@@ -39,12 +39,12 @@ inline bool Verify(h256_t seed, std::string const& pub_path,
 
   // dense0
   tasks.emplace_back([&context, &seed, &proof]() {
-    return DenseVerify0(seed, context, *proof.dense0);
+    return DenseVerify<0>(seed, context, *proof.dense0);
   });
 
   // dense1
   tasks.emplace_back([&context, &seed, &proof]() {
-    return DenseVerify1(seed, context, *proof.dense1);
+    return DenseVerify<1>(seed, context, *proof.dense1);
   });
 
   bool all_success = false;

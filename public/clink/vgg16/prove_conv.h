@@ -109,9 +109,9 @@ inline void OneConvInputProve(h256_t seed, ProveContext const& context,
 
   size_t const order = kLayerTypeOrders[layer].second;
   auto const& input_image = *context.const_images()[layer];
-  auto K = kImageInfos[layer + 1].channel_count;
-  auto C = kImageInfos[layer].channel_count;
-  auto D = kImageInfos[layer].dimension;
+  auto K = kImageInfos[layer + 1].C;
+  auto C = kImageInfos[layer].C;
+  auto D = kImageInfos[layer].D;
   auto const& x = input_image.pixels;
   Fr const& rx = context.image_com_sec().r[layer];
   G1 const& cx = context.image_com_pub().c[layer];
@@ -254,9 +254,9 @@ inline void OneConvR1csProve(h256_t seed, ProveContext const& context,
                              OneConvInputSec const& input_sec,
                              OneConvR1csPub& pub, OneConvR1csSec& sec) {
   Tick tick(__FN__);
-  auto K = kImageInfos[layer + 1].channel_count;
-  auto C = kImageInfos[layer].channel_count;
-  auto D = kImageInfos[layer].dimension;
+  auto K = kImageInfos[layer + 1].C;
+  auto C = kImageInfos[layer].C;
+  auto D = kImageInfos[layer].D;
   auto order = kLayerTypeOrders[layer].second;
 
 #ifdef _DEBUG_CHECK
@@ -341,9 +341,9 @@ inline void OneConvOutputProve(h256_t seed, ProveContext const& context,
   Tick tick(__FN__);
   namespace fp = circuit::fp;
   size_t const order = kLayerTypeOrders[layer].second;  
-  auto K = kImageInfos[layer + 1].channel_count;
-  auto C = kImageInfos[layer].channel_count;
-  auto D = kImageInfos[layer].dimension;  
+  auto K = kImageInfos[layer + 1].C;
+  auto C = kImageInfos[layer].C;
+  auto D = kImageInfos[layer].D;  
 
   G1 const& cx = r1cs_pub.com_w[r1cs_pub.r1cs_ret_index];
   Fr const& rx = r1cs_sec.ry;

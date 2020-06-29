@@ -16,9 +16,8 @@ inline bool PoolingInputVerify(h256_t seed, VerifyContext const& context,
     return false;
   }
 
-  auto layers = PoolingGetLayers();
-  for (size_t l = 0; l < layers.size(); ++l) {
-    auto layer = layers[l];
+  for (size_t l = 0; l < kPoolingLayers.size(); ++l) {
+    auto layer = kPoolingLayers[l];
     if (context.image_com_pub().c[layer] != in_proof.ip_com_pubs[l].xi) {
       std::cout << __FN__ << ": " << __LINE__ << ": proof invalid\n";
       return false;
@@ -120,9 +119,8 @@ inline bool PoolingOutputVerify(h256_t seed, VerifyContext const& context,
     return false;
   }
 
-  auto layers = PoolingGetLayers();
-  for (size_t l = 0; l < layers.size(); ++l) {
-    auto layer = layers[l] + 1;
+  for (size_t l = 0; l < kPoolingLayers.size(); ++l) {
+    auto layer = kPoolingLayers[l] + 1;
     if (context.image_com_pub().c[layer] != out_proof.ip_com_pubs[l + 1].xi) {
       std::cout << __FN__ << ": " << __LINE__ << ": proof invalid\n";
       return false;

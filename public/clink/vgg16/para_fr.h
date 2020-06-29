@@ -12,16 +12,16 @@ struct Para {
   struct ConvLayer {
     ConvLayer() {}
     ConvLayer(ConvLayerInfo const& info)
-        : order(info.order), dimension(info.dimension) {
-      coefs.resize(info.kernel_count);
+        : order(info.order), D(info.D) {
+      coefs.resize(info.K);
       for (auto& i : coefs) {
-        i.resize(info.channel_count);
+        i.resize(info.C);
       }
-      bias.resize(info.kernel_count);
+      bias.resize(info.K);
     }
 
     ConvLayer(dbl::Para::ConvLayer const& dbl)
-        : order(dbl.order), dimension(dbl.dimension) {
+        : order(dbl.order), D(dbl.D) {
       namespace fp = circuit::fp;
       coefs.resize(dbl.coefs.size());
       for (auto& i : coefs) {
@@ -45,7 +45,7 @@ struct Para {
     }
 
     bool operator==(ConvLayer const& b) const {
-      return order == b.order && dimension == b.dimension && coefs == b.coefs &&
+      return order == b.order && D == b.D && coefs == b.coefs &&
              bias == b.bias;
     }
 
@@ -53,30 +53,30 @@ struct Para {
 
     template <typename Ar>
     void serialize(Ar& ar) const {
-      ar& YAS_OBJECT_NVP("vgg16.para.conv", ("o", order), ("d", dimension),
+      ar& YAS_OBJECT_NVP("vgg16.para.conv", ("o", order), ("d", D),
                          ("c", coefs), ("b", bias));
     }
     template <typename Ar>
     void serialize(Ar& ar) {
-      ar& YAS_OBJECT_NVP("vgg16.para.conv", ("o", order), ("d", dimension),
+      ar& YAS_OBJECT_NVP("vgg16.para.conv", ("o", order), ("d", D),
                          ("c", coefs), ("b", bias));
     }
 
     size_t order;
-    size_t dimension;
+    size_t D;
     // size=K*C*3*3
     std::vector<std::vector<std::array<std::array<Fr, 3>, 3>>> coefs;
     std::vector<Fr> bias;  // size=K
-    size_t kernel_count() const { return bias.size(); }
-    size_t channel_count() const { return coefs[0].size(); }
+    size_t K() const { return bias.size(); }
+    size_t C() const { return coefs[0].size(); }
   };
 
   struct BnLayer {
     BnLayer() {}
     BnLayer(BnLayerInfo const& info) : order(info.order) {
-      mu.resize(info.channel_count);
-      alpha.resize(info.channel_count);
-      beta.resize(info.channel_count);
+      mu.resize(info.C);
+      alpha.resize(info.C);
+      beta.resize(info.C);
     }
     BnLayer(dbl::Para::BnLayer const& dbl) : order(dbl.order) {
       namespace fp = circuit::fp;
@@ -272,14 +272,14 @@ struct Image {
   boost::multi_array<Fr, 3> pixels; // TODO: change to normal vector  
   Image(ImageInfo const& info)
       : order(info.order),
-        pixels(boost::extents[info.channel_count][info.dimension]
-                             [info.dimension]) {
+        pixels(boost::extents[info.C][info.D]
+                             [info.D]) {
   }
 
   Image(dbl::Image const& dbl)
       : order(dbl.order),
-        pixels(boost::extents[dbl.channel_count()][dbl.dimension()]
-                             [dbl.dimension()]) {
+        pixels(boost::extents[dbl.C()][dbl.D()]
+                             [dbl.D()]) {
     namespace fp = circuit::fp;
     for (size_t i = 0; i < pixels.size(); ++i) {
       for (size_t j = 0; j < pixels[0].size(); ++j) {
@@ -303,15 +303,7 @@ struct Image {
 
   template <typename Ar>
   void serialize(Ar& ar) const {
-    std::vector<Fr> data;    
-    data.reserve(total_size());
-    for (size_t i = 0; i < pixels.size(); ++i) {
-      for (size_t j = 0; j < pixels[0].size(); ++j) {
-        for (size_t k = 0; k < pixels[0][0].size(); ++k) {
-          data.push_back(pixels[i][j][k]);
-        }
-      }
-    }
+    std::vector<Fr> data = copy_vec();
     ar& YAS_OBJECT_NVP("vgg16.image", ("p", data));
   }
   template <typename Ar>
@@ -321,7 +313,7 @@ struct Image {
     if (data.size() != total_size()) {
       throw std::runtime_error("oops");
     }
-    auto d = dimension();
+    auto d = D();
     for (size_t i = 0; i < pixels.size(); ++i) {
       for (size_t j = 0; j < pixels[0].size(); ++j) {
         for (size_t k = 0; k < pixels[0][0].size(); ++k) {
@@ -331,18 +323,16 @@ struct Image {
     }
   }
 
-  size_t channel_count() const { return pixels.size(); }
-  size_t dimension() const { return pixels[0].size(); }
-  size_t total_size() const {
-    return pixels.size() * pixels[0].size() * pixels[0][0].size();
-  }
+  size_t C() const { return pixels.size(); }
+  size_t D() const { return pixels[0].size(); }
+  size_t total_size() const { return pixels.num_elements(); }
+
   Fr const& get(size_t offset) const {
-    size_t D = dimension();
-    size_t DD = D * D;
+    size_t DD = D() * D();
     size_t i = offset / DD;
     size_t ii = offset % DD;
-    size_t j = ii / D;
-    size_t k = ii % D;
+    size_t j = ii / D();
+    size_t k = ii % D();
     return pixels[i][j][k];
   }
 

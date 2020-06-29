@@ -101,6 +101,13 @@ struct DenseCommitmentPub {
   std::array<G1, 512> d0;
   std::array<G1, 10> d1;
 
+  template <size_t Order>
+  auto const& get() const {
+    static_assert(Order == 0 || Order == 1, "invalid Order");
+    if constexpr (Order == 0) return d0;
+    else return d1;
+  }
+
   bool operator==(DenseCommitmentPub const& b) const {
     return d0 == b.d0 && d1 == b.d1;
   }
@@ -121,6 +128,13 @@ struct DenseCommitmentPub {
 struct DenseCommitmentSec {
   std::array<Fr, 512> d0_r;
   std::array<Fr, 10> d1_r;
+
+  template <size_t Order>
+  auto const& get() const {
+    static_assert(Order == 0 || Order == 1, "invalid Order");
+    if constexpr (Order == 0) return d0_r;
+    else return d1_r;
+  }
 
   bool operator==(DenseCommitmentSec const& b) const {
     return d0_r == b.d0_r && d1_r == b.d1_r;
@@ -320,8 +334,8 @@ inline void ComputeBnCommitment(std::array<Para::BnLayer, 14> const& para,
   std::vector<Fr> extended_mu;
   for (size_t i = 0; i < kLayerTypeOrders.size(); ++i) {
     if (kLayerTypeOrders[i].first != kReluBn) continue;
-    size_t C = kImageInfos[i].channel_count;
-    size_t D = kImageInfos[i].dimension;
+    size_t C = kImageInfos[i].C;
+    size_t D = kImageInfos[i].D;
     auto order = kLayerTypeOrders[i].second;
     auto const& bn_para = para[order];
     if (C != bn_para.alpha.size()) throw std::runtime_error("oops");
@@ -351,8 +365,8 @@ inline void ComputeConvCommitment(std::array<Para::ConvLayer, 13> const& para,
                                   ConvCommitmentSec& sec) {
   Tick tick(__FN__);
   auto parallel_f = [&para, &auxi, &pub, &sec](int64_t o) {
-    auto C = kConvLayerInfos[o].channel_count;
-    auto K = kConvLayerInfos[o].kernel_count;
+    auto C = kConvLayerInfos[o].C;
+    auto K = kConvLayerInfos[o].K;
 
     auto const& layer = para[o];
     auto& pub_coef = pub.coef[o];
@@ -389,10 +403,6 @@ inline void ComputeConvCommitment(std::array<Para::ConvLayer, 13> const& para,
       return i ? bias[i - 1] : sec_bias;
     };
     pub_bias = MultiExpBdlo12<G1>(get_bias_u, get_bias, K + 1);
-
-#ifdef _DEBUG_CHECK
-    // TODO: check com u
-#endif
   };
 
   parallel::For((int64_t)para.size(), parallel_f);

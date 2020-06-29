@@ -39,7 +39,7 @@ static bool VerifyDense(DenseProof const& proof, h256_t seed,
   Sec51::CommitmentPub com_pub_51(com_e, input.com_x, proof.com_z);
   std::vector<Fr> t(M + 1, FrOne());
   Sec51::VerifyInput input_51(t, com_pub_51, pc::kGetRefG, pc::kGetRefG,
-                                        pc::PcG(0));
+                              pc::PcG(0));
   if (!Sec51::Verify(proof.proof_51, seed, input_51)) {
     assert(false);
     return false;
@@ -48,68 +48,20 @@ static bool VerifyDense(DenseProof const& proof, h256_t seed,
   return true;
 }
 
-inline bool DenseVerify0(h256_t seed, VerifyContext const& context,
-                        DenseProof const& proof) {
+template <size_t kOrder>
+bool DenseVerify(h256_t seed, VerifyContext const& context,
+                 DenseProof const& proof) {
   Tick tick(__FN__);
 
-  constexpr size_t kOrder = 0;
-  constexpr size_t kLayer = 31;
-  constexpr size_t M = 512;
-  constexpr size_t N = 512;
+  constexpr size_t kLayer = kDenseLayers[kOrder];
+  constexpr ImageInfo const& info_in = kImageInfos[kLayer];
+  constexpr ImageInfo const& info_out = kImageInfos[kLayer + 1];
+  constexpr size_t M = info_in.C * info_in.D * info_in.D;
+  constexpr size_t N = info_out.C * info_out.D * info_out.D;
 
-#ifdef _DEBUG_CHECK
-  for (size_t i = 0; i < kLayerTypeOrders.size(); ++i) {
-    if (kLayerTypeOrders[i].first == kDense &&
-        kLayerTypeOrders[i].second == kOrder) {
-      if (kLayer != i) throw std::runtime_error("oops");
-      break;
-    }
-  }
-
-  auto const& info = kImageInfos[kLayer];
-  if (info.channel_count * info.dimension * info.dimension != M)
-    throw std::runtime_error("oops");
-  auto const& info2 = kImageInfos[kLayer+1];
-  if (info2.channel_count * info2.dimension * info2.dimension != N)
-    throw std::runtime_error("oops");
-#endif
-
-  auto const& com_weight = context.para_com_pub().dense.d0;
+  auto const& com_weight = context.para_com_pub().dense.get<kOrder>();
   auto const& com_x = context.image_com_pub().c[kLayer];
-  VerifyDenseInput<M, N> input(com_x,com_weight);
-  return VerifyDense<M, N>(proof, seed, input);
-}
-
-
-inline bool DenseVerify1(h256_t seed, VerifyContext const& context,
-                        DenseProof const& proof) {
-  Tick tick(__FN__);
-
-  constexpr size_t kOrder = 1;
-  constexpr size_t kLayer = 33;
-  constexpr size_t M = 512;
-  constexpr size_t N = 10;
-
-#ifdef _DEBUG_CHECK
-  for (size_t i = 0; i < kLayerTypeOrders.size(); ++i) {
-    if (kLayerTypeOrders[i].first == kDense &&
-        kLayerTypeOrders[i].second == kOrder) {
-      if (kLayer != i) throw std::runtime_error("oops");
-      break;
-    }
-  }
-
-  auto const& info = kImageInfos[kLayer];
-  if (info.channel_count * info.dimension * info.dimension != M)
-    throw std::runtime_error("oops");
-  auto const& info2 = kImageInfos[kLayer+1];
-  if (info2.channel_count * info2.dimension * info2.dimension != N)
-    throw std::runtime_error("oops");
-#endif
-
-  auto const& com_weight = context.para_com_pub().dense.d1;
-  auto const& com_x = context.image_com_pub().c[kLayer];
-  VerifyDenseInput<M, N> input(com_x,com_weight);
+  VerifyDenseInput<M, N> input(com_x, com_weight);
   return VerifyDense<M, N>(proof, seed, input);
 }
 

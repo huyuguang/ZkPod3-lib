@@ -8,9 +8,9 @@ inline bool OneConvInputVerify(h256_t seed, VerifyContext const& context,
                                size_t layer, OneConvProof const& proof) {
   Tick tick(__FN__);
   size_t const order = kLayerTypeOrders[layer].second;
-  // auto K = kImageInfos[layer + 1].channel_count;
-  auto C = kImageInfos[layer].channel_count;
-  auto D = kImageInfos[layer].dimension;
+  // auto K = kImageInfos[layer + 1].C;
+  auto C = kImageInfos[layer].C;
+  auto D = kImageInfos[layer].D;
   G1 const& cx = context.image_com_pub().c[layer];
 
   struct Ctx {
@@ -87,9 +87,9 @@ inline bool OneConvInputVerify(h256_t seed, VerifyContext const& context,
 inline bool OneConvR1csVerify(h256_t seed, VerifyContext const& context,
                               size_t layer, OneConvProof const& proof) {
   Tick tick(__FN__);
-  auto K = kImageInfos[layer + 1].channel_count;
-  auto C = kImageInfos[layer].channel_count;
-  auto D = kImageInfos[layer].dimension;
+  auto K = kImageInfos[layer + 1].C;
+  auto C = kImageInfos[layer].C;
+  auto D = kImageInfos[layer].D;
   auto order = kLayerTypeOrders[layer].second;
 
   for (size_t i = 0; i < 9; ++i) {
@@ -131,9 +131,9 @@ inline bool OneConvOutputVerify(h256_t seed, VerifyContext const& context,
                                 size_t layer, OneConvProof const& proof) {
   Tick tick(__FN__);
   namespace fp = circuit::fp;
-  auto K = kImageInfos[layer + 1].channel_count;
-  auto C = kImageInfos[layer].channel_count;
-  auto D = kImageInfos[layer].dimension;
+  auto K = kImageInfos[layer + 1].C;
+  auto C = kImageInfos[layer].C;
+  auto D = kImageInfos[layer].D;
   auto order = kLayerTypeOrders[layer].second;
 
   G1 const& cx = proof.r1cs.com_w[proof.r1cs.r1cs_ret_index];

@@ -24,23 +24,12 @@ inline void PoolingComputeFst(h256_t const& seed, std::string const& prefix,
   ComputeFst(seed, salt, r);
 }
 
-std::array<size_t, 5> PoolingGetLayers() {
-  std::array<size_t, 5> layers;
-  for (size_t i = 0; i < kLayerTypeOrders.size(); ++i) {
-    if (kLayerTypeOrders[i].first == kPooling) {
-      layers[kLayerTypeOrders[i].second] = i;
-    }
-  }
-  return layers;
-}
-
 inline size_t PoolingGetCircuitCount() {
-  auto layers = PoolingGetLayers();
   size_t total_size = 0;
-  for (size_t i = 0; i < layers.size(); ++i) {
-    auto layer = layers[i];
-    auto C = kImageInfos[layer].channel_count;
-    auto D = kImageInfos[layer].dimension;
+  for (size_t i = 0; i < kPoolingLayers.size(); ++i) {
+    auto layer = kPoolingLayers[i];
+    auto C = kImageInfos[layer].C;
+    auto D = kImageInfos[layer].D;
     total_size += C * D * D;
   }
   return total_size / 4;
@@ -125,10 +114,10 @@ inline void SelectOutputComIpR(std::array<Fr, 6>& com_ip_r) {
 inline void PoolingBuildInputQ(h256_t const& seed,
                                std::array<std::vector<Fr>, 9>& q) {
   std::array<PoolingInputImage, 5> images;
-  auto layers = PoolingGetLayers();
   for (size_t i = 0; i < 5; ++i) {
-    images[i].C = kImageInfos[layers[i]].channel_count;
-    images[i].D = kImageInfos[layers[i]].dimension;
+    auto layer = kPoolingLayers[i];
+    images[i].C = kImageInfos[layer].C;
+    images[i].D = kImageInfos[layer].D;
     q[i].resize(images[i].C * images[i].D * images[i].D);
     PoolingComputeFst(seed, "pooling input q", i, q[i]);
     images[i].x = &q[i];
@@ -138,13 +127,12 @@ inline void PoolingBuildInputQ(h256_t const& seed,
 }
 
 inline void PoolingBuildAbcd(std::array<std::vector<Fr>, 9>& x) {
-  auto layers = PoolingGetLayers();
   std::array<PoolingInputImage, 5> images;
   for (size_t i = 0; i < 5; ++i) {
-    auto layer = layers[i];
+    auto layer = kPoolingLayers[i];
     images[i].x = &x[i];
-    images[i].C = kImageInfos[layer].channel_count;
-    images[i].D = kImageInfos[layer].dimension;
+    images[i].C = kImageInfos[layer].C;
+    images[i].D = kImageInfos[layer].D;
   }
   PoolingImageToAbcd(images, x[5], x[6], x[7], x[8]);
 }
@@ -152,14 +140,11 @@ inline void PoolingBuildAbcd(std::array<std::vector<Fr>, 9>& x) {
 inline void PoolingInputProve(h256_t seed, ProveContext const& context,
                               PoolingInputPub& pub, PoolingInputSec& sec) {
   Tick tick(__FN__);
-  auto layers = PoolingGetLayers();
-  assert(layers.size() == 5);
-
   std::array<std::vector<Fr>, 9> x;
   std::array<Fr, 9> com_x_r;
 
   for (size_t i = 0; i < 5; ++i) {
-    auto layer = layers[i];
+    auto layer = kPoolingLayers[i];
     pub.ip_com_pubs[i].xi = context.image_com_pub().c[layer];
     com_x_r[i] = context.image_com_sec().r[layer];
     x[i] = context.const_images()[layer]->copy_vec();
@@ -344,7 +329,7 @@ inline void PoolingBuildOutputQ(h256_t const& seed,
   for (size_t i = 0; i < kLayerTypeOrders.size(); ++i) {
     if (kLayerTypeOrders[i].first != kPooling) continue;
     auto const& info = kImageInfos[i + 1];
-    size.push_back(info.channel_count * info.dimension * info.dimension);
+    size.push_back(info.C * info.D * info.D);
     total_size += size.back();
   }
   q[0].resize(total_size);
@@ -371,9 +356,8 @@ inline void PoolingOutputProve(h256_t seed, ProveContext const& context,
   pub.ip_com_pubs[0].xi = r1cs_pub.com_w[r1cs_pub.r1cs_ret_index];
   com_x_r[0] = r1cs_sec.ry;
 
-  auto layers = PoolingGetLayers();
-  for (size_t i = 0; i < layers.size(); ++i) {
-    auto layer = layers[i] + 1;
+  for (size_t i = 0; i < kPoolingLayers.size(); ++i) {
+    auto layer = kPoolingLayers[i] + 1; // next
     auto image = context.const_images()[layer];
     x[i + 1] = image->copy_vec();
     pub.ip_com_pubs[i + 1].xi = context.image_com_pub().c[layer];

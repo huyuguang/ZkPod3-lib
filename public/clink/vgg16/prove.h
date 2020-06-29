@@ -81,13 +81,13 @@ inline bool Prove(h256_t seed, std::string const& test_image_path,
   // dense0
   tasks.emplace_back([&context, &seed, &proof]() {
     proof.dense0.reset(new DenseProof);
-    DenseProve0(seed, context, *proof.dense0);
+    DenseProve<0>(seed, context, *proof.dense0);
   });
 
   // dense1
   tasks.emplace_back([&context, &seed, &proof]() {
     proof.dense1.reset(new DenseProof);
-    DenseProve1(seed, context, *proof.dense1);
+    DenseProve<1>(seed, context, *proof.dense1);
   });
 
   auto parallel_f = [&tasks](int64_t i) { tasks[i](); };

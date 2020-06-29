@@ -135,10 +135,6 @@ static void ProveDense(h256_t seed, ProveDenseInput<M, N> const& input,
   HyraxA::Prove(proof.proof_hy, seed, input_hy, com_pub_hy, com_sec_hy);
 
   // prove right
-  // std::cout << "prove, seed: " << misc::HexToStr(seed) << "\n";
-  // std::cout << "prove, com_e: " << com_e << "\n";
-  // std::cout << "prove, com_data: " << input.com_data << "\n";
-  // std::cout << "prove, com_z: " << com_z << "\n";
   std::vector<Fr> t(e.size(), FrOne());
   Sec51::ProveInput input_51(e, input.x, t, input.x, z, pc::kGetRefG,
                              pc::kGetRefG, pc::PcG(0));
@@ -147,34 +143,21 @@ static void ProveDense(h256_t seed, ProveDenseInput<M, N> const& input,
   Sec51::Prove(proof.proof_51, seed, input_51, com_pub_51, com_sec_51);
 }
 
-inline void DenseProve0(h256_t seed, ProveContext const& context,
+template<size_t kOrder>
+void DenseProve(h256_t seed, ProveContext const& context,
                         DenseProof& proof) {
   Tick tick(__FN__);
 
-  constexpr size_t kOrder = 0;
-  constexpr size_t kLayer = 31;
-  constexpr size_t M = 512;
-  constexpr size_t N = 512;
-
-#ifdef _DEBUG_CHECK
-  for (size_t i = 0; i < kLayerTypeOrders.size(); ++i) {
-    if (kLayerTypeOrders[i].first == kDense &&
-        kLayerTypeOrders[i].second == kOrder) {
-      if (kLayer != i) throw std::runtime_error("oops");
-    }
-  }
-  auto const& info = kImageInfos[kLayer];
-  if (info.channel_count * info.dimension * info.dimension != M)
-    throw std::runtime_error("oops");
-  auto const& info2 = kImageInfos[kLayer + 1];
-  if (info2.channel_count * info2.dimension * info2.dimension != N)
-    throw std::runtime_error("oops");
-#endif
+  constexpr size_t kLayer = kDenseLayers[kOrder];
+  constexpr ImageInfo const& info_in = kImageInfos[kLayer];
+  constexpr ImageInfo const& info_out = kImageInfos[kLayer+1];
+  constexpr size_t M = info_in.C * info_in.D * info_in.D;
+  constexpr size_t N = info_out.C * info_out.D * info_out.D;
 
   auto const& para = context.para().dense_layer(kOrder);
   auto const& weight = para.weight;
-  auto const& com_weight = context.para_com_pub().dense.d0;
-  auto const& com_weight_r = context.para_com_sec().dense.d0_r;
+  auto const& com_weight = context.para_com_pub().dense.get<kOrder>();
+  auto const& com_weight_r = context.para_com_sec().dense.get<kOrder>();
   std::vector<Fr> x = context.const_images()[kLayer]->copy_vec();
   auto const& com_x = context.image_com_pub().c[kLayer];
   auto const& com_x_r = context.image_com_sec().r[kLayer];
@@ -186,54 +169,5 @@ inline void DenseProve0(h256_t seed, ProveContext const& context,
                               com_x, com_x_r, std::move(y), com_y, com_y_r);
 
   ProveDense<M, N>(seed, input, proof);
-}
-
-inline void DenseProve1(h256_t seed, ProveContext const& context,
-                        DenseProof& proof) {
-  Tick tick(__FN__);
-
-  constexpr size_t kOrder = 1;
-  constexpr size_t kLayer = 33;
-  constexpr size_t M = 512;
-  constexpr size_t N = 10;
-
-#ifdef _DEBUG_CHECK
-  for (size_t i = 0; i < kLayerTypeOrders.size(); ++i) {
-    if (kLayerTypeOrders[i].first == kDense &&
-        kLayerTypeOrders[i].second == kOrder) {
-      if (kLayer != i) throw std::runtime_error("oops");
-    }
-  }
-  auto const& info = kImageInfos[kLayer];
-  if (info.channel_count * info.dimension * info.dimension != M)
-    throw std::runtime_error("oops");
-  auto const& info2 = kImageInfos[kLayer + 1];
-  if (info2.channel_count * info2.dimension * info2.dimension != N)
-    throw std::runtime_error("oops");
-#endif
-
-  auto const& para = context.para().dense_layer(kOrder);
-  auto const& weight = para.weight;
-  auto const& com_weight = context.para_com_pub().dense.d1;
-  auto const& com_weight_r = context.para_com_sec().dense.d1_r;
-  std::vector<Fr> x = context.const_images()[kLayer]->copy_vec();
-  auto const& com_x = context.image_com_pub().c[kLayer];
-  auto const& com_x_r = context.image_com_sec().r[kLayer];
-  std::vector<Fr> y = context.const_images()[kLayer + 1]->copy_vec();
-  auto const& com_y = context.image_com_pub().c[kLayer + 1];
-  auto const& com_y_r = context.image_com_sec().r[kLayer + 1];
-
-  ProveDenseInput<M, N> input(weight, com_weight, com_weight_r, std::move(x),
-                              com_x, com_x_r, std::move(y), com_y, com_y_r);
-
-  ProveDense<M, N>(seed, input, proof);
-
-  // dump the final result
-  for (size_t i = 0; i < N; ++i) {
-    namespace fp = circuit::fp;
-    double dx = fp::RationalToDouble<8, 24+24>(input.y[i]);
-    std::cout << std::right << std::setw(12) << std::setfill(' ') << dx;
-  }
-  std::cout << "\n";
 }
 }  // namespace clink::vgg16

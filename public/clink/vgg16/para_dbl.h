@@ -17,27 +17,27 @@ class Para {
 
   struct ConvLayer {
     ConvLayer(ConvLayerInfo const& info)
-        : order(info.order), dimension(info.dimension) {
-      coefs.resize(info.kernel_count);
+        : order(info.order), D(info.D) {
+      coefs.resize(info.K);
       for (auto& i : coefs) {
-        i.resize(info.channel_count);
+        i.resize(info.C);
       }
-      bias.resize(info.kernel_count);
+      bias.resize(info.K);
     }
     size_t const order;
-    size_t const dimension;
+    size_t const D;
     // size=K*C*3*3
     std::vector<std::vector<std::array<std::array<double, 3>, 3>>> coefs;
     std::vector<double> bias;  // size=K
-    size_t kernel_count() const { return bias.size(); }
-    size_t channel_count() const { return coefs[0].size(); }
+    size_t K() const { return bias.size(); }
+    size_t C() const { return coefs[0].size(); }
   };
 
   struct BnLayer {
     BnLayer(BnLayerInfo const& info) : order(info.order) {
-      mu.resize(info.channel_count);
-      alpha.resize(info.channel_count);
-      beta.resize(info.channel_count);
+      mu.resize(info.C);
+      alpha.resize(info.C);
+      beta.resize(info.C);
     }
     size_t const order;
     std::vector<double> mu;
@@ -263,12 +263,12 @@ struct Image {
 
   Image(ImageInfo const& info)
       : order(info.order),
-        pixels(boost::extents[info.channel_count][info.dimension]
-                             [info.dimension]) {
+        pixels(boost::extents[info.C][info.D]
+                             [info.D]) {
   }
 
-  size_t channel_count() const { return pixels.size(); }
-  size_t dimension() const { return pixels[0].size(); }
+  size_t C() const { return pixels.size(); }
+  size_t D() const { return pixels[0].size(); }
   void dump() const {
     for (size_t i = 0; i < pixels.size(); ++i) {
       for (size_t j = 0; j < pixels[0].size(); ++j) {
@@ -282,12 +282,12 @@ struct Image {
 };
 
 inline bool LoadTestImage(std::string const& path, Image& image) {
-  assert(image.channel_count() == 3);
+  assert(image.C() == 3);
   std::string line;
-  for (size_t c = 0; c < image.channel_count(); ++c) {
+  for (size_t c = 0; c < image.C(); ++c) {
     auto name = path + "/test_image_" + std::to_string(c) + ".txt";
     std::ifstream file(name);
-    for (size_t i = 0; i < image.dimension(); ++i) {
+    for (size_t i = 0; i < image.D(); ++i) {
       if (!std::getline(file, line)) {
         assert(false);
         return false;
@@ -298,7 +298,7 @@ inline bool LoadTestImage(std::string const& path, Image& image) {
       }
 
       std::istringstream iss(line);
-      for (size_t j = 0; j < image.dimension(); ++j) {
+      for (size_t j = 0; j < image.D(); ++j) {
         if (!(iss >> image.pixels[c][i][j])) {
           assert(false);
           return false;
@@ -311,17 +311,17 @@ inline bool LoadTestImage(std::string const& path, Image& image) {
 
 inline void InferConv(Para::ConvLayer const& layer,
                       Image const& input_image, Image& output_image) {
-  size_t const C = layer.channel_count();
-  size_t const D = layer.dimension;
-  size_t const K = layer.kernel_count();
+  size_t const C = layer.C();
+  size_t const D = layer.D;
+  size_t const K = layer.K();
 
-  assert(input_image.dimension() == D);
-  assert(input_image.channel_count() == C);
-  assert(output_image.dimension() == D);
-  assert(output_image.channel_count() == K);
+  assert(input_image.D() == D);
+  assert(input_image.C() == C);
+  assert(output_image.D() == D);
+  assert(output_image.C() == K);
 
   auto get_image = [&input_image](size_t h, size_t i, size_t j) -> double {
-    auto d = input_image.dimension();
+    auto d = input_image.D();
     if (i == 0 || j == 0 || i == (d + 1) || j == (d + 1)) return 0;
     return input_image.pixels[h][i - 1][j - 1];
   };

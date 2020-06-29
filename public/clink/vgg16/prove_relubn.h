@@ -130,23 +130,21 @@ inline void ReluBnBuildImages(ProveContext const& context,
 
   std::vector<Fr> combined_in_x;
   std::vector<Fr> combined_out_x;
-  images.resize(kBnLayerInfos.size() * 2 + 2);
-  for (size_t l = 0; l < kLayerTypeOrders.size(); ++l) {
-    auto layer_type = kLayerTypeOrders[l].first;
-    auto layer_order = kLayerTypeOrders[l].second;
-    if (layer_type != kReluBn) continue;
-    ReluBnImage& in = images[2 + layer_order * 2];
-    in.x = const_images[l]->copy_vec();
+  images.resize(kReluBnLayers.size() * 2 + 2);
+  for (size_t order = 0; order < kReluBnLayers.size(); ++order) {
+    auto layer = kReluBnLayers[order];
+    ReluBnImage& in = images[2 + order * 2];
+    in.x = const_images[layer]->copy_vec();
     in.type = ReluBnImageType::kInput;
-    in.com_x = com_images[l];
-    in.com_x_r = com_images_r[l];
+    in.com_x = com_images[layer];
+    in.com_x_r = com_images_r[layer];
     combined_in_x.insert(combined_in_x.end(), in.x.begin(), in.x.end());
 
-    ReluBnImage& out = images[2 + layer_order * 2 + 1];
-    out.x = const_images[l + 1]->copy_vec();
+    ReluBnImage& out = images[2 + order * 2 + 1];
+    out.x = const_images[layer + 1]->copy_vec();
     out.type = ReluBnImageType::kOutput;
-    out.com_x = com_images[l + 1];
-    out.com_x_r = com_images_r[l + 1];
+    out.com_x = com_images[layer + 1];
+    out.com_x_r = com_images_r[layer + 1];
     combined_out_x.insert(combined_out_x.end(), out.x.begin(), out.x.end());
   }
 
@@ -209,31 +207,29 @@ inline void ReluBnInOutProve(h256_t seed, ProveContext const& context,
 
 inline void ReluBnBuildPara(ProveContext const& context, std::vector<Fr>& alpha,
                             std::vector<Fr>& beta, std::vector<Fr>& mu) {
-  for (size_t i = 0; i < kLayerTypeOrders.size(); ++i) {
-    if (kLayerTypeOrders[i].first != kReluBn) continue;
-    size_t C = kImageInfos[i].channel_count;
-    size_t D = kImageInfos[i].dimension;
-    auto order = kLayerTypeOrders[i].second;
+  for (size_t order = 0; order < kReluBnLayers.size(); ++order) {
+    auto layer = kReluBnLayers[order];
+    size_t C = kImageInfos[layer].C;
+    size_t D = kImageInfos[layer].D;
     auto const& para = context.para().bn_layer(order);
     if (C != para.alpha.size()) throw std::runtime_error("oops");
     for (size_t j = 0; j < para.alpha.size(); ++j) {
       // repeat DD times
-      for (size_t k = 0; k < D*D; ++k) {
+      for (size_t k = 0; k < D * D; ++k) {
         alpha.push_back(para.alpha[j]);
         beta.push_back(para.beta[j]);
         mu.push_back(para.mu[j]);
       }
-    }    
+    }
   }
 }
 
 inline size_t ReluBnGetCircuitCount() {
   size_t size = 0;
-  for (size_t l = 0; l < kLayerTypeOrders.size(); ++l) {
-    auto layer_type = kLayerTypeOrders[l].first;
-    if (layer_type != kReluBn) continue;
-    size_t C = kImageInfos[l].channel_count;
-    size_t D = kImageInfos[l].dimension;
+  for (size_t order = 0; order < kReluBnLayers.size(); ++order) {
+    auto layer = kReluBnLayers[order];
+    size_t C = kImageInfos[layer].C;
+    size_t D = kImageInfos[layer].D;
     size += C * D * D;
   }
   return size;

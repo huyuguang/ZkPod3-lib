@@ -12,22 +12,20 @@ inline bool ReluBnInOutVerify(h256_t seed, VerifyContext const& context,
     return false;
   }
 
-  if (io_proof.ip_proofs.size() != kBnLayerInfos.size() * 2 + 2) {
+  if (io_proof.ip_proofs.size() != kReluBnLayers.size() * 2 + 2) {
     std::cout << __FN__ << ": " << __LINE__ << ": proof invalid\n";
     return false;
   }
 
-  for (size_t l = 0; l < kLayerTypeOrders.size(); ++l) {
-    auto layer_type = kLayerTypeOrders[l].first;
-    auto layer_order = kLayerTypeOrders[l].second;
-    if (layer_type != kReluBn) continue;
-    if (context.image_com_pub().c[l] !=
-        io_proof.ip_com_pubs[2 + layer_order * 2].xi) {
+  for (size_t order = 0; order < kReluBnLayers.size(); ++order) {
+    auto layer = kReluBnLayers[order];
+    if (context.image_com_pub().c[layer] !=
+        io_proof.ip_com_pubs[2 + order * 2].xi) {
       std::cout << __FN__ << ": " << __LINE__ << ": proof invalid\n";
       return false;
     }
-    if (context.image_com_pub().c[l + 1] !=
-        io_proof.ip_com_pubs[2 + layer_order * 2 + 1].xi) {
+    if (context.image_com_pub().c[layer + 1] !=
+        io_proof.ip_com_pubs[2 + order * 2 + 1].xi) {
       std::cout << __FN__ << ": " << __LINE__ << ": proof invalid\n";
       return false;
     }
@@ -54,14 +52,12 @@ inline bool ReluBnInOutVerify(h256_t seed, VerifyContext const& context,
 
   std::vector<std::vector<Fr>> a(io_proof.ip_proofs.size());
   size_t total_size = 0;
-  for (size_t l = 0; l < kLayerTypeOrders.size(); ++l) {
-    auto layer_type = kLayerTypeOrders[l].first;
-    auto layer_order = kLayerTypeOrders[l].second;
-    if (layer_type != kReluBn) continue;
-    auto const& info = kImageInfos[l];
-    auto size = info.channel_count * info.dimension * info.dimension;
-    a[2 + layer_order * 2].resize(size);
-    a[2 + layer_order * 2 + 1].resize(size);
+  for (size_t order = 0; order < kReluBnLayers.size(); ++order) {
+    auto layer = kReluBnLayers[order];
+    auto const& info = kImageInfos[layer];
+    auto size = info.C * info.D * info.D;
+    a[2 + order * 2].resize(size);
+    a[2 + order * 2 + 1].resize(size);
     total_size += size;
   }  
   a[0].resize(total_size);

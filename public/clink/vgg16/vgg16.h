@@ -64,12 +64,12 @@ inline bool TestDense(std::string const& working_path) {
   VerifyContext verify_context(working_path + "/pub");
   
   DenseProof proof0;
-  DenseProve0(seed, prove_context, proof0);
-  if (!DenseVerify0(seed, verify_context, proof0)) return false;
+  DenseProve<0>(seed, prove_context, proof0);
+  if (!DenseVerify<0>(seed, verify_context, proof0)) return false;
 
   DenseProof proof1;
-  DenseProve1(seed, prove_context, proof1);
-  if (!DenseVerify1(seed, verify_context, proof1)) return false;
+  DenseProve<1>(seed, prove_context, proof1);
+  if (!DenseVerify<1>(seed, verify_context, proof1)) return false;
   
   return true;
 }
@@ -82,14 +82,15 @@ inline bool TestAll(std::string const& test_image_path, std::string const& worki
 }
 
 inline bool Test(std::string const& working_path) {
+
   bool ret = false;
   //ret = Publish("E:/code/crypto/pod_doc/vgg16_2/features", working_path);
   // ret =TestInfer("E:/code/crypto/pod_doc/vgg16_2/test_image", working_path);
   //ret =TestConv(working_path);
   //ret= TestReluBn(working_path);
   //ret= TestPooling(working_path);
-  //ret = TestDense(working_path);
-  ret = TestAll("E:/code/crypto/pod_doc/vgg16_2/features", working_path);
+  ret = TestDense(working_path);
+  //ret = TestAll("E:/code/crypto/pod_doc/vgg16_2/features", working_path);
   return ret;
 }
 }  // namespace clink::vgg16

@@ -14,17 +14,17 @@ inline void InferConv(Para::ConvLayer const& layer, Image const& input_image,
                       Image& output_image) {
   Tick tick(__FN__);
   namespace fp = circuit::fp;
-  size_t const C = layer.channel_count();
-  size_t const D = layer.dimension;
-  size_t const K = layer.kernel_count();
+  size_t const C = layer.C();
+  size_t const D = layer.D;
+  size_t const K = layer.K();
 
-  assert(input_image.dimension() == D);
-  assert(input_image.channel_count() == C);
-  assert(output_image.dimension() == D);
-  assert(output_image.channel_count() == K);
+  assert(input_image.D() == D);
+  assert(input_image.C() == C);
+  assert(output_image.D() == D);
+  assert(output_image.C() == K);
 
   auto get_image = [&input_image](size_t h, size_t i, size_t j) -> Fr const& {
-    auto d = input_image.dimension();
+    auto d = input_image.D();
     if (i == 0 || j == 0 || i == (d + 1) || j == (d + 1)) return FrZero();
     return input_image.pixels[h][i - 1][j - 1];
   };
