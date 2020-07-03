@@ -269,84 +269,53 @@ struct Para {
 
 struct Image {
   size_t const order;
-  boost::multi_array<Fr, 3> pixels; // TODO: change to normal vector  
+  std::vector<Fr> data;
+  boost::multi_array_ref<Fr, 3> pixels;
   Image(ImageInfo const& info)
       : order(info.order),
-        pixels(boost::extents[info.C][info.D]
-                             [info.D]) {
-  }
+        data(info.size()),
+        pixels(data.data(), boost::extents[info.C][info.D][info.D]) {}
 
   Image(dbl::Image const& dbl)
       : order(dbl.order),
-        pixels(boost::extents[dbl.C()][dbl.D()]
-                             [dbl.D()]) {
+        data(dbl.size()),
+        pixels(data.data(), boost::extents[dbl.C()][dbl.D()][dbl.D()]) {
     namespace fp = circuit::fp;
-    for (size_t i = 0; i < pixels.size(); ++i) {
-      for (size_t j = 0; j < pixels[0].size(); ++j) {
-        for (size_t k = 0; k < pixels[0][0].size(); ++k) {
-          pixels[i][j][k] = fp::DoubleToRational<8, 24>(dbl.pixels[i][j][k]);
-        }
-      }
+    for (size_t i = 0; i < dbl.size(); ++i) {
+      data[i] = fp::DoubleToRational<8, 24>(dbl.data[i]);
     }
-  }
-
-  std::vector<Fr> copy_vec() const {
-    return std::vector<Fr>(pixels.data(),
-                           pixels.data() + pixels.num_elements());
-  }
+  }  
 
   bool operator==(Image const& b) const {
-    return order == b.order && pixels == b.pixels;
+    return order == b.order && data == b.data && C() == b.C() && D() == b.D();
   }
 
   bool operator!=(Image const& b) const { return !(*this == b); }
 
   template <typename Ar>
   void serialize(Ar& ar) const {
-    std::vector<Fr> data = copy_vec();
-    ar& YAS_OBJECT_NVP("vgg16.image", ("p", data));
+    ar& YAS_OBJECT_NVP("vgg16.image", ("d", data));
   }
   template <typename Ar>
   void serialize(Ar& ar) {
-    std::vector<Fr> data;
-    ar& YAS_OBJECT_NVP("vgg16.image", ("p", data));
-    if (data.size() != total_size()) {
-      throw std::runtime_error("oops");
-    }
+    ar& YAS_OBJECT_NVP("vgg16.image", ("d", data));
+    auto c = C();
     auto d = D();
-    for (size_t i = 0; i < pixels.size(); ++i) {
-      for (size_t j = 0; j < pixels[0].size(); ++j) {
-        for (size_t k = 0; k < pixels[0][0].size(); ++k) {
-          pixels[i][j][k] = data[i * d * d + j * d + k];
-        }
-      }
-    }
+    if (c * d * d != data.size()) throw std::runtime_error("oops");
+    pixels =
+        boost::multi_array_ref<Fr, 3>(data.data(), boost::extents[c][d][d]);
   }
 
-  size_t C() const { return pixels.size(); }
-  size_t D() const { return pixels[0].size(); }
-  size_t total_size() const { return pixels.num_elements(); }
-
-  Fr const& get(size_t offset) const {
-    size_t DD = D() * D();
-    size_t i = offset / DD;
-    size_t ii = offset % DD;
-    size_t j = ii / D();
-    size_t k = ii % D();
-    return pixels[i][j][k];
-  }
+  size_t size() const { return data.size(); }
+  size_t C() const { return pixels.shape()[0]; }
+  size_t D() const { return pixels.shape()[1]; }
 
   template<size_t D, size_t N>
   void dump() const {
-    namespace fp = circuit::fp;   
-    for (size_t i = 0; i < pixels.size(); ++i) {
-      for (size_t j = 0; j < pixels[0].size(); ++j) {
-        for (size_t k = 0; k < pixels[0][0].size(); ++k) {
-          Fr const& data = pixels[i][j][k];
-          double dbl_data = fp::RationalToDouble<D, N>(data);
-          std::cout << dbl_data << ";";
-        }
-      }
+    namespace fp = circuit::fp;
+    for (auto const& i : data) {
+      double di = fp::RationalToDouble<D, N>(i);
+      std::cout << di << ";";
     }
     std::cout << "\n\n";
   }

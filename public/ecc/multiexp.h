@@ -104,8 +104,8 @@ G MultiExpBdlo12Inner(GET_G const& get_g, GET_F const& get_f, size_t n) {
 }
 
 template <typename G, typename GET_G, typename GET_F>
-G MultiExpBdlo12(GET_G const& get_g, GET_F const& get_f, size_t n,
-                 bool check_01 = false) {
+G MultiExpBdlo12Inner(GET_G const& get_g, GET_F const& get_f, size_t n,
+                 bool check_01) {
   if (!check_01) {
     return MultiExpBdlo12Inner<G>(get_g, get_f, n);
   } else {
@@ -140,6 +140,62 @@ G MultiExpBdlo12(GET_G const& get_g, GET_F const& get_f, size_t n,
     }
     return ret;
   }
+}
+
+template <typename G, typename GET_G, typename GET_F>
+G ParallelMultiExpBdlo12Inner(GET_G const& get_g, GET_F const& get_f, size_t n,
+                         bool check_01 = false) {
+  auto thread_num = parallel::tbb_thread_num;
+  if (thread_num <= 1 || (int64_t)n < thread_num) {
+    return MultiExpBdlo12Inner<G, GET_G, GET_F>(get_g, get_f, n, check_01);
+  }
+  
+  struct Item {
+    size_t begin;
+    size_t end;
+    G1 ret;
+  };
+
+  if (thread_num > 4) thread_num = 4;
+
+  auto size = n / thread_num;
+  std::vector<Item> items(thread_num);
+  for (int i = 0; i < thread_num; ++i) {
+    auto& item = items[i];
+    item.begin = i * size;
+    item.end = item.begin + size;
+  }
+  items.back().end = n;
+
+  auto f = [check_01, &items, &get_g, &get_f](int64_t i) {
+    auto& item = items[i];
+    auto item_get_g = [&get_g, &item](int64_t j) -> decltype(get_g(0)) {
+      return get_g(j + item.begin);
+    };
+    auto item_get_f = [&get_f, &item](int64_t j) -> decltype(get_f(0)) {
+      return get_f(j + item.begin);
+    };
+
+    item.ret = MultiExpBdlo12Inner<G>(item_get_g, item_get_f, item.end - item.begin,
+                                 check_01);
+  };
+  parallel::For(items.size(), f);
+
+  G ret;
+  ret.clear();
+
+  return parallel::Accumulate(
+      items.begin(), items.end(), ret,
+      [](G const& a, Item const& b) { return a + b.ret; });
+}
+
+template <typename G, typename GET_G, typename GET_F>
+G MultiExpBdlo12(GET_G const& get_g, GET_F const& get_f, size_t n,
+                 bool check_01 = false) {
+  if (n > 2000000)
+    return ParallelMultiExpBdlo12Inner<G>(get_g, get_f, n, check_01);
+
+  return MultiExpBdlo12Inner<G>(get_g, get_f, n, check_01);
 }
 
 template <typename G, typename GET_G>

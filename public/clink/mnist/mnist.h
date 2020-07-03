@@ -526,7 +526,7 @@ struct Mnist {
       assert(com == pc::PcComputeCommitmentG(data, com_r));
 #endif
 
-      for (int64_t j = 0; j < N; ++j) {
+      for (int64_t j = 0; j < (int64_t)N; ++j) {
         gadget.Assign(data[j]);
         assert(pb.is_satisfied());
         auto v = pb.full_variable_assignment();

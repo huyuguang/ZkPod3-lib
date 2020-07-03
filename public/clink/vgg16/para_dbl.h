@@ -259,23 +259,20 @@ class Para {
 
 struct Image {
   size_t const order;
-  boost::multi_array<double, 3> pixels;
+  std::vector<double> data;
+  boost::multi_array_ref<double, 3> pixels;
 
   Image(ImageInfo const& info)
       : order(info.order),
-        pixels(boost::extents[info.C][info.D]
-                             [info.D]) {
-  }
+        data(info.size()),
+        pixels(data.data(), boost::extents[info.C][info.D][info.D]) {}
 
+  size_t size() const { return data.size(); }
   size_t C() const { return pixels.size(); }
   size_t D() const { return pixels[0].size(); }
   void dump() const {
-    for (size_t i = 0; i < pixels.size(); ++i) {
-      for (size_t j = 0; j < pixels[0].size(); ++j) {
-        for (size_t k = 0; k < pixels[0][0].size(); ++k) {
-          std::cout << pixels[i][j][k] << ";";
-        }
-      }
+    for (auto i : data) {
+      std::cout << i << ";";
     }
     std::cout << "\n\n";
   }
@@ -289,6 +286,7 @@ inline bool LoadTestImage(std::string const& path, Image& image) {
     std::ifstream file(name);
     for (size_t i = 0; i < image.D(); ++i) {
       if (!std::getline(file, line)) {
+        std::cerr << "read file " << path << " failed\n";
         assert(false);
         return false;
       }
@@ -300,6 +298,7 @@ inline bool LoadTestImage(std::string const& path, Image& image) {
       std::istringstream iss(line);
       for (size_t j = 0; j < image.D(); ++j) {
         if (!(iss >> image.pixels[c][i][j])) {
+          std::cerr << "read file " << path << " failed, data invalid\n";
           assert(false);
           return false;
         }

@@ -28,7 +28,9 @@ CSV_HOME = ../thirdparty/csv
 PUB_HOME = ../public
 SNARK_HOME = ../depends/libsnark
 FF_HOME = $(SNARK_HOME)/depends/libff
+FQFFT_HOME = $(SNARK_HOME)/depends/libfqfft
 MCL_HOME = $(SNARK_HOME)/depends/mcl
+#SNARK_LIB_HOME = ../depends/install/lib
 
 CXXFLAGS := \
  -g3 \
@@ -47,6 +49,7 @@ CXXFLAGS := \
  -isystem $(SNARK_HOME) \
  -isystem $(MCL_HOME)/include \
  -isystem $(FF_HOME) \
+ -isystem $(FQFFT_HOME) \
  -isystem $(YAS_HOME) \
  -isystem $(CSV_HOME) \
  -isystem $(THIRD_PARTY_HOME) \
@@ -57,16 +60,17 @@ CXXFLAGS := \
 MCL_FLAGS := \
  -DMCL_DONT_USE_OPENSSL
 
- BOOST_FLAGS := \
+BOOST_FLAGS := \
  -DBOOST_SPIRIT_THREADSAFE 
 
 SNARK_FLAGS = \
  -DBN_SUPPORT_SNARK=1 \
  -DNO_PT_COMPRESSION=1 \
  -DCURVE_MCL_BN128 \
- -DMULTICORE=1 \
  -DUSE_ASM \
  -DNO_PROCPS \
+ -DUSE_MCL_FR_DIRECTLY \
+# -DMULTICORE=1 \
 
 RELEASE_FLAGS := \
  -O3 \
@@ -79,7 +83,8 @@ DEBUG_FLAGS := \
  -DLINUX \
  
 LDFLAGS += \
- -fmerge-all-constants
+ -fmerge-all-constants \
+# -L$(SNARK_LIB_HOME)
 
 LIBS := \
  -lpthread \
@@ -94,6 +99,8 @@ LIBS := \
  -ltbb \
  -ltbbmalloc_proxy \
  -ltbbmalloc \
+ #-lff \
+ #-lsnark \
 
 ifeq ($(OS_TYPE),Darwin)
   TMPVAR := $(LIBS)

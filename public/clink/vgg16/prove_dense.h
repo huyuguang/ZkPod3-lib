@@ -158,10 +158,10 @@ void DenseProve(h256_t seed, ProveContext const& context,
   auto const& weight = para.weight;
   auto const& com_weight = context.para_com_pub().dense.get<kOrder>();
   auto const& com_weight_r = context.para_com_sec().dense.get<kOrder>();
-  std::vector<Fr> x = context.const_images()[kLayer]->copy_vec();
+  std::vector<Fr> x = context.const_images()[kLayer]->data;
   auto const& com_x = context.image_com_pub().c[kLayer];
   auto const& com_x_r = context.image_com_sec().r[kLayer];
-  std::vector<Fr> y = context.const_images()[kLayer + 1]->copy_vec();
+  std::vector<Fr> y = context.const_images()[kLayer + 1]->data;
   auto const& com_y = context.image_com_pub().c[kLayer + 1];
   auto const& com_y_r = context.image_com_sec().r[kLayer + 1];
 

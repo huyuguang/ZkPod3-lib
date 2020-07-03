@@ -38,38 +38,9 @@ class AuxiPub {
     Tick tick(__FN__);
     InitPtr();
 
-    if (!Load(file)) {
+    if (!YasLoadBin(file, *this)) {
       throw std::invalid_argument("invalid auxi file: " + file);
     }
-  }
-
-  bool Save(std::string const& file) const {
-    Tick tick(__FN__);
-    try {
-      boost::system::error_code dummy;
-      fs::remove(file);
-      yas::file_ostream os(file.c_str());
-      yas::binary_oarchive<yas::file_ostream, YasBinF()> oa(os);
-      oa.serialize(*this);
-    } catch (std::exception& e) {
-      std::cerr << e.what() << "\n";
-      return false;
-    }
-
-#ifdef _DEBUG_CHECK
-    try {
-      AuxiPub check(file);
-      if (check != *this) {
-        std::cout << "oops\n";
-        return false;
-      }
-    } catch (std::exception& e) {
-      std::cerr << e.what() << "\n";
-      return false;
-    }
-#endif
-
-    return true;
   }
 
   bool operator==(AuxiPub const& b) const {

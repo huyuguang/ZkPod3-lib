@@ -22,6 +22,10 @@ struct R1csInfo {
   int64_t num_constraints;
   int64_t num_variables;
   libsnark::r1cs_constraint_system<Fr> constraint_system;
+  std::string to_string() const {
+    return "R1csInfo: num_constraints: " + std::to_string(num_constraints) +
+           ", num_variables: " + std::to_string(num_variables);
+  }
 };
 
 template <typename Policy>
@@ -218,11 +222,21 @@ struct ParallelR1cs {
                          G1& com_pub, Fr& com_sec, G1 const& sigma_g) {
     // Tick tick(__FN__);
     for (auto const& term : lc.terms) {
-      if (term.index == 0) {  // constants
-        com_pub += sigma_g * term.coeff;
+      if (term.coeff == FrZero()) continue;
+      if (term.coeff == FrOne()) {
+        if (term.index == 0) {  // constants
+          com_pub += sigma_g;
+        } else {
+          com_pub += com_w[term.index - 1];
+          com_sec += com_w_r[term.index - 1];
+        }
       } else {
-        com_pub += com_w[term.index - 1] * term.coeff;
-        com_sec += com_w_r[term.index - 1] * term.coeff;
+        if (term.index == 0) {  // constants
+          com_pub += sigma_g * term.coeff;
+        } else {
+          com_pub += com_w[term.index - 1] * term.coeff;
+          com_sec += com_w_r[term.index - 1] * term.coeff;
+        }
       }
     }
   }
@@ -309,10 +323,19 @@ struct ParallelR1cs {
                          G1& com_pub, G1 const& sigma_g) {
     // Tick tick(__FN__);
     for (auto const& term : lc.terms) {
-      if (term.index == 0) {  // constants
-        com_pub += sigma_g * term.coeff;
+      if (term.coeff == FrZero()) continue;
+      if (term.coeff == FrOne()) {
+        if (term.index == 0) {  // constants
+          com_pub += sigma_g;
+        } else {
+          com_pub += com_w[term.index - 1];
+        }
       } else {
-        com_pub += com_w[term.index - 1] * term.coeff;
+        if (term.index == 0) {  // constants
+          com_pub += sigma_g * term.coeff;
+        } else {
+          com_pub += com_w[term.index - 1] * term.coeff;
+        }
       }
     }
   }

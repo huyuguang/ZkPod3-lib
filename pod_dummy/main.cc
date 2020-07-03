@@ -12,7 +12,7 @@
 #include "debug/flags.h"
 #include "ecc/ecc.h"
 #include "groth09/groth09.h"
-#include "iop/iop.h"
+//#include "iop/iop.h"
 #include "log/tick.h"
 #include "misc/misc.h"
 #include "public.h"
@@ -181,7 +181,8 @@ int main(int argc, char** argv) {
   int64_t mcl_n = 0;
   Param2Str vgg16_publish;
   Param2Str vgg16_infer;
-  std::string vgg16_test;
+  Param2Str vgg16_prove;
+  bool vgg16_test = false;
 
   try {
     po::options_description options("command line options");
@@ -226,11 +227,11 @@ int main(int argc, char** argv) {
         "disable_vrs_cache", "")("mcl", po::value<int64_t>(&mcl_n), "")(
         "opening", "")("equality", "")("vcp_mnist", "")("iop", "")(
         "vgg16_publish", po::value<Param2Str>(&vgg16_publish),
-        "\"para_path working_path\"")(
+        "\"para_path working_path\", ex: /vgg16/features /temp/vgg16")(
         "vgg16_infer", po::value<Param2Str>(&vgg16_infer),
-        "\"image_path working_path\"")(
-        "vgg16_test", po::value<std::string>(&vgg16_test),
-        "working_path");
+        "\"test_image_path working_path\"")(
+        "vgg16_prove", po::value<Param2Str>(&vgg16_prove),
+        "test_image_path working_path")("vgg16_test", "");
 
     boost::program_options::variables_map vmap;
 
@@ -291,6 +292,10 @@ int main(int argc, char** argv) {
 
     if (vmap.count("iop")) {
       iop = true;
+    }
+
+    if (vmap.count("vgg16_test")) {
+      vgg16_test = true;
     }
   } catch (std::exception& e) {
     std::cout << "Unknown parameters.\n"
@@ -649,7 +654,12 @@ int main(int argc, char** argv) {
   }
 
   if (iop) {
-    rets["iop"] = iop::Test();
+    std::cerr << "not support\n";
+    //rets["iop"] = iop::Test();
+  }
+
+  if (vgg16_test) {
+    rets["vgg16_test"] = clink::vgg16::Test();
   }
 
   if (vgg16_publish.valid()) {
@@ -663,9 +673,9 @@ int main(int argc, char** argv) {
         vgg16_infer.s1, vgg16_infer.s2);
   }
 
-  if (!vgg16_test.empty()) {
-    rets["vgg16_test"] = clink::vgg16::Test(
-        vgg16_test);
+  if (vgg16_prove.valid()) {
+    rets["vgg16_prove"] = clink::vgg16::TestProve(
+        vgg16_prove.s1, vgg16_prove.s2);
   }
 
   std::cout << "\n=============================\n";

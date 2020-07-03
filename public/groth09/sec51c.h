@@ -90,29 +90,36 @@ struct Sec51c {
                     CommitmentPub const& com_pub,
                     CommitmentSec const& com_sec) {
     UpdateSeed(seed, com_pub, input.t);
-
-    // prove yt = <y o t>
     Fr com_yt_r = FrRand();
     proof.com_yt = pc::PcComputeCommitmentG(input.get_gyt, input.yt, com_yt_r);
     UpdateSeed(seed, proof.com_yt);
-    ProveYt(proof, seed, input, com_pub, com_sec, com_yt_r);
 
-    // now we have com(yt_g_offset, yt, com_yt_r), want to prove <x, yt> == z
-    std::vector<G1> g1 = pc::CopyG(input.get_gx, input.n());
-    std::vector<G1> g2 = pc::CopyG(input.get_gyt, input.n());
-    std::vector<Fr> x_copy = input.x;
-    std::vector<Fr> yt_copy = input.yt;
-    bp::p31::ProveInput input_bp(std::move(g1), std::move(g2), pc::PcH(),
-                                input.gz, std::move(x_copy),
-                                std::move(yt_copy), input.z);
-    bp::p31::CommitmentPub com_pub_bp;
-    bp::p31::CommitmentSec com_sec_bp;
-    com_sec_bp.alpha = com_sec.r + com_yt_r;
-    com_sec_bp.beta = com_sec.t;
-    com_pub_bp.p = com_pub.a + proof.com_yt;
-    com_pub_bp.q = com_pub.c;
-    bp::p31::Prove(proof.proof_bp, seed, std::move(input_bp), com_pub_bp,
-                  com_sec_bp);
+    std::array<parallel::Task, 2> tasks;
+    
+    tasks[0] = [&proof,&seed,&input,&com_pub,&com_sec,&com_yt_r]() {
+      // prove yt = <y o t>
+      ProveYt(proof, seed, input, com_pub, com_sec, com_yt_r);
+    };
+
+    tasks[1] = [&input, &com_pub, &com_sec, &proof, &com_yt_r, &seed]() {
+      // now we have com(yt_g_offset, yt, com_yt_r), want to prove <x, yt> == z
+      std::vector<G1> g1 = pc::CopyG(input.get_gx, input.n());
+      std::vector<G1> g2 = pc::CopyG(input.get_gyt, input.n());
+      std::vector<Fr> x_copy = input.x;
+      std::vector<Fr> yt_copy = input.yt;
+      bp::p31::ProveInput input_bp(std::move(g1), std::move(g2), pc::PcH(),
+                                   input.gz, std::move(x_copy),
+                                   std::move(yt_copy), input.z);
+      bp::p31::CommitmentPub com_pub_bp;
+      bp::p31::CommitmentSec com_sec_bp;
+      com_sec_bp.alpha = com_sec.r + com_yt_r;
+      com_sec_bp.beta = com_sec.t;
+      com_pub_bp.p = com_pub.a + proof.com_yt;
+      com_pub_bp.q = com_pub.c;
+      bp::p31::Prove(proof.proof_bp, seed, std::move(input_bp), com_pub_bp,
+                     com_sec_bp);
+    };
+    parallel::Invoke(tasks);
   }
 
   struct VerifyInput {
@@ -154,20 +161,33 @@ struct Sec51c {
                      VerifyInput const& input) {
     UpdateSeed(seed, input.com_pub, input.t);
     UpdateSeed(seed, proof.com_yt);
-    if (!VerifyYt(proof, seed, input)) {
+
+    std::array<std::atomic<bool>, 2> rets;
+    std::array<parallel::Task, 2> tasks;
+    
+    tasks[0] = [&rets, &proof, &seed, &input]() {
+      rets[0] = VerifyYt(proof, seed, input);
+      assert(rets[0]);
+    };
+
+    tasks[1] = [&rets, &input, &proof, &seed]() {
+      std::vector<G1> g1 = pc::CopyG(input.get_gx, input.n());
+      std::vector<G1> g2 = pc::CopyG(input.get_gyt, input.n());
+      bp::p31::CommitmentPub com_pub_bp;
+      com_pub_bp.p = input.com_pub.a + proof.com_yt;
+      com_pub_bp.q = input.com_pub.c;
+      bp::p31::VerifyInput input_p3(std::move(g1), std::move(g2), pc::PcH(),
+                                    input.gz, com_pub_bp);
+      rets[1] = bp::p31::Verify(proof.proof_bp, seed, std::move(input_p3));
+    };
+
+    parallel::Invoke(tasks);
+
+    if (!rets[0] || !rets[1]) {
       assert(false);
       return false;
     }
-
-    std::vector<G1> g1 = pc::CopyG(input.get_gx, input.n());
-    std::vector<G1> g2 = pc::CopyG(input.get_gyt, input.n());
-    bp::p31::CommitmentPub com_pub_bp;
-    com_pub_bp.p = input.com_pub.a + proof.com_yt;
-    com_pub_bp.q = input.com_pub.c;
-    bp::p31::VerifyInput input_p3(std::move(g1), std::move(g2), pc::PcH(),
-                                 input.gz, com_pub_bp);
-
-    return bp::p31::Verify(proof.proof_bp, seed, std::move(input_p3));
+    return true;
   }
 
   static void ComputeCom(CommitmentPub& com_pub, CommitmentSec& com_sec,

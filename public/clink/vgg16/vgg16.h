@@ -11,7 +11,11 @@
 
 namespace clink::vgg16 {
 
-// --vgg16_infer "E:/code/crypto/pod_doc/vgg16_2/test_image e:/vgg16_publish"
+inline bool TestPublish(std::string const& para_path,
+                    std::string const& working_path) {
+  return Publish(para_path, working_path);
+}
+
 inline bool TestInfer(std::string const& test_image_path,
                std::string const& working_path) {
   return InferAndCommit(test_image_path, working_path);
@@ -74,23 +78,85 @@ inline bool TestDense(std::string const& working_path) {
   return true;
 }
 
-inline bool TestAll(std::string const& test_image_path, std::string const& working_path) {
+inline bool TestProve(std::string const& test_image_path,
+                    std::string const& working_path) {
+  Tick tick(__FN__);
   h256_t seed = misc::RandH256();
   Proof proof;
   if (!Prove(seed, test_image_path, working_path, proof)) return false;
-  return Verify(seed, working_path + "/pub", proof);  
+  YasSaveBin(working_path + "/proof", proof);
+  return Verify(seed, working_path + "/pub", proof);
 }
 
-inline bool Test(std::string const& working_path) {
-
-  bool ret = false;
-  //ret = Publish("E:/code/crypto/pod_doc/vgg16_2/features", working_path);
-  // ret =TestInfer("E:/code/crypto/pod_doc/vgg16_2/test_image", working_path);
-  //ret =TestConv(working_path);
-  //ret= TestReluBn(working_path);
-  //ret= TestPooling(working_path);
-  ret = TestDense(working_path);
-  //ret = TestAll("E:/code/crypto/pod_doc/vgg16_2/features", working_path);
-  return ret;
+inline bool TestSerialize(std::string const& working_path) {
+  try {
+    Proof proof(working_path + "/proof");
+    std::cout << "proof: " << YasGetBinLen(proof) << "\n";
+    for (size_t i = 0; i < proof.conv.size(); ++i) {
+      std::cout << "proof conv " << i << ": " << YasGetBinLen(proof.conv[i])
+                << "\n";
+      std::cout << "\t input:" << YasGetBinLen(proof.conv[i].input) << "\n";
+      std::cout << "\t r1cs:" << YasGetBinLen(proof.conv[i].r1cs) << "\n";
+      std::cout << "\t output:" << YasGetBinLen(proof.conv[i].output) << "\n";
+    }
+    std::cout << "proof relubn: " << YasGetBinLen(proof.relubn) << "\n";
+    std::cout << "\t inout: " << YasGetBinLen(proof.relubn.inout) << "\n";
+    std::cout << "\t r1cs: " << YasGetBinLen(proof.relubn.r1cs) << "\n";
+    std::cout << "proof pooling: " << YasGetBinLen(proof.pooling) << "\n";
+    std::cout << "\t input: " << YasGetBinLen(proof.pooling.input) << "\n";
+    std::cout << "\t r1cs: " << YasGetBinLen(proof.pooling.r1cs) << "\n";
+    std::cout << "\t output: " << YasGetBinLen(proof.pooling.output) << "\n";
+    std::cout << "proof dense0: " << YasGetBinLen(proof.dense0) << "\n";
+    std::cout << "proof dense1: " << YasGetBinLen(proof.dense1) << "\n";
+    return true;
+  } catch (std::exception& e) {
+    std::cerr << __FN__ << ": " << __LINE__ << " " << e.what() << "\n";
+    return false;
+  }
 }
+//
+//// "E:/code/crypto/pod_doc/vgg16_2/test_image"
+//inline bool TestProve(std::string const& test_image_path,
+//                      std::string const& working_path) {
+//  Tick tick(__FN__);
+//
+//  bool ret = false;
+//
+//  //ret = Publish("E:/code/crypto/pod_doc/vgg16_2/features", working_path);
+//  // ret =TestInfer("E:/code/crypto/pod_doc/vgg16_2/test_image", working_path);
+//  //ret =TestConv(working_path);
+//  // ret= TestReluBn(working_path);
+//  //ret= TestPooling(working_path);
+//  //ret = TestDense(working_path);
+//  ret = TestAll(test_image_path, working_path);
+//  //ret = TestSerialize(working_path);
+//  return ret;
+//}
+
+inline bool Test() {
+#ifdef _WIN32
+  std::string test_image_path = "../../../../data/vgg16/test_image";
+  std::string working_path = "../../../../data/vgg16/working";
+  std::string features_path = "../../../../data/vgg16/features";
+#else
+  std::string test_image_path = "../../data/vgg16/test_image";
+  std::string working_path = "../../data/vgg16/working";
+  std::string features_path = "../../data/vgg16/features";
+#endif
+
+  if (!fs::is_directory(working_path) &&
+      !fs::create_directories(working_path)) {
+    std::cerr << "Create " << working_path << " failed\n";
+    return false;
+  }
+
+  boost::system::error_code ec;
+  if (!fs::is_directory(working_path + "/pub", ec) ||
+      !fs::is_directory(working_path + "/sec", ec)) {
+    Publish(features_path, working_path);
+  }
+
+  return TestProve(test_image_path, working_path);
+}
+
 }  // namespace clink::vgg16

@@ -2,8 +2,10 @@
 
 #include "./context.h"
 #include "./image_com.h"
+#include "./policy.h"
 #include "circuit/vgg16/vgg16.h"
 #include "clink/equal_ip.h"
+#include "clink/parallel_r1cs.h"
 
 namespace clink::vgg16 {
 
@@ -28,6 +30,24 @@ struct OneConvInputPub {
   std::array<G1, 9> a3_cy;
   std::array<HyraxA::Proof, 9> rb_proofs;
   HyraxA::Proof xq_proof;
+
+  bool operator==(OneConvInputPub const& b) const {
+    return cb == b.cb && a3_cy == b.a3_cy && rb_proofs == b.rb_proofs &&
+           xq_proof == b.xq_proof;
+  }
+
+  bool operator!=(OneConvInputPub const& b) const { return !(*this == b); }
+
+  template <typename Ar>
+  void serialize(Ar& ar) const {
+    ar& YAS_OBJECT_NVP("vgg16.OneConvInputPub", ("cb", cb), ("cy", a3_cy),
+                       ("rb", rb_proofs), ("xq", xq_proof));
+  }
+  template <typename Ar>
+  void serialize(Ar& ar) {
+    ar& YAS_OBJECT_NVP("vgg16.OneConvInputPub", ("cb", cb), ("cy", a3_cy),
+                       ("rb", rb_proofs), ("xq", xq_proof));
+  }
 };
 
 struct OneConvInputSec {
@@ -88,7 +108,7 @@ inline std::vector<Fr> OneConvOutputR2S(size_t K, size_t C, size_t D,
 inline void OneConvInputProve(h256_t seed, ProveContext const& context,
                               size_t layer, OneConvInputPub& pub,
                               OneConvInputSec& sec) {
-  Tick tick(__FN__);
+  Tick tick(__FN__, std::to_string(layer));
 
 #ifdef _DEBUG_CHECK
   if (kLayerTypeOrders[layer].first != kConv) {
@@ -113,6 +133,7 @@ inline void OneConvInputProve(h256_t seed, ProveContext const& context,
   auto C = kImageInfos[layer].C;
   auto D = kImageInfos[layer].D;
   auto const& x = input_image.pixels;
+  auto const& vec_x = input_image.data;
   Fr const& rx = context.image_com_sec().r[layer];
   G1 const& cx = context.image_com_pub().c[layer];
   FrRand(sec.rb.data(), sec.rb.size());
@@ -193,15 +214,6 @@ inline void OneConvInputProve(h256_t seed, ProveContext const& context,
   parallel::For(9, parallel_f2);
 
   // prove <q, vec_x>
-  std::vector<Fr> vec_x(C * D * D);
-  for (size_t i = 0; i < C; ++i) {
-    for (size_t j = 0; j < D; ++j) {
-      for (size_t k = 0; k < D; ++k) {
-        vec_x[i * D * D + j * D + k] = x[i][j][k];
-      }
-    }
-  }
-
   ctx.ip_xq = std::accumulate(ctx.a3_y.begin(), ctx.a3_y.end(), FrZero());
   ctx.a3_rz = std::accumulate(ctx.a3_ry.begin(), ctx.a3_ry.end(), FrZero());
   G1 a3_cz = std::accumulate(pub.a3_cy.begin(), pub.a3_cy.end(), G1Zero());
@@ -238,9 +250,27 @@ inline void OneConvInputProve(h256_t seed, ProveContext const& context,
 }
 
 struct OneConvR1csPub {
-  clink::ParallelR1cs<typename R1cs>::Proof r1cs_proof;
+  clink::ParallelR1cs<R1cs>::Proof r1cs_proof;
   std::vector<G1> com_w;
   size_t r1cs_ret_index;
+
+  bool operator==(OneConvR1csPub const& b) const {
+    return r1cs_proof == b.r1cs_proof && com_w == b.com_w &&
+           r1cs_ret_index == b.r1cs_ret_index;
+  }
+
+  bool operator!=(OneConvR1csPub const& b) const { return !(*this == b); }
+
+  template <typename Ar>
+  void serialize(Ar& ar) const {
+    ar& YAS_OBJECT_NVP("vgg16.OneConvR1csPub", ("p", r1cs_proof), ("c", com_w),
+                       ("r", r1cs_ret_index));
+  }
+  template <typename Ar>
+  void serialize(Ar& ar) {
+    ar& YAS_OBJECT_NVP("vgg16.OneConvR1csPub", ("p", r1cs_proof), ("c", com_w),
+                       ("r", r1cs_ret_index));
+  }
 };
 
 struct OneConvR1csSec {
@@ -253,7 +283,7 @@ inline void OneConvR1csProve(h256_t seed, ProveContext const& context,
                              size_t layer, OneConvInputPub const& input_pub,
                              OneConvInputSec const& input_sec,
                              OneConvR1csPub& pub, OneConvR1csSec& sec) {
-  Tick tick(__FN__);
+  Tick tick(__FN__, std::to_string(layer));
   auto K = kImageInfos[layer + 1].C;
   auto C = kImageInfos[layer].C;
   auto D = kImageInfos[layer].D;
@@ -273,6 +303,8 @@ inline void OneConvR1csProve(h256_t seed, ProveContext const& context,
   std::vector<std::vector<Fr>> w(s);
   auto n = K * C * D * D;
   for (auto& i : w) i.resize(n);
+  std::cout << "OneConvR1csProve: " << r1cs_info->to_string()
+            << ", repeat times: " << n << "\n";
 
   // convert para from K*C*3*3 to KCDD*9
   Para::ConvLayer const& para_conv = context.para().conv_layer(order);
@@ -302,7 +334,7 @@ inline void OneConvR1csProve(h256_t seed, ProveContext const& context,
   pub.com_w.resize(s);
   std::vector<Fr> com_w_r(s);
 
-  std::cout << "compute conv com(witness)\n";
+  // std::cout << "compute conv com(witness)\n";
   for (size_t i = 0; i < 9; ++i) {
     com_w_r[i] = input_sec.rb[i];
     pub.com_w[i] = input_pub.cb[i];
@@ -332,18 +364,33 @@ inline void OneConvR1csProve(h256_t seed, ProveContext const& context,
 struct OneConvOutputPub {
   G1 cy;
   EqualIp<HyraxA>::Proof eip_proof;
+
+  bool operator==(OneConvOutputPub const& b) const {
+    return cy == b.cy && eip_proof == b.eip_proof;
+  }
+
+  bool operator!=(OneConvOutputPub const& b) const { return !(*this == b); }
+
+  template <typename Ar>
+  void serialize(Ar& ar) const {
+    ar& YAS_OBJECT_NVP("vgg16.OneConvOutputPub", ("c", cy), ("e", eip_proof));
+  }
+  template <typename Ar>
+  void serialize(Ar& ar) {
+    ar& YAS_OBJECT_NVP("vgg16.OneConvOutputPub", ("c", cy), ("e", eip_proof));
+  }
 };
 
 inline void OneConvOutputProve(h256_t seed, ProveContext const& context,
                                size_t layer, OneConvR1csPub const& r1cs_pub,
                                OneConvR1csSec const& r1cs_sec,
                                OneConvOutputPub& pub) {
-  Tick tick(__FN__);
+  Tick tick(__FN__, std::to_string(layer));
   namespace fp = circuit::fp;
-  size_t const order = kLayerTypeOrders[layer].second;  
+  size_t const order = kLayerTypeOrders[layer].second;
   auto K = kImageInfos[layer + 1].C;
   auto C = kImageInfos[layer].C;
-  auto D = kImageInfos[layer].D;  
+  auto D = kImageInfos[layer].D;
 
   G1 const& cx = r1cs_pub.com_w[r1cs_pub.r1cs_ret_index];
   Fr const& rx = r1cs_sec.ry;
@@ -423,11 +470,28 @@ struct OneConvProof {
   OneConvInputPub input;
   OneConvR1csPub r1cs;
   OneConvOutputPub output;
+
+  bool operator==(OneConvProof const& b) const {
+    return input == b.input && r1cs == b.r1cs && output == b.output;
+  }
+
+  bool operator!=(OneConvProof const& b) const { return !(*this == b); }
+
+  template <typename Ar>
+  void serialize(Ar& ar) const {
+    ar& YAS_OBJECT_NVP("vgg16.OneConvProof", ("i", input), ("r", r1cs),
+                       ("o", output));
+  }
+  template <typename Ar>
+  void serialize(Ar& ar) {
+    ar& YAS_OBJECT_NVP("vgg16.OneConvProof", ("i", input), ("r", r1cs),
+                       ("o", output));
+  }
 };
 
 inline void OneConvProve(h256_t seed, ProveContext const& context, size_t layer,
                          OneConvProof& proof) {
-  Tick tick(__FN__);
+  Tick tick(__FN__, std::to_string(layer));
   OneConvInputPub input_pub;
   OneConvInputSec input_sec;
   OneConvInputProve(seed, context, layer, input_pub, input_sec);

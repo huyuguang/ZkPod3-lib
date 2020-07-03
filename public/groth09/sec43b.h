@@ -203,7 +203,7 @@ struct Sec43b {
   // pad some trivial value
   static void AlignData(ProveInput& input, CommitmentPub& com_pub,
                         CommitmentSec& com_sec) {
-    Tick tick(__FN__);
+    //Tick tick(__FN__);
     input.Align();
     com_pub.Align();
     com_sec.Align();
@@ -232,16 +232,25 @@ struct Sec43b {
     std::vector<std::vector<Fr>> input_z;
     input.Take(input_x, input_y, input_z);
 
+    struct Para53 {
+      Para53(int64_t m) : input_yt(m) {}
+      typename Sec53::CommitmentSec com_sec_53;
+      typename Sec53::CommitmentPub com_pub_53;
+      std::vector<std::vector<Fr>> input_yt;
+      std::unique_ptr<typename Sec53::ProveInput> input_53;
+    } para53(m);
+
     {
       // Tick tick53(" sec43b->Sec53");
 
-      typename Sec53::CommitmentSec com_sec_53;
-      typename Sec53::CommitmentPub com_pub_53;
+      auto& com_sec_53 = para53.com_sec_53;
+      auto& com_pub_53 = para53.com_pub_53;
 
       auto parallel_f = [&input_x, &k](int64_t i) { input_x[i] *= k[i]; };
       parallel::For(original_m, parallel_f, original_m < 1024);
 
-      std::vector<std::vector<Fr>> input_yt(m);
+      auto& input_yt = para53.input_yt;
+
       Fr z = FrZero();
 
       {
@@ -257,9 +266,11 @@ struct Sec43b {
         }
       }
 
-      typename Sec53::ProveInput input_53(
+      para53.input_53.reset(new typename Sec53::ProveInput(
           std::move(input_x), std::move(input_y), t, std::move(input_yt), z,
-          input.get_gx, input.get_gy, SelectSec53Gz());
+          input.get_gx, input.get_gy, SelectSec53Gz()));
+
+      auto& input_53 = *para53.input_53;
 
       {
         // Tick tickz("Sec53 compute com_sec_53 com_pub_53");
@@ -287,19 +298,21 @@ struct Sec43b {
         proof.c = com_pub_53.c;  // verifier can not compute c by com_pub.c
         com_pub_53_c = com_pub_53.c;
       }
-
-      Sec53::Prove(proof.proof_53, seed, std::move(input_53),
-                   std::move(com_pub_53), std::move(com_sec_53));
     }
+
+    struct ParaHy {
+      ParaHy(int64_t n) : zk(n, FrZero()) {}
+      typename HyraxA::CommitmentPub com_pub_hy;
+      typename HyraxA::CommitmentSec com_sec_hy;
+      std::vector<Fr> zk;
+      std::unique_ptr<typename HyraxA::ProveInput> input_hy;
+    } parahy(n);
 
     {
       // Tick tick53("sec43b->hyraxa");
-      typename HyraxA::CommitmentPub com_pub_hy;
-      typename HyraxA::CommitmentSec com_sec_hy;
-
-      std::vector<Fr> zk(n);
-
-      std::fill(zk.begin(), zk.end(), FrZero());
+      auto& com_pub_hy = parahy.com_pub_hy;
+      auto& com_sec_hy = parahy.com_sec_hy;
+      auto& zk = parahy.zk;
 
       auto parallel_f = [&input_z, &zk, &k, m](int64_t j) {
         for (int64_t i = 0; i < m; ++i) {
@@ -308,8 +321,10 @@ struct Sec43b {
       };
       parallel::For(n, parallel_f, n < 16 * 1024);
 
-      typename HyraxA::ProveInput input_hy(zk, t, input_53_z, input.get_gz,
-                                           SelectSec53Gz());
+      parahy.input_hy.reset(new typename HyraxA::ProveInput(
+          zk, t, input_53_z, input.get_gz, SelectSec53Gz()));
+      auto& input_hy = *parahy.input_hy;
+      (void)input_hy;
 
       com_sec_hy.r_xi = InnerProduct(com_sec.t, k);
       com_sec_hy.r_tau = com_sec_53_t;
@@ -320,15 +335,28 @@ struct Sec43b {
       assert(input_hy.y == InnerProduct(input_hy.x, input_hy.a));
 
       com_pub_hy.xi = MultiExpBdlo12(com_pub.c, k);
+
 #ifdef _DEBUG
       auto check_xi =
           pc::PcComputeCommitmentG(input.get_gz, input_hy.x, com_sec_hy.r_xi);
       assert(check_xi == com_pub_hy.xi);
 #endif
 
-      HyraxA::Prove(proof.proof_a, seed, std::move(input_hy),
-                    std::move(com_pub_hy), std::move(com_sec_hy));
     }
+
+    std::array<parallel::Task, 2> tasks;
+    tasks[0] = [&para53, &proof, &seed]() {
+      Sec53::Prove(proof.proof_53, seed, std::move(*para53.input_53),
+                   std::move(para53.com_pub_53), std::move(para53.com_sec_53));
+    };
+
+    tasks[1] = [&parahy, &proof, &seed]() {
+      HyraxA::Prove(proof.proof_a, seed, std::move(*parahy.input_hy),
+                    std::move(parahy.com_pub_hy),
+                    std::move(parahy.com_sec_hy));
+    };
+
+    parallel::Invoke(tasks);
   }
 
   struct VerifyInput {

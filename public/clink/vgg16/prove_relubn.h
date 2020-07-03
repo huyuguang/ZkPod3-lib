@@ -38,6 +38,22 @@ struct ReluBnImage {
 struct ReluBnInOutPub {
   std::vector<HyraxA::CommitmentPub> ip_com_pubs;
   std::vector<HyraxA::Proof> ip_proofs;
+  bool operator==(ReluBnInOutPub const& b) const {
+    return ip_com_pubs == b.ip_com_pubs && ip_proofs == b.ip_proofs;
+  }
+
+  bool operator!=(ReluBnInOutPub const& b) const { return !(*this == b); }
+
+  template <typename Ar>
+  void serialize(Ar& ar) const {
+    ar& YAS_OBJECT_NVP("vgg16.ReluBnInOutPub", ("c", ip_com_pubs),
+                       ("p", ip_proofs));
+  }
+  template <typename Ar>
+  void serialize(Ar& ar) {
+    ar& YAS_OBJECT_NVP("vgg16.ReluBnInOutPub", ("c", ip_com_pubs),
+                       ("p", ip_proofs));
+  }
 };
 
 struct ReluBnInOutSec {
@@ -134,14 +150,14 @@ inline void ReluBnBuildImages(ProveContext const& context,
   for (size_t order = 0; order < kReluBnLayers.size(); ++order) {
     auto layer = kReluBnLayers[order];
     ReluBnImage& in = images[2 + order * 2];
-    in.x = const_images[layer]->copy_vec();
+    in.x = const_images[layer]->data;
     in.type = ReluBnImageType::kInput;
     in.com_x = com_images[layer];
     in.com_x_r = com_images_r[layer];
     combined_in_x.insert(combined_in_x.end(), in.x.begin(), in.x.end());
 
     ReluBnImage& out = images[2 + order * 2 + 1];
-    out.x = const_images[layer + 1]->copy_vec();
+    out.x = const_images[layer + 1]->data;
     out.type = ReluBnImageType::kOutput;
     out.com_x = com_images[layer + 1];
     out.com_x_r = com_images_r[layer + 1];
@@ -236,8 +252,25 @@ inline size_t ReluBnGetCircuitCount() {
 }
 
 struct ReluBnR1csPub {
-  clink::ParallelR1cs<typename R1cs>::Proof r1cs_proof;
+  clink::ParallelR1cs<R1cs>::Proof r1cs_proof;
   std::vector<G1> com_w;
+
+  bool operator==(ReluBnR1csPub const& b) const {
+    return r1cs_proof == b.r1cs_proof && com_w == b.com_w;
+  }
+
+  bool operator!=(ReluBnR1csPub const& b) const { return !(*this == b); }
+
+  template <typename Ar>
+  void serialize(Ar& ar) const {
+    ar& YAS_OBJECT_NVP("vgg16.ReluBnR1csPub", ("r", r1cs_proof),
+                       ("c", com_w));
+  }
+  template <typename Ar>
+  void serialize(Ar& ar) {
+    ar& YAS_OBJECT_NVP("vgg16.ReluBnR1csPub", ("r", r1cs_proof),
+                       ("c", com_w));
+  }
 };
 
 // prove y=<x,para>
@@ -252,11 +285,13 @@ inline void ReluBnR1csProve(h256_t seed, ProveContext const& context,
   int64_t const primary_input_size = 0;
   pb.set_input_sizes(primary_input_size);
   auto r1cs_ret_index = gadget.ret().index - 1;  // see protoboard<FieldT>::val  
-  std::unique_ptr<R1csInfo> r1cs_info(new R1csInfo(pb));
+  std::unique_ptr<R1csInfo> r1cs_info(new R1csInfo(pb));  
   auto s = r1cs_info->num_variables;
   std::vector<std::vector<Fr>> w(s);
   auto n = inout_sec.input.size();
   for (auto& i : w) i.resize(n);
+  std::cout << "ReluBnR1csProve: " << r1cs_info->to_string()
+            << ", repeat times: " << n << "\n";
 
   std::vector<Fr> alpha;
   alpha.reserve(n);
@@ -304,7 +339,7 @@ inline void ReluBnR1csProve(h256_t seed, ProveContext const& context,
   pub.com_w.resize(s);
   std::vector<Fr> com_w_r(s);
 
-  std::cout << "compute conv com(witness)\n";
+  //std::cout << "compute conv com(witness)\n";
   assert(r1cs_ret_index == 1);
   com_w_r[0] = inout_sec.com_in_r;
   pub.com_w[0] = inout_pub.ip_com_pubs[0].xi; // in
@@ -339,6 +374,21 @@ inline void ReluBnR1csProve(h256_t seed, ProveContext const& context,
 struct ReluBnProof {
   ReluBnInOutPub inout;
   ReluBnR1csPub r1cs;
+
+  bool operator==(ReluBnProof const& b) const {
+    return inout == b.inout && r1cs == b.r1cs;
+  }
+
+  bool operator!=(ReluBnProof const& b) const { return !(*this == b); }
+
+  template <typename Ar>
+  void serialize(Ar& ar) const {
+    ar& YAS_OBJECT_NVP("vgg16.ReluBnProof", ("i", inout), ("r", r1cs));
+  }
+  template <typename Ar>
+  void serialize(Ar& ar) {
+    ar& YAS_OBJECT_NVP("vgg16.ReluBnProof", ("i", inout), ("r", r1cs));
+  }
 };
 
 inline void ReluBnProve(h256_t seed, ProveContext const& context,

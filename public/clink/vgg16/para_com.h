@@ -159,8 +159,9 @@ struct ParaCommitmentPub {
   DenseCommitmentPub dense;
 
   ParaCommitmentPub() {}
+
   ParaCommitmentPub(std::string const& file) {
-    if (!Load(file)) {
+    if (!YasLoadBin(file, *this)) {
       throw std::invalid_argument("invalid para commitment pub file: " + file);
     }
   }
@@ -181,45 +182,6 @@ struct ParaCommitmentPub {
     ar& YAS_OBJECT_NVP("vgg16.para.compub", ("b", bn), ("c", conv),
                        ("d", dense));
   }
-
-  bool Load(std::string const& file) {
-    try {
-      yas::file_istream is(file.c_str());
-      yas::binary_iarchive<yas::file_istream, YasBinF()> ia(is);
-      ia.serialize(*this);
-      return true;
-    } catch (std::exception& e) {
-      std::cerr << e.what() << "\n";
-      return false;
-    }
-  }
-
-  bool Save(std::string const& file) const {
-    try {
-      boost::system::error_code dummy;
-      fs::remove(file);
-      yas::file_ostream os(file.c_str());
-      yas::binary_oarchive<yas::file_ostream, YasBinF()> oa(os);
-      oa.serialize(*this);
-    } catch (std::exception& e) {
-      std::cerr << e.what() << "\n";
-      return false;
-    }
-
-#ifdef _DEBUG_CHECK
-    ParaCommitmentPub check;
-    if (!check.Load(file)) {
-      std::cout << "oops\n";
-      return false;
-    }
-    if (check != *this) {
-      std::cout << "oops\n";
-      return false;
-    }
-#endif
-
-    return true;
-  }
 };
 
 struct ParaCommitmentSec {
@@ -228,8 +190,9 @@ struct ParaCommitmentSec {
   DenseCommitmentSec dense;
 
   ParaCommitmentSec() {}
+
   ParaCommitmentSec(std::string const& file) {
-    if (!Load(file)) {
+    if (!YasLoadBin(file, *this)) {
       throw std::invalid_argument("invalid para commitment sec file: " + file);
     }
   }
@@ -249,45 +212,6 @@ struct ParaCommitmentSec {
   void serialize(Ar& ar) {
     ar& YAS_OBJECT_NVP("vgg16.para.comsec", ("b", bn), ("c", conv),
                        ("d", dense));
-  }
-
-  bool Load(std::string const& file) {
-    try {
-      yas::file_istream is(file.c_str());
-      yas::binary_iarchive<yas::file_istream, YasBinF()> ia(is);
-      ia.serialize(*this);
-      return true;
-    } catch (std::exception& e) {
-      std::cerr << e.what() << "\n";
-      return false;
-    }
-  }
-
-  bool Save(std::string const& file) const {
-    try {
-      boost::system::error_code dummy;
-      fs::remove(file);
-      yas::file_ostream os(file.c_str());
-      yas::binary_oarchive<yas::file_ostream, YasBinF()> oa(os);
-      oa.serialize(*this);
-    } catch (std::exception& e) {
-      std::cerr << e.what() << "\n";
-      return false;
-    }
-
-#ifdef _DEBUG_CHECK
-    ParaCommitmentSec check;
-    if (!check.Load(file)) {
-      std::cout << "oops\n";
-      return false;
-    }
-    if (check != *this) {
-      std::cout << "oops\n";
-      return false;
-    }
-#endif
-
-    return true;
   }
 };
 

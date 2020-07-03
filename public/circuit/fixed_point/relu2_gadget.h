@@ -46,7 +46,7 @@ class Relu2Gadget : public libsnark::gadget<Fr> {
   void generate_r1cs_witness() {
     precision_gadget_->generate_r1cs_witness();
 
-    auto a = this->pb.lc_val(a_);
+    //auto a = this->pb.lc_val(a_);
     auto b = this->pb.lc_val(precision_gadget_->ret());
     auto sign = this->pb.lc_val(precision_gadget_->sign());
     this->pb.val(ret_) = sign == Fr(0) ? Fr(0) : b;

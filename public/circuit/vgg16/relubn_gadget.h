@@ -88,7 +88,7 @@ class ReluBnGadget : public libsnark::gadget<Fr> {
     //std::cout << "gadget mu:" << mu << "\n";
 
     precision_gadget1_->generate_r1cs_witness();
-    auto a = this->pb.val(a_);
+    //auto a = this->pb.val(a_);
     //std::cout << "gadget a: " << a << "\n";
 
     precision_gadget1_->ret().evaluate(this->pb);

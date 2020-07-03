@@ -127,14 +127,17 @@ struct A3 {
     hash.Final(seed.data());
   }
 
-  // TODO: maybe can optimize
+  // NOTE: maybe can optimize?
   static std::vector<G1> FuncO(std::vector<G1> const& g1, Fr const& k,
                                std::vector<G1> const& g2, Fr const& l) {
     assert(g1.size() == g2.size());
     std::vector<G1> g(g1.size());
-    for (size_t i = 0; i < g1.size(); ++i) {
+
+    auto f = [&g, &g1, &g2, &k, &l](int64_t i) {
       g[i] = g1[i] * k + g2[i] * l;
-    }
+    };
+    parallel::For(g.size(), f, g.size() < 10240);
+
     return g;
   }
 
@@ -202,12 +205,23 @@ struct A3 {
       r_gamma_neg_1 = FrRand();
       auto& r_gamma_pos_1 = com_ext_sec.r_gamma_pos_1[loop];
       r_gamma_pos_1 = FrRand();
-      auto x1_a2 = InnerProduct(x1, a2);
-      gamma_neg_1 = h * r_gamma_neg_1 + gy * x1_a2;
-      gamma_neg_1 += MultiExpBdlo12(g2, x1);
-      auto x2_a1 = InnerProduct(x2, a1);
-      gamma_pos_1 = h * r_gamma_pos_1 + gy * x2_a1;
-      gamma_pos_1 += MultiExpBdlo12(g1, x2);
+      Fr x1_a2;
+      Fr x2_a1;
+
+      std::array<parallel::Task, 2> tasks;
+      tasks[0] = [&x1, &a2, &h, &r_gamma_neg_1, &gy, &g2, &gamma_neg_1,
+                  &x1_a2]() {
+        x1_a2 = InnerProduct(x1, a2);
+        gamma_neg_1 = h * r_gamma_neg_1 + gy * x1_a2;
+        gamma_neg_1 += MultiExpBdlo12(g2, x1);
+      };
+      tasks[1] = [&x2, &a1, &h, &r_gamma_pos_1, &gy, &g1, &gamma_pos_1,
+                  &x2_a1]() {
+        x2_a1 = InnerProduct(x2, a1);
+        gamma_pos_1 = h * r_gamma_pos_1 + gy * x2_a1;
+        gamma_pos_1 += MultiExpBdlo12(g1, x2);
+      };
+      parallel::Invoke(tasks, g2.size() < 10240);
 
       UpdateSeed(seed, gamma_neg_1, gamma_pos_1);
       Fr c = H256ToFr(seed);

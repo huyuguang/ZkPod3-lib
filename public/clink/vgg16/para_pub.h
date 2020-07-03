@@ -32,6 +32,7 @@ struct ImageInfo {
   size_t const C;
 };
 
+// order, D, C, K
 inline constexpr std::array<ConvLayerInfo, 13> kConvLayerInfos{
     ConvLayerInfo{0, 32, 3, 64},    ConvLayerInfo{1, 32, 64, 64},
     ConvLayerInfo{2, 16, 64, 128},  ConvLayerInfo{3, 16, 128, 128},
@@ -41,6 +42,7 @@ inline constexpr std::array<ConvLayerInfo, 13> kConvLayerInfos{
     ConvLayerInfo{10, 2, 512, 512}, ConvLayerInfo{11, 2, 512, 512},
     ConvLayerInfo{12, 2, 512, 512}};
 
+// order, D, C
 inline constexpr std::array<BnLayerInfo, 14> kBnLayerInfos{
     BnLayerInfo{0, 32, 64},  BnLayerInfo{1, 32, 64},  BnLayerInfo{2, 16, 128},
     BnLayerInfo{3, 16, 128}, BnLayerInfo{4, 8, 256},  BnLayerInfo{5, 8, 256},
@@ -48,9 +50,11 @@ inline constexpr std::array<BnLayerInfo, 14> kBnLayerInfos{
     BnLayerInfo{9, 4, 512},  BnLayerInfo{10, 2, 512}, BnLayerInfo{11, 2, 512},
     BnLayerInfo{12, 2, 512}, BnLayerInfo{13, 1, 512}};
 
+// order, input_count, output_count
 inline constexpr std::array<DenseLayerInfo, 2> kDenseLayerInfos{
     DenseLayerInfo{0, 512, 512}, DenseLayerInfo{1, 512, 10}};
 
+// order, D, C
 inline constexpr std::array<ImageInfo, 35> kImageInfos{
     ImageInfo{0, 32, 3},   ImageInfo{1, 32, 64},  ImageInfo{2, 32, 64},
     ImageInfo{3, 32, 64},  ImageInfo{4, 32, 64},  ImageInfo{5, 16, 64},

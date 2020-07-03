@@ -5,8 +5,6 @@
 
 namespace clink::vgg16 {
 
-// --vgg16_publish "E:/code/crypto/pod_doc/vgg16_2 e:/vgg16_publish"
-
 inline bool Publish(std::string const& para_path,
                     std::string const& working_path) {
   Tick tick(__FN__);
@@ -37,13 +35,13 @@ inline bool Publish(std::string const& para_path,
   try {
     dbl::Para dbl_para(para_path);
     std::unique_ptr<Para> para(new Para(dbl_para));
-    if (!para->Save(sec_path + "/para")) {
+    if (!YasSaveBin(sec_path + "/para", *para)) {
       std::cerr << "save para failed\n";
       return false;
     }
 
     std::unique_ptr<AuxiPub> auxi(new AuxiPub);
-    if (!auxi->Save(pub_path + "/auxi")) {
+    if (!YasSaveBin(pub_path + "/auxi",*auxi)) {
       std::cerr << "save auxi failed\n";
       return false;
     }
@@ -51,11 +49,11 @@ inline bool Publish(std::string const& para_path,
     ParaCommitmentPub com_pub;
     ParaCommitmentSec com_sec;
     ComputeParaCommitment(*para, *auxi, com_pub, com_sec);
-    if (!com_pub.Save(pub_path + "/para_com_pub")) {
+    if (!YasSaveBin(pub_path + "/para_com_pub", com_pub)) {
       std::cerr << "save com_pub failed\n";
       return false;
     }
-    if (!com_sec.Save(sec_path + "/para_com_sec")) {
+    if (!YasSaveBin(sec_path + "/para_com_sec", com_sec)) {
       std::cerr << "save com_sec failed\n";
       return false;
     }

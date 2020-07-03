@@ -23,28 +23,28 @@ inline bool Verify(h256_t seed, std::string const& pub_path,
   // conv
   for (size_t i = 0; i < kConvLayers.size(); ++i) {
     tasks.emplace_back([&context, &seed, &proof, i]() {
-      return OneConvVerify(seed, context, kConvLayers[i], *proof.conv[i]);
+      return OneConvVerify(seed, context, kConvLayers[i], proof.conv[i]);
     });
   }
 
   // relubn
   tasks.emplace_back([&context, &seed, &proof]() {
-    return ReluBnVerify(seed, context, *proof.relubn);
+    return ReluBnVerify(seed, context, proof.relubn);
   });
 
   // pooling
   tasks.emplace_back([&context, &seed, &proof]() {
-    return PoolingVerify(seed, context, *proof.pooling);
+    return PoolingVerify(seed, context, proof.pooling);
   });
 
   // dense0
   tasks.emplace_back([&context, &seed, &proof]() {
-    return DenseVerify<0>(seed, context, *proof.dense0);
+    return DenseVerify<0>(seed, context, proof.dense0);
   });
 
   // dense1
   tasks.emplace_back([&context, &seed, &proof]() {
-    return DenseVerify<1>(seed, context, *proof.dense1);
+    return DenseVerify<1>(seed, context, proof.dense1);
   });
 
   bool all_success = false;

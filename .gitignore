@@ -54,3 +54,5 @@ win/pod_core
 win/pod_dummy
 win/pod_publish
 win/vrs_cache
+
+data/vgg16/working/

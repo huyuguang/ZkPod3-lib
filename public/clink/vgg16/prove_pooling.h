@@ -81,6 +81,23 @@ void PoolingImageToAbcd(std::array<PoolingInputImage, 5> const& images,
 struct PoolingInputPub {
   std::array<HyraxA::CommitmentPub, 9> ip_com_pubs;
   std::array<HyraxA::Proof, 9> ip_proofs;
+
+  bool operator==(PoolingInputPub const& b) const {
+    return ip_com_pubs == b.ip_com_pubs && ip_proofs == b.ip_proofs;
+  }
+
+  bool operator!=(PoolingInputPub const& b) const { return !(*this == b); }
+
+  template <typename Ar>
+  void serialize(Ar& ar) const {
+    ar& YAS_OBJECT_NVP("vgg16.PoolingInputPub", ("c", ip_com_pubs),
+                       ("p", ip_proofs));
+  }
+  template <typename Ar>
+  void serialize(Ar& ar) {
+    ar& YAS_OBJECT_NVP("vgg16.PoolingInputPub", ("c", ip_com_pubs),
+                       ("p", ip_proofs));
+  }
 };
 
 struct PoolingInputSec {
@@ -147,7 +164,7 @@ inline void PoolingInputProve(h256_t seed, ProveContext const& context,
     auto layer = kPoolingLayers[i];
     pub.ip_com_pubs[i].xi = context.image_com_pub().c[layer];
     com_x_r[i] = context.image_com_sec().r[layer];
-    x[i] = context.const_images()[layer]->copy_vec();
+    x[i] = context.const_images()[layer]->data;
   }
 
   // a=x[5],b=x[6],c=x[7],d=x[8]
@@ -208,7 +225,7 @@ inline void PoolingInputProve(h256_t seed, ProveContext const& context,
 }
 
 struct PoolingR1csPub {
-  clink::ParallelR1cs<typename R1cs>::Proof r1cs_proof;
+  clink::ParallelR1cs<R1cs>::Proof r1cs_proof;
   std::vector<G1> com_w;
   size_t r1cs_ret_index;
 
@@ -252,6 +269,9 @@ inline void PoolingR1csProve(h256_t seed, ProveContext const& /*context*/,
   std::vector<std::vector<Fr>> w(s);
   auto n = input_sec.a.size();
   for (auto& i : w) i.resize(n);
+  
+  std::cout << "PoolingR1csProve: " << r1cs_info->to_string()
+            << ", repeat times: " << n << "\n";
 
 #ifdef _DEBUG_CHECK
   if (input_sec.a.size() != n || input_sec.b.size() != n ||
@@ -309,6 +329,23 @@ inline void PoolingR1csProve(h256_t seed, ProveContext const& /*context*/,
 struct PoolingOutputPub {
   std::array<HyraxA::CommitmentPub, 6> ip_com_pubs;
   std::array<HyraxA::Proof, 6> ip_proofs;
+
+  bool operator==(PoolingOutputPub const& b) const {
+    return ip_com_pubs == b.ip_com_pubs && ip_proofs == b.ip_proofs;
+  }
+
+  bool operator!=(PoolingOutputPub const& b) const { return !(*this == b); }
+
+  template <typename Ar>
+  void serialize(Ar& ar) const {
+    ar& YAS_OBJECT_NVP("vgg16.PoolingOutputPub", ("c", ip_com_pubs),
+                       ("p", ip_proofs));
+  }
+  template <typename Ar>
+  void serialize(Ar& ar) {
+    ar& YAS_OBJECT_NVP("vgg16.PoolingOutputPub", ("c", ip_com_pubs),
+                       ("p", ip_proofs));
+  }
 };
 
 inline void PoolingUpdateSeed(h256_t& seed, PoolingR1csPub const& pub) {
@@ -359,7 +396,7 @@ inline void PoolingOutputProve(h256_t seed, ProveContext const& context,
   for (size_t i = 0; i < kPoolingLayers.size(); ++i) {
     auto layer = kPoolingLayers[i] + 1; // next
     auto image = context.const_images()[layer];
-    x[i + 1] = image->copy_vec();
+    x[i + 1] = image->data;
     pub.ip_com_pubs[i + 1].xi = context.image_com_pub().c[layer];
     com_x_r[i + 1] = context.image_com_sec().r[layer];
   }
@@ -410,6 +447,23 @@ struct PoolingProof {
   PoolingInputPub input;
   PoolingR1csPub r1cs;
   PoolingOutputPub output;
+
+  bool operator==(PoolingProof const& b) const {
+    return input == b.input && r1cs == b.r1cs && output == b.output;
+  }
+
+  bool operator!=(PoolingProof const& b) const { return !(*this == b); }
+
+  template <typename Ar>
+  void serialize(Ar& ar) const {
+    ar& YAS_OBJECT_NVP("vgg16.PoolingProof", ("i", input), ("r", r1cs),
+                       ("o", output));
+  }
+  template <typename Ar>
+  void serialize(Ar& ar) {
+    ar& YAS_OBJECT_NVP("vgg16.PoolingProof", ("i", input), ("r", r1cs),
+                       ("o", output));
+  }
 };
 
 inline void PoolingProve(h256_t seed, ProveContext const& context,
