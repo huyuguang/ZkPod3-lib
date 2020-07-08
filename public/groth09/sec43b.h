@@ -28,13 +28,13 @@ struct Sec43b {
       int64_t old_m = a.size();
       int64_t new_m = (int64_t)misc::Pow2UB(old_m);
       if (new_m > old_m) {
-        G1 const& g0 = G1Zero();
-        a.resize(new_m);
-        std::fill(a.begin() + old_m, a.end(), g0);
-        b.resize(new_m);
-        std::fill(b.begin() + old_m, b.end(), g0);
-        c.resize(new_m);
-        std::fill(c.begin() + old_m, c.end(), g0);
+        // G1 const& g0 = G1Zero();
+        a.resize(new_m, G1Zero());
+        // std::fill(a.begin() + old_m, a.end(), g0);
+        b.resize(new_m, G1Zero());
+        // std::fill(b.begin() + old_m, b.end(), g0);
+        c.resize(new_m, G1Zero());
+        // std::fill(c.begin() + old_m, c.end(), g0);
       }
     }
   };
@@ -47,13 +47,13 @@ struct Sec43b {
       int64_t old_m = r.size();
       int64_t new_m = (int64_t)misc::Pow2UB(old_m);
       if (new_m > old_m) {
-        Fr const& f0 = FrZero();
-        r.resize(new_m);
-        std::fill(r.begin() + old_m, r.end(), f0);
-        s.resize(new_m);
-        std::fill(s.begin() + old_m, s.end(), f0);
-        t.resize(new_m);
-        std::fill(t.begin() + old_m, t.end(), f0);
+        // Fr const& f0 = FrZero();
+        r.resize(new_m, FrZero());
+        // std::fill(r.begin() + old_m, r.end(), f0);
+        s.resize(new_m, FrZero());
+        // std::fill(s.begin() + old_m, s.end(), f0);
+        t.resize(new_m, FrZero());
+        // std::fill(t.begin() + old_m, t.end(), f0);
       }
     }
   };
@@ -203,7 +203,7 @@ struct Sec43b {
   // pad some trivial value
   static void AlignData(ProveInput& input, CommitmentPub& com_pub,
                         CommitmentSec& com_sec) {
-    //Tick tick(__FN__);
+    // Tick tick(__FN__);
     input.Align();
     com_pub.Align();
     com_sec.Align();
@@ -261,8 +261,8 @@ struct Sec43b {
           z += InnerProduct(input_x[i], input_yt[i]);
         }
         for (int64_t i = original_m; i < m; ++i) {
-          input_yt[i].resize(n);
-          std::fill(input_yt[i].begin(), input_yt[i].end(), FrZero());
+          input_yt[i].resize(n, FrZero());
+          // std::fill(input_yt[i].begin(), input_yt[i].end(), FrZero());
         }
       }
 
@@ -275,18 +275,18 @@ struct Sec43b {
       {
         // Tick tickz("Sec53 compute com_sec_53 com_pub_53");
         input_53_z = input_53.z;
-        com_sec_53.r.resize(m);
-        com_pub_53.a.resize(m);
+        com_sec_53.r.resize(m, FrZero());
+        com_pub_53.a.resize(m, G1Zero());
         auto parallel_f2 = [&com_sec, &com_pub, &com_sec_53, &com_pub_53,
                             &k](int64_t i) {
           com_sec_53.r[i] = com_sec.r[i] * k[i];
           com_pub_53.a[i] = com_pub.a[i] * k[i];
         };
         parallel::For(original_m, parallel_f2, original_m < 16 * 1024);
-        std::fill(com_sec_53.r.begin() + original_m, com_sec_53.r.end(),
-                  FrZero());
-        std::fill(com_pub_53.a.begin() + original_m, com_pub_53.a.end(),
-                  G1Zero());
+        // std::fill(com_sec_53.r.begin() + original_m, com_sec_53.r.end(),
+        //          FrZero());
+        // std::fill(com_pub_53.a.begin() + original_m, com_pub_53.a.end(),
+        //          G1Zero());
 
         com_sec_53.s = com_sec.s;
         com_sec_53.t = FrRand();
@@ -341,7 +341,6 @@ struct Sec43b {
           pc::PcComputeCommitmentG(input.get_gz, input_hy.x, com_sec_hy.r_xi);
       assert(check_xi == com_pub_hy.xi);
 #endif
-
     }
 
     std::array<parallel::Task, 2> tasks;
@@ -352,8 +351,7 @@ struct Sec43b {
 
     tasks[1] = [&parahy, &proof, &seed]() {
       HyraxA::Prove(proof.proof_a, seed, std::move(*parahy.input_hy),
-                    std::move(parahy.com_pub_hy),
-                    std::move(parahy.com_sec_hy));
+                    std::move(parahy.com_pub_hy), std::move(parahy.com_sec_hy));
     };
 
     parallel::Invoke(tasks);

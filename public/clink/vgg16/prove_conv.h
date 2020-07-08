@@ -182,8 +182,8 @@ inline void OneConvInputProve(h256_t seed, ProveContext const& context,
   OneConvComputeInputR(seed, layer, C * D * D, ctx.r);
 
   // build ctx.q base ctx.B and ctx.r
-  ctx.q.resize(C * D * D);
-  std::fill(ctx.q.begin(), ctx.q.end(), FrZero());
+  ctx.q.resize(C * D * D, FrZero());
+  //std::fill(ctx.q.begin(), ctx.q.end(), FrZero());
   for (size_t j = 0; j < 9; ++j) {
     for (size_t i = 0; i < C * D * D; ++i) {
       auto const& Bij = ctx.B[i][j];

@@ -145,6 +145,7 @@ int main(int argc, char** argv) {
   bool hyrax_a1 = false;
   int64_t hyrax_a2_n = 0;
   int64_t hyrax_a3_n = 0;
+  ParamIntPair hyrax_a4;
   int64_t gro09_51a_n = 0;
   int64_t gro09_51b_n = 0;
   int64_t gro09_51c_n = 0;
@@ -199,6 +200,7 @@ int main(int argc, char** argv) {
         "vrs_cache", po::value<int64_t>(&vrs_cache_n), "")("hyrax_a1", "")(
         "hyrax_a2", po::value<int64_t>(&hyrax_a2_n), "")(
         "hyrax_a3", po::value<int64_t>(&hyrax_a3_n), "")(
+        "hyrax_a4", po::value<ParamIntPair>(&hyrax_a4), "m*n, ex: 10*20")(
         "gro09_51a", po::value<int64_t>(&gro09_51a_n), "")(
         "gro09_51b", po::value<int64_t>(&gro09_51b_n), "")(
         "gro09_51c", po::value<int64_t>(&gro09_51c_n), "")(
@@ -363,6 +365,10 @@ int main(int argc, char** argv) {
 
   if (hyrax_a3_n) {
     rets["hyrax::A3"] = hyrax::A3::Test(hyrax_a3_n);
+  }
+
+  if (hyrax_a4.valid()) {
+    rets["hyrax::A4"] = hyrax::A4::Test(hyrax_a4.x,hyrax_a4.y);
   }
 
   if (gro09_51a_n) {

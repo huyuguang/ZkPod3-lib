@@ -472,5 +472,8 @@
     <ClInclude Include="..\public\circuit\vgg16\pooling_gadget.h">
       <Filter>public\circuit\vgg16</Filter>
     </ClInclude>
+    <ClInclude Include="..\public\hyrax\a4.h">
+      <Filter>public\hyrax</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

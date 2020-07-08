@@ -31,11 +31,11 @@ struct Sec53a {
       int64_t old_m = a.size();
       int64_t new_m = (int64_t)misc::Pow2UB(old_m);
       if (new_m > old_m) {
-        auto const& g0 = G1Zero();
-        a.resize(new_m);
-        std::fill(a.begin() + old_m, a.end(), g0);
-        b.resize(new_m);
-        std::fill(b.begin() + old_m, b.end(), g0);
+        //auto const& g0 = G1Zero();
+        a.resize(new_m,G1Zero());
+        //std::fill(a.begin() + old_m, a.end(), g0);
+        b.resize(new_m,G1Zero());
+        //std::fill(b.begin() + old_m, b.end(), g0);
       }
     }
   };
@@ -48,11 +48,11 @@ struct Sec53a {
       int64_t old_m = r.size();
       int64_t new_m = (int64_t)misc::Pow2UB(old_m);
       if (new_m > old_m) {
-        static const Fr f0 = FrZero();
-        r.resize(new_m);
-        std::fill(r.begin() + old_m, r.end(), f0);
-        s.resize(new_m);
-        std::fill(s.begin() + old_m, s.end(), f0);
+        //static const Fr f0 = FrZero();
+        r.resize(new_m, FrZero());
+        //std::fill(r.begin() + old_m, r.end(), f0);
+        s.resize(new_m, FrZero());
+        //std::fill(s.begin() + old_m, s.end(), f0);
       }
     }
   };
@@ -103,23 +103,18 @@ struct Sec53a {
 
     // pad some trivial values
     void Align() {
-      // Tick tick(__FN__);
       int64_t old_m = m();
       int64_t new_m = (int64_t)misc::Pow2UB(old_m);
       if (old_m == new_m) return;
-
-      static const Fr f0 = FrZero();
 
       x.resize(new_m);
       y.resize(new_m);
 
       for (int64_t i = old_m; i < new_m; ++i) {
         auto& x_i = x[i];
-        x_i.resize(n());
-        std::fill(x_i.begin(), x_i.end(), f0);
+        x_i.resize(n(), FrZero());
         auto& y_i = y[i];
-        y_i.resize(n());
-        std::fill(y_i.begin(), y_i.end(), f0);
+        y_i.resize(n(), FrZero());
       }
     }
 
@@ -185,13 +180,13 @@ struct Sec53a {
     com_pub->a.resize(m);
     com_pub->b.resize(m);
 
-    auto parallel_f = [&input, &com_pub, &com_sec](int64_t i) mutable {
+    auto parallel_f = [&input, &com_pub, &com_sec](int64_t i) {
       com_pub->a[i] =
           pc::PcComputeCommitmentG(input.get_gx, input.x[i], com_sec.r[i]);
       com_pub->b[i] =
           pc::PcComputeCommitmentG(input.get_gy, input.y[i], com_sec.s[i]);
     };
-    parallel::For(m, parallel_f, n < 16 * 1024);
+    parallel::For(m, parallel_f);
 
     com_pub->c = pc::PcComputeCommitmentG(input.gz, input.z, com_sec.t);
   }

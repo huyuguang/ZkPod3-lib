@@ -226,6 +226,7 @@
     <ClInclude Include="..\public\hyrax\a1.h" />
     <ClInclude Include="..\public\hyrax\a2.h" />
     <ClInclude Include="..\public\hyrax\a3.h" />
+    <ClInclude Include="..\public\hyrax\a4.h" />
     <ClInclude Include="..\public\hyrax\details.h" />
     <ClInclude Include="..\public\hyrax\hyrax.h" />
     <ClInclude Include="..\public\iop\iop.h" />

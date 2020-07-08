@@ -49,8 +49,8 @@ inline bool OneConvInputVerify(h256_t seed, VerifyContext const& context,
   }
 
   // build q base B and r
-  ctx.q.resize(C * D * D);
-  std::fill(ctx.q.begin(), ctx.q.end(), FrZero());
+  ctx.q.resize(C * D * D, FrZero());
+  //std::fill(ctx.q.begin(), ctx.q.end(), FrZero());
   for (size_t j = 0; j < 9; ++j) {
     for (size_t i = 0; i < C * D * D; ++i) {
       auto const& Bij = ctx.B[i][j];

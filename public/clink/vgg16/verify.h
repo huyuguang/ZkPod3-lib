@@ -8,17 +8,21 @@
 #include "./verify_relubn.h"
 
 namespace clink::vgg16 {
-//
-//inline bool CheckProofFormat(VerifyContext context, Proof const proof) {
-//
-//}
 
 inline bool Verify(h256_t seed, std::string const& pub_path,
+                   dbl::Image const& test_image,
                    Proof const& proof) {
   Tick tick(__FN__);
   VerifyContext context(pub_path);
 
   std::vector<std::function<bool()>> tasks;
+  
+  // check test image
+  tasks.emplace_back([&context, &test_image]() {
+    Image image(test_image);
+    auto c = pc::PcComputeCommitmentG(image.data, FrZero());
+    return c == context.image_com_pub().c[0];    
+  });
 
   // conv
   for (size_t i = 0; i < kConvLayers.size(); ++i) {

@@ -97,6 +97,7 @@ struct A3 {
     }
 
     bool operator!=(Proof const& right) const { return !(*this == right); }
+    bool CheckFormat() const { return true; }
   };
 
   struct VerifyInput {
@@ -177,8 +178,8 @@ struct A3 {
     int64_t n = x.size();
     int64_t round = (int64_t)misc::Log2UB(n);
     auto gx = pc::CopyG(input.get_gx, n);
-    gx.resize(misc::Pow2UB(n));
-    std::fill(gx.begin() + n, gx.end(), G1Zero());
+    gx.resize(misc::Pow2UB(n), G1Zero());
+    //std::fill(gx.begin() + n, gx.end(), G1Zero());
     auto const& h = pc::PcH();
     proof.com_ext_pub.gamma_neg_1.resize(round);
     proof.com_ext_pub.gamma_pos_1.resize(round);

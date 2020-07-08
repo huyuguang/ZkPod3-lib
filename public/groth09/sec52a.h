@@ -206,8 +206,8 @@ struct Sec52a {
     std::vector<Fr> e_pow_reverse;
     ComputePowOfE(e, m, e_pow, e_pow_reverse);
 
-    std::vector<Fr> x(n);
-    std::fill(x.begin(), x.end(), FrZero());
+    std::vector<Fr> x(n, FrZero());
+    //std::fill(x.begin(), x.end(), FrZero());
 
     auto parallel_fx = [m, &x, &e_pow, &input](int64_t j) {
       for (int64_t i = 0; i < m; ++i) {
@@ -216,8 +216,8 @@ struct Sec52a {
     };
     parallel::For(n, parallel_fx);
 
-    std::vector<Fr> y(n);
-    std::fill(y.begin(), y.end(), FrZero());
+    std::vector<Fr> y(n, FrZero());
+    //std::fill(y.begin(), y.end(), FrZero());
 
     auto parallel_fy = [m, &y, &e_pow_reverse, &input](int64_t j) {
       for (int64_t i = 0; i < m; ++i) {

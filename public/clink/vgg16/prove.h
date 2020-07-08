@@ -9,15 +9,10 @@
 
 namespace clink::vgg16 {
 
-inline bool InferAndCommit(std::string const& test_image_path,
+inline bool InferAndCommit(dbl::Image const& test_image,
                            std::string const& working_path) {
   Tick tick(__FN__);
   try {
-    dbl::Image test_image(kImageInfos[0]);
-    if (!dbl::LoadTestImage(test_image_path, test_image)) {
-      return false;
-    }
-
     Para para(working_path + "/sec/para");
     std::array<std::unique_ptr<Image>, 35> images;
     Infer(para, test_image, images);
@@ -34,8 +29,8 @@ inline bool InferAndCommit(std::string const& test_image_path,
     ImageCommitmentPub image_com_pub;
     ImageCommitmentSec image_com_sec;
     ComputePerImageCommitment(images, image_com_pub, image_com_sec);
-    YasSaveBin(working_path + "/pub/image_com_pub",image_com_pub);
-    YasSaveBin(working_path + "/sec/image_com_sec",image_com_sec);
+    YasSaveBin(working_path + "/pub/image_com_pub", image_com_pub);
+    YasSaveBin(working_path + "/sec/image_com_sec", image_com_sec);
     return true;
   } catch (std::exception& e) {
     std::cerr << e.what() << "\n";
@@ -51,7 +46,7 @@ struct Proof {
   DenseProof dense1;
 
   Proof(std::string const& file) {
-    Tick tick(__FN__);    
+    Tick tick(__FN__);
     if (!YasLoadBin(file, *this)) {
       throw std::invalid_argument("invalid proof file: " + file);
     }
@@ -77,10 +72,10 @@ struct Proof {
   }
 };
 
-inline bool Prove(h256_t seed, std::string const& test_image_path,
+inline bool Prove(h256_t seed, dbl::Image const& test_image,
                   std::string const& working_path, Proof& proof) {
   Tick tick(__FN__);
-  if (!InferAndCommit(test_image_path, working_path)) return false;
+  if (!InferAndCommit(test_image, working_path)) return false;
 
   ProveContext context(working_path);
 
