@@ -475,5 +475,11 @@
     <ClInclude Include="..\public\hyrax\a4.h">
       <Filter>public\hyrax</Filter>
     </ClInclude>
+    <ClInclude Include="..\public\clink\affine.h">
+      <Filter>public\clink</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\clink\vgg16\adapt.h">
+      <Filter>public\clink\vgg16</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

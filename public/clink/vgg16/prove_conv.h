@@ -106,8 +106,8 @@ inline std::vector<Fr> OneConvOutputR2S(size_t K, size_t C, size_t D,
 }
 
 inline void OneConvInputProve(h256_t seed, ProveContext const& context,
-                              size_t layer, OneConvInputPub& pub,
-                              OneConvInputSec& sec) {
+                              size_t layer, OneConvInputPub& input_pub,
+                              OneConvInputSec& input_sec) {
   Tick tick(__FN__, std::to_string(layer));
 
 #ifdef _DEBUG_CHECK
@@ -136,11 +136,11 @@ inline void OneConvInputProve(h256_t seed, ProveContext const& context,
   auto const& vec_x = input_image.data;
   Fr const& rx = context.image_com_sec().r[layer];
   G1 const& cx = context.image_com_pub().c[layer];
-  FrRand(sec.rb.data(), sec.rb.size());
+  FrRand(input_sec.rb.data(), input_sec.rb.size());
 
-  // build sec.b and ctx.B
+  // build input_sec.b and ctx.B
   ctx.B.resize(C * D * D);
-  sec.b.resize(K * C * D * D);
+  input_sec.b.resize(K * C * D * D);
   for (size_t i = 0; i < C * D * D; ++i) {
     for (size_t j = 0; j < 9; ++j) {
       size_t m = j / 3;
@@ -152,38 +152,40 @@ inline void OneConvInputProve(h256_t seed, ProveContext const& context,
       size_t ii = q + m;
       size_t jj = o + n;
       if (ii == 0 || jj == 0 || ii == (D + 1) || jj == (D + 1)) {
-        sec.b[i][j] = &FrZero();
+        input_sec.b[i][j] = &FrZero();
         ctx.B[i][j] = -1;
       } else {
-        sec.b[i][j] = &x[r][ii - 1][jj - 1];
+        input_sec.b[i][j] = &x[r][ii - 1][jj - 1];
         ctx.B[i][j] = r * D * D + (ii - 1) * D + (jj - 1);
       }
     }
   }
 
-  // commit every col of sec.b
+  // commit every col of input_sec.b
   auto get_col_b_u = [&context, order](int64_t i) -> G1 const& {
     auto range = context.auxi().data_u_conv(order);
     if (i >= (range.second - range.first)) throw std::runtime_error("oops");
     return range.first[i];
   };
 
-  auto parallel_f1 = [&sec, &pub, &get_col_b_u, C, D](int64_t j) {
-    auto get_x = [&sec, j](int64_t i) -> Fr const& { return *sec.b[i][j]; };
-    pub.cb[j] =
-        pc::PcComputeCommitmentG(C * D * D, get_col_b_u, get_x, sec.rb[j]);
+  auto parallel_f1 = [&input_sec, &input_pub, &get_col_b_u, C, D](int64_t j) {
+    auto get_x = [&input_sec, j](int64_t i) -> Fr const& {
+      return *input_sec.b[i][j];
+    };
+    input_pub.cb[j] = pc::PcComputeCommitmentG(C * D * D, get_col_b_u, get_x,
+                                               input_sec.rb[j]);
   };
   parallel::For(9, parallel_f1);
 
-  // update seed by pub.cb
-  OneConvUpdateSeed(seed, pub.cb);
+  // update seed by input_pub.cb
+  OneConvUpdateSeed(seed, input_pub.cb);
 
   // compute challenge ctx.r base on fst
   OneConvComputeInputR(seed, layer, C * D * D, ctx.r);
 
   // build ctx.q base ctx.B and ctx.r
   ctx.q.resize(C * D * D, FrZero());
-  //std::fill(ctx.q.begin(), ctx.q.end(), FrZero());
+  // std::fill(ctx.q.begin(), ctx.q.end(), FrZero());
   for (size_t j = 0; j < 9; ++j) {
     for (size_t i = 0; i < C * D * D; ++i) {
       auto const& Bij = ctx.B[i][j];
@@ -193,30 +195,49 @@ inline void OneConvInputProve(h256_t seed, ProveContext const& context,
     }
   }
 
+  // extend input_sec.b (to input_sec.b'), now input_sec.b is [KCDD][9]
+  for (size_t i = C * D * D; i < K * C * D * D; ++i) {
+    input_sec.b[i] = input_sec.b[i % (C * D * D)];
+  }
+
+#ifdef _DEBUG_CHECK
+  auto parallel_f3 = [&input_pub, &input_sec, C, D, K](int64_t j) {
+    auto get_x = [&input_sec, j](int64_t i) -> Fr const& {
+      return *input_sec.b[i][j];
+    };
+    auto c = pc::PcComputeCommitmentG(K * C * D * D, get_x, input_sec.rb[j]);
+    if (input_pub.cb[j] != c) {
+      throw std::runtime_error("oops");
+    }
+  };
+  parallel::For(9, parallel_f3);
+#endif
+
   // prove <ctx.r[j], vec_bj>
   FrRand(ctx.a3_ry.data(), ctx.a3_ry.size());
-  auto parallel_f2 = [&ctx, &pub, &sec, &seed, C, D, layer,
+  auto parallel_f2 = [&ctx, &input_pub, &input_sec, &seed, C, D, layer,
                       &get_col_b_u](int64_t j) {
     std::vector<Fr> vec_bj(C * D * D);
     for (size_t i = 0; i < C * D * D; ++i) {
-      vec_bj[i] = *sec.b[i][j];
+      vec_bj[i] = *input_sec.b[i][j];
     }
     ctx.a3_y[j] = InnerProduct(vec_bj, ctx.r[j]);
-    pub.a3_cy[j] = pc::PcComputeCommitmentG(ctx.a3_y[j], ctx.a3_ry[j]);
+    input_pub.a3_cy[j] = pc::PcComputeCommitmentG(ctx.a3_y[j], ctx.a3_ry[j]);
 
     HyraxA::ProveInput a3_rb_prove_input(vec_bj, ctx.r[j], ctx.a3_y[j],
                                          get_col_b_u, pc::PcG(0));
-    HyraxA::CommitmentSec a3_rb_com_sec(sec.rb[j], ctx.a3_ry[j]);
-    HyraxA::CommitmentPub a3_rb_com_pub(pub.cb[j], pub.a3_cy[j]);
-    HyraxA::Prove(pub.rb_proofs[j], seed, a3_rb_prove_input, a3_rb_com_pub,
-                  a3_rb_com_sec);
+    HyraxA::CommitmentSec a3_rb_com_sec(input_sec.rb[j], ctx.a3_ry[j]);
+    HyraxA::CommitmentPub a3_rb_com_pub(input_pub.cb[j], input_pub.a3_cy[j]);
+    HyraxA::Prove(input_pub.rb_proofs[j], seed, a3_rb_prove_input,
+                  a3_rb_com_pub, a3_rb_com_sec);
   };
   parallel::For(9, parallel_f2);
 
   // prove <q, vec_x>
   ctx.ip_xq = std::accumulate(ctx.a3_y.begin(), ctx.a3_y.end(), FrZero());
   ctx.a3_rz = std::accumulate(ctx.a3_ry.begin(), ctx.a3_ry.end(), FrZero());
-  G1 a3_cz = std::accumulate(pub.a3_cy.begin(), pub.a3_cy.end(), G1Zero());
+  G1 a3_cz =
+      std::accumulate(input_pub.a3_cy.begin(), input_pub.a3_cy.end(), G1Zero());
 #ifdef _DEBUG_CHECK
   if (InnerProduct(vec_x, ctx.q) != ctx.ip_xq) {
     throw std::runtime_error("oops");
@@ -229,24 +250,8 @@ inline void OneConvInputProve(h256_t seed, ProveContext const& context,
                                        pc::PcG(0));
   HyraxA::CommitmentSec a3_xq_com_sec(rx, ctx.a3_rz);
   HyraxA::CommitmentPub a3_xq_com_pub(cx, a3_cz);
-  HyraxA::Prove(pub.xq_proof, seed, a3_xq_prove_input, a3_xq_com_pub,
+  HyraxA::Prove(input_pub.xq_proof, seed, a3_xq_prove_input, a3_xq_com_pub,
                 a3_xq_com_sec);
-
-  // extend sec.b (to sec.b'), now sec.b is [KCDD][9]
-  for (size_t i = C * D * D; i < K * C * D * D; ++i) {
-    sec.b[i] = sec.b[i % (C * D * D)];
-  }
-
-#ifdef _DEBUG_CHECK
-  auto parallel_f3 = [&pub, &sec, C, D, K](int64_t j) {
-    auto get_x = [&sec, j](int64_t i) -> Fr const& { return *sec.b[i][j]; };
-    auto c = pc::PcComputeCommitmentG(K * C * D * D, get_x, sec.rb[j]);
-    if (pub.cb[j] != c) {
-      throw std::runtime_error("oops");
-    }
-  };
-  parallel::For(9, parallel_f3);
-#endif
 }
 
 struct OneConvR1csPub {
@@ -282,7 +287,8 @@ struct OneConvR1csSec {
 inline void OneConvR1csProve(h256_t seed, ProveContext const& context,
                              size_t layer, OneConvInputPub const& input_pub,
                              OneConvInputSec const& input_sec,
-                             OneConvR1csPub& pub, OneConvR1csSec& sec) {
+                             OneConvR1csPub& r1cs_pub,
+                             OneConvR1csSec& r1cs_sec) {
   Tick tick(__FN__, std::to_string(layer));
   auto K = kImageInfos[layer + 1].C;
   auto C = kImageInfos[layer].C;
@@ -297,7 +303,8 @@ inline void OneConvR1csProve(h256_t seed, ProveContext const& context,
   circuit::vgg16::IpGadget gadget(pb, "vgg16 conv gadget");
   int64_t const primary_input_size = 0;
   pb.set_input_sizes(primary_input_size);
-  pub.r1cs_ret_index = gadget.ret().index - 1;  // see protoboard<FieldT>::val
+  r1cs_pub.r1cs_ret_index =
+      gadget.ret().index - 1;  // see protoboard<FieldT>::val
   std::unique_ptr<R1csInfo> r1cs_info(new R1csInfo(pb));
   auto s = r1cs_info->num_variables;
   std::vector<std::vector<Fr>> w(s);
@@ -331,34 +338,34 @@ inline void OneConvR1csProve(h256_t seed, ProveContext const& context,
     }
   }
 
-  pub.com_w.resize(s);
+  r1cs_pub.com_w.resize(s);
   std::vector<Fr> com_w_r(s);
 
   // std::cout << "compute conv com(witness)\n";
   for (size_t i = 0; i < 9; ++i) {
     com_w_r[i] = input_sec.rb[i];
-    pub.com_w[i] = input_pub.cb[i];
+    r1cs_pub.com_w[i] = input_pub.cb[i];
     com_w_r[i + 9] = context.para_com_sec().conv.coef_r[order][i];
-    pub.com_w[i + 9] = context.para_com_pub().conv.coef[order][i];
+    r1cs_pub.com_w[i + 9] = context.para_com_pub().conv.coef[order][i];
   }
 
-  auto parallel_f = [&com_w_r, &pub, &w, order](int64_t i) {
+  auto parallel_f = [&com_w_r, &r1cs_pub, &w, order](int64_t i) {
     std::vector<Fr> const& x = w[i + 18];
     Fr& r = com_w_r[i + 18];
-    G1& c = pub.com_w[i + 18];
+    G1& c = r1cs_pub.com_w[i + 18];
     r = FrRand();
     c = pc::PcComputeCommitmentG(x, r, true);
   };
   parallel::For<int64_t>(s - 18, parallel_f);
 
   // save output
-  sec.y = w[pub.r1cs_ret_index];
-  sec.ry = com_w_r[pub.r1cs_ret_index];
+  r1cs_sec.y = w[r1cs_pub.r1cs_ret_index];
+  r1cs_sec.ry = com_w_r[r1cs_pub.r1cs_ret_index];
 
-  typename R1cs::ProveInput r1cs_input(*r1cs_info, std::move(w), pub.com_w,
+  typename R1cs::ProveInput r1cs_input(*r1cs_info, std::move(w), r1cs_pub.com_w,
                                        com_w_r, pc::kGetRefG);
 
-  R1cs::Prove(pub.r1cs_proof, seed, std::move(r1cs_input));
+  R1cs::Prove(r1cs_pub.r1cs_proof, seed, std::move(r1cs_input));
 }
 
 struct OneConvOutputPub {
@@ -384,7 +391,7 @@ struct OneConvOutputPub {
 inline void OneConvOutputProve(h256_t seed, ProveContext const& context,
                                size_t layer, OneConvR1csPub const& r1cs_pub,
                                OneConvR1csSec const& r1cs_sec,
-                               OneConvOutputPub& pub) {
+                               OneConvOutputPub& output_pub) {
   Tick tick(__FN__, std::to_string(layer));
   namespace fp = circuit::fp;
   size_t const order = kLayerTypeOrders[layer].second;
@@ -421,9 +428,9 @@ inline void OneConvOutputProve(h256_t seed, ProveContext const& context,
       context.para_com_pub().conv.bias[order] * fp::RationalConst<8, 24>().kFrN;
 
   ry = rz - rb;
-  pub.cy = pc::PcComputeCommitmentG(y, ry);
+  output_pub.cy = pc::PcComputeCommitmentG(y, ry);
 
-  if (cz != pub.cy + cb) {
+  if (cz != output_pub.cy + cb) {
     throw std::runtime_error("oops");
   }
 
@@ -444,7 +451,7 @@ inline void OneConvOutputProve(h256_t seed, ProveContext const& context,
   }
 #endif
 
-  OneConvUpdateSeed(seed, pub.cy);
+  OneConvUpdateSeed(seed, output_pub.cy);
 
   // r.size = KDD
   std::vector<Fr> r = OneConvComputeOutputR(seed, layer, K * D * D);
@@ -462,8 +469,8 @@ inline void OneConvOutputProve(h256_t seed, ProveContext const& context,
 
   // prove <x,s>==<y,r>
   EqualIp<HyraxA>::ProveInput eip_input(x, s, cx, rx, pc::kGetRefG, y, r,
-                                        pub.cy, ry, pc::kGetRefG, ip);
-  EqualIp<HyraxA>::Prove(pub.eip_proof, seed, eip_input);
+                                        output_pub.cy, ry, pc::kGetRefG, ip);
+  EqualIp<HyraxA>::Prove(output_pub.eip_proof, seed, eip_input);
 }
 
 struct OneConvProof {

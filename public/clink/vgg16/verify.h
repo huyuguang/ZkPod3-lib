@@ -1,5 +1,6 @@
 #pragma once
 
+#include "./adapt.h"
 #include "./image_com.h"
 #include "./prove.h"
 #include "./verify_conv.h"
@@ -10,18 +11,17 @@
 namespace clink::vgg16 {
 
 inline bool Verify(h256_t seed, std::string const& pub_path,
-                   dbl::Image const& test_image,
-                   Proof const& proof) {
+                   dbl::Image const& test_image, Proof const& proof) {
   Tick tick(__FN__);
   VerifyContext context(pub_path);
 
   std::vector<std::function<bool()>> tasks;
-  
+
   // check test image
   tasks.emplace_back([&context, &test_image]() {
     Image image(test_image);
     auto c = pc::PcComputeCommitmentG(image.data, FrZero());
-    return c == context.image_com_pub().c[0];    
+    return c == context.image_com_pub().c[0];
   });
 
   // conv

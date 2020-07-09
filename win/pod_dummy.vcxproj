@@ -156,6 +156,7 @@
     <ClInclude Include="..\public\circuit\vgg16\pooling_gadget.h" />
     <ClInclude Include="..\public\circuit\vgg16\relubn_gadget.h" />
     <ClInclude Include="..\public\circuit\vgg16\vgg16.h" />
+    <ClInclude Include="..\public\clink\affine.h" />
     <ClInclude Include="..\public\clink\details.h" />
     <ClInclude Include="..\public\clink\divide.h" />
     <ClInclude Include="..\public\clink\equality.h" />
@@ -178,6 +179,7 @@
     <ClInclude Include="..\public\clink\vgg16\context.h" />
     <ClInclude Include="..\public\clink\vgg16\image_com.h" />
     <ClInclude Include="..\public\clink\vgg16\infer.h" />
+    <ClInclude Include="..\public\clink\vgg16\adapt.h" />
     <ClInclude Include="..\public\clink\vgg16\para_com.h" />
     <ClInclude Include="..\public\clink\vgg16\para_dbl.h" />
     <ClInclude Include="..\public\clink\vgg16\para_fr.h" />

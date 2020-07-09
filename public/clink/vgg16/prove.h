@@ -1,5 +1,6 @@
 #pragma once
 
+#include "./adapt.h"
 #include "./image_com.h"
 #include "./infer.h"
 #include "./prove_conv.h"
