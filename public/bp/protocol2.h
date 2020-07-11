@@ -118,7 +118,7 @@ inline void Prove(Proof& proof, h256_t seed, G1 p, G1 const& u,
     auto nn = g1.size() / 2;
 
     G1 L, R;
-    std::array<parallel::Task, 2> tasks;
+    std::array<parallel::VoidTask, 2> tasks;
     tasks[0] = [&L, &g1, &a, &g2, &b, &u, nn]() {
       L = MultiExpG1G2(&g1[nn], &a[0], &g2[0], &b[nn], nn);
       auto CL = InnerProduct(&a[0], &b[nn], nn);
@@ -224,7 +224,7 @@ bool Verify(h256_t seed, G1 p, G1 const& u, std::vector<G1>&& g1,
 
   G1 last_g, last_h;
 
-  std::array<parallel::Task, 2> tasks;
+  std::array<parallel::VoidTask, 2> tasks;
   tasks[0] = [&last_g, &g1, &ss]() {
     last_g = MultiExpBdlo12(&g1[0], &ss[0], g1.size());
   };

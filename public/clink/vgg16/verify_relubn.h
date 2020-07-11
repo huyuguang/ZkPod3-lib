@@ -4,53 +4,30 @@
 
 namespace clink::vgg16 {
 
-inline bool ReluBnInOutVerify(h256_t seed, VerifyContext const& context,
-                              ReluBnProof const& proof) {
-  auto const& io_proof = proof.inout;
-  if (io_proof.ip_com_pubs.size() != io_proof.ip_proofs.size()) {
-    std::cout << __FN__ << ": " << __LINE__ << ": proof invalid\n";
-    return false;
-  }
+inline bool ReluBnInOutVerifyPreprocess(
+    h256_t seed, VerifyContext const& context, ReluBnProof const& proof,
+    AdaptVerifyItemMan& item_man) {
+  auto const& io_pub = proof.io_pub;
 
-  if (io_proof.ip_proofs.size() != kReluBnLayers.size() * 2 + 2) {
+  if (io_pub.cx.size() != kReluBnLayers.size() * 2 + 2) {
     std::cout << __FN__ << ": " << __LINE__ << ": proof invalid\n";
     return false;
   }
 
   for (size_t order = 0; order < kReluBnLayers.size(); ++order) {
     auto layer = kReluBnLayers[order];
-    if (context.image_com_pub().c[layer] !=
-        io_proof.ip_com_pubs[2 + order * 2].xi) {
+    if (context.image_com_pub().c[layer] != io_pub.cx[2 + order * 2]) {
       std::cout << __FN__ << ": " << __LINE__ << ": proof invalid\n";
       return false;
     }
     if (context.image_com_pub().c[layer + 1] !=
-        io_proof.ip_com_pubs[2 + order * 2 + 1].xi) {
+        io_pub.cx[2 + order * 2 + 1]) {
       std::cout << __FN__ << ": " << __LINE__ << ": proof invalid\n";
       return false;
     }
   }
 
-  G1 chk_in_com_xa = G1Zero();
-  G1 chk_out_com_xa = G1Zero();
-  for (size_t i = 2; i < io_proof.ip_com_pubs.size(); ++i) {
-    auto const& pub = io_proof.ip_com_pubs[i];
-    if (i%2 == 0) {
-      chk_in_com_xa += pub.tau;
-    } else {
-      chk_out_com_xa += pub.tau;
-    }
-  }
-  if (chk_in_com_xa != io_proof.ip_com_pubs[0].tau) {
-    std::cout << __FN__ << ": " << __LINE__ << ": proof invalid\n";
-    return false;
-  }
-  if (chk_out_com_xa != io_proof.ip_com_pubs[1].tau) {
-    std::cout << __FN__ << ": " << __LINE__ << ": proof invalid\n";
-    return false;
-  }
-
-  std::vector<std::vector<Fr>> a(io_proof.ip_proofs.size());
+  std::vector<std::vector<Fr>> a(io_pub.cx.size());
   size_t total_size = 0;
   for (size_t order = 0; order < kReluBnLayers.size(); ++order) {
     auto layer = kReluBnLayers[order];
@@ -59,12 +36,11 @@ inline bool ReluBnInOutVerify(h256_t seed, VerifyContext const& context,
     a[2 + order * 2].resize(size);
     a[2 + order * 2 + 1].resize(size);
     total_size += size;
-  }  
+  }
   a[0].resize(total_size);
   a[1].resize(total_size);
 
-  ReluBnUpdateSeed(seed, io_proof.ip_com_pubs[0].xi,
-                   io_proof.ip_com_pubs[1].xi);
+  ReluBnUpdateSeed(seed, io_pub.cx[0], io_pub.cx[1]);
   a[0] = ReluBnComputeFst(seed, "relubn input", total_size);
   a[1] = ReluBnComputeFst(seed, "relubn output", total_size);
 
@@ -80,85 +56,95 @@ inline bool ReluBnInOutVerify(h256_t seed, VerifyContext const& context,
     it_o += size;
   }
 
-  bool all_success = false;
-  auto parallel_f = [&seed, &a, &io_proof](int64_t i) {
-    HyraxA::VerifyInput input(a[i], io_proof.ip_com_pubs[i], pc::kGetRefG,
-                             pc::PcG(0));
-    return HyraxA::Verify(io_proof.ip_proofs[i],seed, input);
-  };
-  parallel::For(&all_success, a.size(), parallel_f);
-  if (!all_success) {
-    std::cout << __FN__ << ": " << __LINE__ << ": verify failed\n";
-    return false;
+  AdaptVerifyItem adapt_item_in;
+  AdaptVerifyItem adapt_item_out;
+  adapt_item_in.Init(io_pub.cx.size() / 2, "relubn verify in");
+  adapt_item_out.Init(io_pub.cx.size() / 2, "relubn verify out");
+  for (size_t j = 0; j < io_pub.cx.size() / 2; ++j) {
+    adapt_item_in.a[j] = std::move(a[j * 2]);
+    adapt_item_in.cx[j] = io_pub.cx[j * 2];
+    if (j == 0) adapt_item_in.a[j] = -adapt_item_in.a[j];
+
+    adapt_item_out.a[j] = std::move(a[j * 2 + 1]);
+    adapt_item_out.cx[j] = io_pub.cx[j * 2 + 1];
+    if (j == 0) adapt_item_out.a[j] = -adapt_item_out.a[j];
   }
-  return all_success;
+  item_man.emplace(std::move(adapt_item_in));
+  item_man.emplace(std::move(adapt_item_out));
+  return true;
 }
 
-inline bool ReluBnR1csVerify(h256_t seed, VerifyContext const& context,
-                             ReluBnProof const& proof) {
+inline bool ReluBnR1csVerifyPreprocess(
+    h256_t seed, VerifyContext const& context, ReluBnProof const& proof,
+    ParallelBoolTaskMan& task_man) {
   Tick tick(__FN__);
-  if (proof.r1cs.com_w[0] != proof.inout.ip_com_pubs[0].xi) {  // in
+  if (proof.r1cs_pub.com_w[0] != proof.io_pub.cx[0]) {  // in
     std::cout << __FN__ << ": " << __LINE__ << ": proof invalid\n";
     return false;
   }
 
-  if (proof.r1cs.com_w[1] != proof.inout.ip_com_pubs[1].xi) {  // out
+  if (proof.r1cs_pub.com_w[1] != proof.io_pub.cx[1]) {  // out
     std::cout << __FN__ << ": " << __LINE__ << ": proof invalid\n";
     return false;
   }
 
-  if (proof.r1cs.com_w[2] != context.para_com_pub().bn.alpha) {
+  if (proof.r1cs_pub.com_w[2] != context.para_com_pub().bn.alpha) {
     std::cout << __FN__ << ": " << __LINE__ << ": proof invalid\n";
     return false;
   }
 
-  if (proof.r1cs.com_w[3] != context.para_com_pub().bn.beta) {
+  if (proof.r1cs_pub.com_w[3] != context.para_com_pub().bn.beta) {
     std::cout << __FN__ << ": " << __LINE__ << ": proof invalid\n";
     return false;
   }
 
-  if (proof.r1cs.com_w[4] != context.para_com_pub().bn.mu) {
+  if (proof.r1cs_pub.com_w[4] != context.para_com_pub().bn.mu) {
     std::cout << __FN__ << ": " << __LINE__ << ": proof invalid\n";
     return false;
   }
 
   libsnark::protoboard<Fr> pb;
-  circuit::vgg16::ReluBnGadget<8,24> gadget(pb, "vgg16 relubn gadget");
+  circuit::vgg16::ReluBnGadget<8, 24> gadget(pb, "vgg16 relubn gadget");
   int64_t const primary_input_size = 0;
   pb.set_input_sizes(primary_input_size);
-  std::unique_ptr<R1csInfo> r1cs_info(new R1csInfo(pb));
-  // auto s = r1cs_info->num_variables;
+  std::shared_ptr<R1csInfo> r1cs_info(new R1csInfo(pb));
   auto n = ReluBnGetCircuitCount();
-  std::vector<std::vector<Fr>> public_w;  // empty
 
-  R1cs::VerifyInput input(n, *r1cs_info, proof.r1cs.com_w, public_w,
-                          pc::kGetRefG);
-  if (!R1cs::Verify(proof.r1cs.r1cs_proof, seed, input)) {
-    std::cout << __FN__ << ": " << __LINE__ << ": verify failed\n";
-    return false;
-  }
-
+  parallel::BoolTask task = [seed, &proof, r1cs_info, n]() {
+    std::vector<std::vector<Fr>> public_w;  // empty
+    R1cs::VerifyInput input(n, *r1cs_info, proof.r1cs_pub.com_w, public_w,
+                            pc::kGetRefG);
+    if (!R1cs::Verify(proof.r1cs_proof, seed, input)) {
+      std::cout << __FN__ << ": " << __LINE__ << ": verify failed\n";
+      return false;
+    }
+    return true;
+  };
+  task_man.emplace(std::move(task));
   return true;
 }
 
-inline bool ReluBnVerify(h256_t seed, VerifyContext const& context,
-                         ReluBnProof const& proof) {
+inline bool ReluBnVerifyPreprocess(h256_t seed, VerifyContext const& context,
+                                   ReluBnProof const& proof,
+                                   AdaptVerifyItemMan& item_man,
+                                   ParallelBoolTaskMan& task_man) {
   Tick tick(__FN__);
 
-  std::array<std::atomic<bool>, 2> rets;
-  std::array<parallel::Task, 2> tasks;
-  tasks[0] = [&seed, &context, &proof, &rets]() {
-    rets[0] = ReluBnInOutVerify(seed, context, proof);
-  };
-  tasks[1] = [&seed, &context, &proof, &rets]() {
-    rets[1] = ReluBnR1csVerify(seed, context, proof);
-  };
+  // can parallel but need to protect adapt_items and parallel_tasks
+  if (!ReluBnInOutVerifyPreprocess(seed, context, proof, item_man)) {
+#ifdef _DEBUG_CHECK
+    throw std::runtime_error("oops");
+#endif
+    return false;
+  }
 
-  parallel::Invoke(tasks);
+  if (!ReluBnR1csVerifyPreprocess(seed, context, proof, task_man)) {
+#ifdef _DEBUG_CHECK
+    throw std::runtime_error("oops");
+#endif
+    return false;
+  }
 
-  if (!rets[0] || !rets[1]) return false;
-
-  std::cout << "ReluBnVerify success\n";
   return true;
 }
 }  // namespace clink::vgg16

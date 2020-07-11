@@ -25,46 +25,47 @@ inline bool TestInfer(std::string const& test_image_path,
 
   return InferAndCommit(test_image, working_path);
 }
-
-inline bool TestConv(std::string const& working_path) {
-  Tick tick(__FN__);
-  h256_t seed = misc::RandH256();
-  ProveContext prove_context(working_path);
-  VerifyContext verify_context(working_path + "/pub");
-
-  bool all_success = false;
-  auto parallel_f = [&prove_context, &verify_context, &seed](int64_t i) {
-    auto layer = kConvLayers[i];
-    OneConvProof proof;
-    OneConvProve(seed, prove_context, layer, proof);
-    return OneConvVerify(seed, verify_context, layer, proof);
-  };
-  parallel::For(&all_success, kConvLayers.size(), parallel_f);
-
-  return all_success;
-}
-
-inline bool TestReluBn(std::string const& working_path) {
-  Tick tick(__FN__);
-  h256_t seed = misc::RandH256();
-  ProveContext prove_context(working_path);
-  VerifyContext verify_context(working_path + "/pub");
-
-  ReluBnProof proof;
-  ReluBnProve(seed, prove_context, proof);
-  return ReluBnVerify(seed, verify_context, proof);
-}
-
-inline bool TestPooling(std::string const& working_path) {
-  Tick tick(__FN__);
-  h256_t seed = misc::RandH256();
-  ProveContext prove_context(working_path);
-  VerifyContext verify_context(working_path + "/pub");
-
-  PoolingProof proof;
-  PoolingProve(seed, prove_context, proof);
-  return PoolingVerify(seed, verify_context, proof);
-}
+//
+//inline bool TestConv(std::string const& working_path) {
+//  Tick tick(__FN__);
+//  h256_t seed = misc::RandH256();
+//  ProveContext prove_context(working_path);
+//  VerifyContext verify_context(working_path + "/pub");
+//
+//  bool all_success = false;
+//  auto parallel_f = [&prove_context, &verify_context, &seed](int64_t i) {
+//    auto layer = kConvLayers[i];
+//    OneConvProof proof;
+//    OneConvProve(seed, prove_context, layer, proof);
+//    return OneConvVerify(seed, verify_context, layer, proof);
+//  };
+//  //parallel::For(&all_success, kConvLayers.size(), parallel_f);
+//  all_success = parallel_f(0); // TODO
+//
+//  return all_success;
+//}
+//
+//inline bool TestReluBn(std::string const& working_path) {
+//  Tick tick(__FN__);
+//  h256_t seed = misc::RandH256();
+//  ProveContext prove_context(working_path);
+//  VerifyContext verify_context(working_path + "/pub");
+//
+//  ReluBnProof proof;
+//  ReluBnProve(seed, prove_context, proof);
+//  return ReluBnVerify(seed, verify_context, proof);
+//}
+//
+//inline bool TestPooling(std::string const& working_path) {
+//  Tick tick(__FN__);
+//  h256_t seed = misc::RandH256();
+//  ProveContext prove_context(working_path);
+//  VerifyContext verify_context(working_path + "/pub");
+//
+//  PoolingProof proof;
+//  PoolingProve(seed, prove_context, proof);
+//  return PoolingVerify(seed, verify_context, proof);
+//}
 
 inline bool TestDense(std::string const& working_path) {
   Tick tick(__FN__);
@@ -106,17 +107,17 @@ inline bool TestSerialize(std::string const& working_path) {
     for (size_t i = 0; i < proof.conv.size(); ++i) {
       std::cout << "proof conv " << i << ": " << YasGetBinLen(proof.conv[i])
                 << "\n";
-      std::cout << "\t input:" << YasGetBinLen(proof.conv[i].input) << "\n";
-      std::cout << "\t r1cs:" << YasGetBinLen(proof.conv[i].r1cs) << "\n";
-      std::cout << "\t output:" << YasGetBinLen(proof.conv[i].output) << "\n";
+      std::cout << "\t input:" << YasGetBinLen(proof.conv[i].input_pub) << "\n";
+      std::cout << "\t r1cs:" << YasGetBinLen(proof.conv[i].r1cs_pub) << "\n";
+      std::cout << "\t output:" << YasGetBinLen(proof.conv[i].output_pub) << "\n";
     }
     std::cout << "proof relubn: " << YasGetBinLen(proof.relubn) << "\n";
-    std::cout << "\t inout: " << YasGetBinLen(proof.relubn.inout) << "\n";
-    std::cout << "\t r1cs: " << YasGetBinLen(proof.relubn.r1cs) << "\n";
+    std::cout << "\t inout: " << YasGetBinLen(proof.relubn.io_pub) << "\n";
+    std::cout << "\t r1cs: " << YasGetBinLen(proof.relubn.r1cs_pub) << "\n";
     std::cout << "proof pooling: " << YasGetBinLen(proof.pooling) << "\n";
-    std::cout << "\t input: " << YasGetBinLen(proof.pooling.input) << "\n";
-    std::cout << "\t r1cs: " << YasGetBinLen(proof.pooling.r1cs) << "\n";
-    std::cout << "\t output: " << YasGetBinLen(proof.pooling.output) << "\n";
+    std::cout << "\t input: " << YasGetBinLen(proof.pooling.input_pub) << "\n";
+    std::cout << "\t r1cs: " << YasGetBinLen(proof.pooling.r1cs_pub) << "\n";
+    std::cout << "\t output: " << YasGetBinLen(proof.pooling.output_pub) << "\n";
     std::cout << "proof dense0: " << YasGetBinLen(proof.dense0) << "\n";
     std::cout << "proof dense1: " << YasGetBinLen(proof.dense1) << "\n";
     return true;
@@ -167,6 +168,7 @@ inline bool Test() {
     Publish(features_path, working_path);
   }
 
+  //TestConv(working_path); // TODO
   return TestProve(test_image_path, working_path);
 }
 

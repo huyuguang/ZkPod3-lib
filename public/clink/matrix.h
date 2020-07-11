@@ -59,7 +59,7 @@ struct Matrix {
     std::vector<Fr> e(s);
     ComputeFst(seed, "consistency::matrix::e", e);
 
-    std::array<parallel::Task, 2> tasks;
+    std::array<parallel::VoidTask, 2> tasks;
     std::vector<Fr> v(s, FrZero());
     G1 com_v;
     Fr com_v_r;
@@ -136,7 +136,7 @@ struct Matrix {
     std::vector<Fr> e(s);
     ComputeFst(seed, "consistency::matrix::e", e);
 
-    std::array<parallel::Task, 2> tasks;
+    std::array<parallel::VoidTask, 2> tasks;
 
     G1 com_v;
     tasks[0] = [&input, &d, &com_v]() {

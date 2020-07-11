@@ -3,186 +3,155 @@
 #include "./prove_pooling.h"
 
 namespace clink::vgg16 {
-inline bool PoolingInputVerify(h256_t seed, VerifyContext const& context,
-                               PoolingProof const& proof) {
-  auto const& in_proof = proof.input;
-  if (in_proof.ip_com_pubs.size() != in_proof.ip_proofs.size()) {
-    std::cout << __FN__ << ": " << __LINE__ << ": proof invalid\n";
-    return false;
-  }
-
-  if (in_proof.ip_com_pubs.size() != 5 + 4) {
-    std::cout << __FN__ << ": " << __LINE__ << ": proof invalid\n";
-    return false;
-  }
+inline bool PoolingInputVerifyPreprocess(h256_t seed,
+                                         VerifyContext const& context,
+                                         PoolingProof const& proof,
+                                         AdaptVerifyItemMan& item_man) {
+  auto const& input_pub = proof.input_pub;
 
   for (size_t l = 0; l < kPoolingLayers.size(); ++l) {
     auto layer = kPoolingLayers[l];
-    if (context.image_com_pub().c[layer] != in_proof.ip_com_pubs[l].xi) {
+    if (context.image_com_pub().c[layer] != input_pub.cx[l]) {
       std::cout << __FN__ << ": " << __LINE__ << ": proof invalid\n";
       return false;
     }
   }
 
-  G1 sum_com_5 = G1Zero();
-  for (size_t i = 0; i < 5;i++) {
-    sum_com_5 += in_proof.ip_com_pubs[i].tau;
-  }
-  G1 sum_com_4 = G1Zero();
-  for (size_t i = 5; i < 9;i++) {
-    sum_com_4 += in_proof.ip_com_pubs[i].tau;
-  }
-  if (sum_com_5 != sum_com_4) {
-    std::cout << __FN__ << ": " << __LINE__ << ": proof invalid\n";
-    return false;
-  }
-
-  PoolingUpdateSeed(seed, in_proof.ip_com_pubs[5].xi,
-                    in_proof.ip_com_pubs[6].xi, in_proof.ip_com_pubs[7].xi,
-                    in_proof.ip_com_pubs[8].xi);
+  PoolingUpdateSeed(seed, input_pub.cx[5], input_pub.cx[6], input_pub.cx[7],
+                    input_pub.cx[8]);
 
   std::array<std::vector<Fr>, 9> q;
   PoolingBuildInputQ(seed, q);
 
-  bool all_success = false;
-  auto parallel_f = [&seed, &q, &in_proof](int64_t i) {
-    HyraxA::VerifyInput input(q[i], in_proof.ip_com_pubs[i], pc::kGetRefG,
-                              pc::PcG(0));
-    return HyraxA::Verify(in_proof.ip_proofs[i], seed, input);
-  };
-  parallel::For(&all_success, q.size(), parallel_f);
-  if (!all_success) {
-    std::cout << __FN__ << ": " << __LINE__ << ": verify failed\n";
-    return false;
+  AdaptVerifyItem adapt_item;
+  adapt_item.Init(9, "pooling_input");
+  for (size_t j = 0; j < 9; ++j) {
+    adapt_item.a[j] = std::move(q[j]);
+    adapt_item.cx[j] = input_pub.cx[j];
+    if (j < 5) adapt_item.a[j] = -adapt_item.a[j];
   }
-  return all_success;
+  item_man.emplace(std::move(adapt_item));
+  return true;
 }
 
-inline bool PoolingR1csVerify(h256_t seed, VerifyContext const& /*context*/,
-                              PoolingProof const& proof) {
+inline bool PoolingR1csVerifyPreprocess(h256_t seed,
+                                        VerifyContext const& /*context*/,
+                                        PoolingProof const& proof,
+                                        ParallelBoolTaskMan& task_man) {
   Tick tick(__FN__);
-  if (proof.r1cs.com_w[0] != proof.input.ip_com_pubs[5].xi) { // a
-    std::cout << __FN__ << ": " << __LINE__ << ": proof invalid\n";
-    return false;
-  }
-  
-  if (proof.r1cs.com_w[1] != proof.input.ip_com_pubs[6].xi) { // b
-    std::cout << __FN__ << ": " << __LINE__ << ": proof invalid\n";
-    return false;
-  }
-  
-  if (proof.r1cs.com_w[2] != proof.input.ip_com_pubs[7].xi) { // c
+  if (proof.r1cs_pub.com_w[0] != proof.input_pub.cx[5]) {  // a
     std::cout << __FN__ << ": " << __LINE__ << ": proof invalid\n";
     return false;
   }
 
-  if (proof.r1cs.com_w[3] != proof.input.ip_com_pubs[8].xi) { // d
+  if (proof.r1cs_pub.com_w[1] != proof.input_pub.cx[6]) {  // b
+    std::cout << __FN__ << ": " << __LINE__ << ": proof invalid\n";
+    return false;
+  }
+
+  if (proof.r1cs_pub.com_w[2] != proof.input_pub.cx[7]) {  // c
+    std::cout << __FN__ << ": " << __LINE__ << ": proof invalid\n";
+    return false;
+  }
+
+  if (proof.r1cs_pub.com_w[3] != proof.input_pub.cx[8]) {  // d
     std::cout << __FN__ << ": " << __LINE__ << ": proof invalid\n";
     return false;
   }
 
   libsnark::protoboard<Fr> pb;
-  circuit::vgg16::PoolingGadget<8,24> gadget(pb, "vgg16 pooling gadget");
+  circuit::vgg16::PoolingGadget<8, 24> gadget(pb, "vgg16 pooling gadget");
   int64_t const primary_input_size = 0;
   pb.set_input_sizes(primary_input_size);
-  auto r1cs_ret_index = gadget.ret().index - 1;  // see protoboard<FieldT>::val
-  if (proof.r1cs.r1cs_ret_index != r1cs_ret_index) {
+  // see protoboard<FieldT>::val
+  auto r1cs_ret_index = gadget.ret().index - 1;
+  if (proof.r1cs_pub.r1cs_ret_index != r1cs_ret_index) {
     std::cout << __FN__ << ": " << __LINE__ << ": proof invalid\n";
     return false;
   }
 
-  std::unique_ptr<R1csInfo> r1cs_info(new R1csInfo(pb));
-  // auto s = r1cs_info->num_variables;
+  std::shared_ptr<R1csInfo> r1cs_info(new R1csInfo(pb));
   auto n = PoolingGetCircuitCount();
-  std::vector<std::vector<Fr>> public_w;  // empty
-
-  R1cs::VerifyInput input(n, *r1cs_info, proof.r1cs.com_w, public_w,
-                          pc::kGetRefG);
-  if (!R1cs::Verify(proof.r1cs.r1cs_proof, seed, input)) {
-    std::cout << __FN__ << ": " << __LINE__ << ": verify failed\n";
-    return false;
-  }
-
+  parallel::BoolTask task = [seed, &proof, r1cs_info, n]() {
+    std::vector<std::vector<Fr>> public_w;  // empty
+    R1cs::VerifyInput input(n, *r1cs_info, proof.r1cs_pub.com_w, public_w,
+                            pc::kGetRefG);
+    if (!R1cs::Verify(proof.r1cs_proof, seed, input)) {
+      std::cout << __FN__ << ": " << __LINE__ << ": verify failed\n";
+      return false;
+    }
+    return true;
+  };
+  task_man.emplace(std::move(task));
   return true;
 }
 
-inline bool PoolingOutputVerify(h256_t seed, VerifyContext const& context,
-                                PoolingProof const& proof) {
-  auto const& out_proof = proof.output;
-  if (out_proof.ip_com_pubs.size() != out_proof.ip_proofs.size()) {
-    std::cout << __FN__ << ": " << __LINE__ << ": proof invalid\n";
-    return false;
-  }
-
-  if (out_proof.ip_com_pubs.size() != 5 + 1) {
-    std::cout << __FN__ << ": " << __LINE__ << ": proof invalid\n";
-    return false;
-  }
+inline bool PoolingOutputVerifyPreprocess(h256_t seed,
+                                          VerifyContext const& context,
+                                          PoolingProof const& proof,
+                                          AdaptVerifyItemMan& item_man) {
+  Tick tick(__FN__);
+  auto const& output_pub = proof.output_pub;
 
   for (size_t l = 0; l < kPoolingLayers.size(); ++l) {
     auto layer = kPoolingLayers[l] + 1;
-    if (context.image_com_pub().c[layer] != out_proof.ip_com_pubs[l + 1].xi) {
+    if (context.image_com_pub().c[layer] != output_pub.cx[l + 1]) {
       std::cout << __FN__ << ": " << __LINE__ << ": proof invalid\n";
       return false;
     }
   }
-  
-  if (proof.r1cs.com_w[proof.r1cs.r1cs_ret_index] !=
-      out_proof.ip_com_pubs[0].xi) {
+
+  if (proof.r1cs_pub.com_w[proof.r1cs_pub.r1cs_ret_index] != output_pub.cx[0]) {
     std::cout << __FN__ << ": " << __LINE__ << ": proof invalid\n";
     return false;
   }
 
-  G1 sum_com = G1Zero();
-  for (size_t i = 1; i < 6; i++) {
-    sum_com += out_proof.ip_com_pubs[i].tau;
-  }
-
-  if (sum_com != out_proof.ip_com_pubs[0].tau) {
-    std::cout << __FN__ << ": " << __LINE__ << ": proof invalid\n";
-    return false;
-  }
-
-  PoolingUpdateSeed(seed, proof.r1cs);
+  PoolingUpdateSeed(seed, proof.r1cs_pub);
 
   std::array<std::vector<Fr>, 6> q;
   PoolingBuildOutputQ(seed, q);
 
-  bool all_success = false;
-  auto parallel_f = [&seed, &q, &out_proof](int64_t i) {
-    HyraxA::VerifyInput input(q[i], out_proof.ip_com_pubs[i], pc::kGetRefG,
-                              pc::PcG(0));
-    return HyraxA::Verify(out_proof.ip_proofs[i], seed, input);
-  };
-  parallel::For(&all_success, q.size(), parallel_f);
-  if (!all_success) {
-    std::cout << __FN__ << ": " << __LINE__ << ": verify failed\n";
-    return false;
+  AdaptVerifyItem adapt_item;
+  adapt_item.Init(6, "pooling_output");
+  for (size_t i = 0; i < 6; ++i) {
+    adapt_item.a[i] = std::move(q[i]);
+    adapt_item.cx[i] = output_pub.cx[i];
+    if (i == 0) {
+      adapt_item.a[i] = -adapt_item.a[i];
+    }
   }
-  return all_success;
+  item_man.emplace(std::move(adapt_item));
+  return true;
 }
 
-inline bool PoolingVerify(h256_t seed, VerifyContext const& context,
-                          PoolingProof const& proof) {
+inline bool PoolingVerifyPreprocess(h256_t seed, VerifyContext const& context,
+                                    PoolingProof const& proof,
+                                    AdaptVerifyItemMan& item_man,
+                                    ParallelBoolTaskMan& task_man) {
   Tick tick(__FN__);
 
-  std::array<std::atomic<bool>, 3> rets;
-  std::array<parallel::Task, 3> tasks;
-  tasks[0] = [&seed, &context, &proof, &rets]() {
-    rets[0] = PoolingInputVerify(seed, context, proof);
-  };
-  tasks[1] = [&seed, &context, &proof, &rets]() {
-    rets[1] = PoolingR1csVerify(seed, context, proof);
-  };
-  tasks[2] = [&seed, &context, &proof, &rets]() {
-    rets[2] = PoolingOutputVerify(seed, context, proof);
-  };
+  // can parallel but need to protect adapt_items and parallel_tasks
+  if (!PoolingInputVerifyPreprocess(seed, context, proof, item_man)) {
+#ifdef _DEBUG_CHECK
+    throw std::runtime_error("oops");
+#endif
+    return false;
+  }
 
-  parallel::Invoke(tasks);
+  if (!PoolingR1csVerifyPreprocess(seed, context, proof, task_man)) {
+#ifdef _DEBUG_CHECK
+    throw std::runtime_error("oops");
+#endif
+    return false;
+  }
 
-  if (!rets[0] || !rets[1] || !rets[2]) return false;
+  if (!PoolingOutputVerifyPreprocess(seed, context, proof, item_man)) {
+#ifdef _DEBUG_CHECK
+    throw std::runtime_error("oops");
+#endif
+    return false;
+  }
 
-  std::cout << "PoolingVerify success\n";
   return true;
 }
 }  // namespace clink::vgg16

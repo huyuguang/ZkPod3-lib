@@ -28,7 +28,9 @@ static bool VerifyDense(DenseProof const& proof, h256_t seed,
   HyraxA::CommitmentPub com_pub_hy(proof.com_y, proof.com_z);
   HyraxA::VerifyInput input_hy(x, com_pub_hy, pc::kGetRefG, pc::PcG(0));
   if (!HyraxA::Verify(proof.proof_hy, seed, input_hy)) {
-    assert(false);
+#ifdef _DEBUG_CHECK
+    throw std::runtime_error("oops");
+#endif
     return false;
   }
 
@@ -41,7 +43,9 @@ static bool VerifyDense(DenseProof const& proof, h256_t seed,
   Sec51::VerifyInput input_51(t, com_pub_51, pc::kGetRefG, pc::kGetRefG,
                               pc::PcG(0));
   if (!Sec51::Verify(proof.proof_51, seed, input_51)) {
-    assert(false);
+#ifdef _DEBUG_CHECK
+    throw std::runtime_error("oops");
+#endif
     return false;
   }
 

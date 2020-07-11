@@ -6,10 +6,18 @@
 
 namespace clink::vgg16 {
 struct AdaptProveItem {
+  std::string order_tag;
   std::vector<std::vector<Fr>> x;
   std::vector<std::vector<Fr>> a;
   std::vector<G1> cx;
   std::vector<Fr> rx;
+  void Init(size_t count, std::string const& tag) {
+    x.resize(count);
+    a.resize(count);
+    cx.resize(count);
+    rx.resize(count);
+    order_tag = tag;
+  }
   bool CheckFormat() const {
     if (x.size() != a.size()) return false;
     if (cx.size() != a.size()) return false;
@@ -19,15 +27,55 @@ struct AdaptProveItem {
     }
     return true;
   }
+  bool CheckData() const {
+    Fr sum = FrZero();
+    for (size_t i = 0; i < x.size(); ++i) {
+      sum += InnerProduct(x[i], a[i]);
+    }
+    if (sum != FrZero()) return false;
+    bool all_success = false;
+    auto parallel_f = [this](int64_t i) {
+      return cx[i] == pc::PcComputeCommitmentG(x[i], rx[i]);
+    };
+    parallel::For(&all_success, x.size(), parallel_f);
+    return all_success;
+  }
 };
 
 struct AdaptVerifyItem {
+  std::string order_tag;
   std::vector<std::vector<Fr>> a;
   std::vector<G1> cx;
   bool CheckFormat() const {
     return a.size() == cx.size();
   }
+  void Init(size_t count, std::string const& tag) {
+    order_tag = tag;
+    a.resize(count);
+    cx.resize(count);
+  }
 };
+
+template<typename T>
+class SafeVec {
+ public:
+  void emplace(T&& item) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    items_.emplace_back(std::move(item));
+  }
+  void take(std::vector<T>& items) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    items = std::move(items_);
+  }
+ private:
+  std::vector<T> items_;
+  std::mutex mutex_;
+};
+
+using AdaptProveItemMan = SafeVec<AdaptProveItem>;
+using AdaptVerifyItemMan = SafeVec<AdaptVerifyItem>;
+using ParallelVoidTaskMan = SafeVec<parallel::VoidTask>;
+using ParallelBoolTaskMan = SafeVec<parallel::BoolTask>;
 
 inline void AdaptUpdateSeed(h256_t& seed, std::vector<G1> const& cx,
                             std::vector<std::vector<Fr>> const& a) {
@@ -49,15 +97,38 @@ inline void AdaptComputeFst(h256_t const& seed, std::vector<Fr>& e) {
   ComputeFst(seed, salt, e);
 }
 
-inline void AdaptProve(h256_t seed, std::vector<AdaptProveItem>&& items,
-                       hyrax::A4::Proof& proof) {  
+inline void AdaptProve(h256_t seed, AdaptProveItemMan& item_man,
+                       hyrax::A4::Proof& proof) {
+  Tick tick(__FN__);
+  std::vector<AdaptProveItem> items;
+  item_man.take(items);
+  if (items.empty()) return;
+
+  std::sort(items.begin(), items.end(),
+            [](AdaptProveItem const& a, AdaptProveItem const& b) {
+              return a.order_tag < b.order_tag;
+            });
+
   for (auto const& i : items) {
-    if (!i.CheckFormat()) throw std::runtime_error("oops");
+#ifdef _DEBUG_CHECK
+    std::cout << i.order_tag << "\n";
+    if (!i.CheckFormat()) {
+      std::string errmsg = i.order_tag + " oops";
+      std::cout << errmsg << "\n";
+      throw std::runtime_error(errmsg);
+    }
+    if (!i.CheckData()) {
+      std::string errmsg = i.order_tag + " oops";
+      std::cout << errmsg << "\n";
+      throw std::runtime_error(errmsg);
+    }
+#endif
     AdaptUpdateSeed(seed, i.cx, i.a);
   }
 
   std::vector<Fr> e(items.size());
   AdaptComputeFst(seed, e);
+  std::cout << __FN__ << "  " << e[0] << "\n";
 
   for (size_t i = 0; i < items.size(); ++i) {
     for (auto& j : items[i].a) {
@@ -114,15 +185,28 @@ inline void AdaptProve(h256_t seed, std::vector<AdaptProveItem>&& items,
   hyrax::A4::Prove(proof, seed, input, com_pub, com_sec);
 }
 
-inline bool AdaptVerify(h256_t seed, std::vector<AdaptVerifyItem>&& items,
+inline bool AdaptVerify(h256_t seed, AdaptVerifyItemMan& item_man,
                         hyrax::A4::Proof const& proof) {
+  Tick tick(__FN__);
+
+  std::vector<AdaptVerifyItem> items;
+  item_man.take(items);
+  if (items.empty()) return true;
+
+  std::sort(items.begin(), items.end(),
+            [](AdaptVerifyItem const& a, AdaptVerifyItem const& b) {
+              return a.order_tag < b.order_tag;
+            });
+
   for (auto const& i : items) {
+    std::cout << i.order_tag << "\n";
     if (!i.CheckFormat()) throw std::runtime_error("oops");
     AdaptUpdateSeed(seed, i.cx, i.a);
   }
 
   std::vector<Fr> e(items.size());
   AdaptComputeFst(seed, e);
+  std::cout << __FN__ << " " << e[0] << "\n";
 
   for (size_t i = 0; i < items.size(); ++i) {
     for (auto& j : items[i].a) {
@@ -162,6 +246,7 @@ inline bool AdaptVerify(h256_t seed, std::vector<AdaptVerifyItem>&& items,
   hyrax::A4::CommitmentPub com_pub;
   com_pub.cx = std::move(combined_cx);
   com_pub.cz = G1Zero();
+  com_pub.Align();
   hyrax::A4::VerifyInput input(com_pub, pc::kGetRefG, std::move(combined_a),
                                pc::PcU());
   bool success = hyrax::A4::Verify(proof, seed, input);

@@ -4,6 +4,7 @@
 #include "./divide.h"
 #include "./equal_ip.h"
 #include "./equality.h"
+#include "./equality2.h"
 #include "./match.h"
 #include "./matchpack.h"
 #include "./matrix.h"

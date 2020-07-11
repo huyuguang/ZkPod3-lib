@@ -1,13 +1,11 @@
 #for linux(ubuntu18)
 #sudo apt-get install libcrypto++-dev
 #sudo apt-get install libboost-all-dev
-#sudo apt-get install libgmp-dev
 #sudo apt install libtbb-dev
 
 #for mac
 #brew install libcryptopp
 #brew install boost
-#brew install gmp
 #brew install tbb
 
 UNAME := $(shell uname -s)
@@ -104,7 +102,6 @@ LIBS := \
 
 ifeq ($(OS_TYPE),Darwin)
   TMPVAR := $(LIBS)
-  TMPVAR := $(filter-out -lgomp, $(TMPVAR))
   LIBS := $(filter-out -lrt, $(TMPVAR))
 endif
 

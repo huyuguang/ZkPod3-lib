@@ -100,3 +100,12 @@ std::vector<T>& operator+=(std::vector<T>& a, std::vector<T> const& b) {
   VectorAdd(a, a, b);
   return a;
 }
+
+template <typename T>
+std::vector<T> operator-(std::vector<T> const& a) {
+  std::vector<T> c(a.size());
+  for (size_t i = 0; i < c.size(); ++i) {
+    c[i] = -a[i];
+  }
+  return c;
+}

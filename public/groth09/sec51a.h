@@ -121,7 +121,7 @@ struct Sec51a {
     com_sec.s = FrRand();
     com_sec.t = FrRand();
 
-    std::array<parallel::Task, 3> tasks;
+    std::array<parallel::VoidTask, 3> tasks;
     tasks[0] = [&com_pub, &input, &com_sec]() {
       com_pub.a = pc::PcComputeCommitmentG(input.get_gx, input.x, com_sec.r);
     };
@@ -153,7 +153,7 @@ struct Sec51a {
     Fr xdy_dxy = InnerProduct(input.x, com_ext_sec.dy) +
                  InnerProduct(com_ext_sec.dx, input.y);
 
-    std::array<parallel::Task, 3> tasks;
+    std::array<parallel::VoidTask, 3> tasks;
     tasks[0] = [&com_ext_pub, &com_ext_sec, &input]() {
       com_ext_pub.ad = pc::PcComputeCommitmentG(input.get_gx, com_ext_sec.dx,
                                             com_ext_sec.rd);
@@ -235,7 +235,7 @@ struct Sec51a {
     auto const& com_pub = input.com_pub;
     auto const& e = challenge;
     std::vector<int64_t> rets;
-    std::vector<parallel::Task> tasks;
+    std::vector<parallel::VoidTask> tasks;
     if (input.gx_equal_gy) {
       // if x_g_offset == y_g_offset, we can combine the verification
       auto const& get_g = input.get_gx;

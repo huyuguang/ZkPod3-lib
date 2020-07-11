@@ -286,7 +286,7 @@ struct Sec52a {
     std::cout << Tick::GetIndentString() << "multiexp(" << 2 * m - 1 << ")\n";
 
     Sec51a::CommitmentPub com_pub_51;
-    std::array<parallel::Task, 3> tasks;
+    std::array<parallel::VoidTask, 3> tasks;
     tasks[0] = [&com_pub_51, &com_pub, e_pow]() {
       com_pub_51.a = MultiExpBdlo12(com_pub.a, e_pow);
     };

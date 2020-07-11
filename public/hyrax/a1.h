@@ -100,7 +100,7 @@ struct A1 {
     // Tick tick(__FN__);
     auto const& com_pub = input.com_pub;
 
-    std::array<parallel::Task, 3> tasks;
+    std::array<parallel::VoidTask, 3> tasks;
     bool ret0 = false;
     tasks[0] = [&ret0, &com_pub, &com_ext_pub, &c, &sub_proof, &input]() {
       G1 left = com_ext_pub.alpha + com_pub.x * c;
@@ -140,7 +140,7 @@ struct A1 {
     com_sec.r_y = FrRand();
     com_sec.r_z = FrRand();
 
-    std::array<parallel::Task, 3> tasks;
+    std::array<parallel::VoidTask, 3> tasks;
     tasks[0] = [&com_pub, &input, &com_sec, &gx, &h]() {
       com_pub.x = gx * input.x + h * com_sec.r_x;
     };
@@ -169,7 +169,7 @@ struct A1 {
     com_ext_sec.b4 = FrRand();
     com_ext_sec.b5 = FrRand();
 
-    std::array<parallel::Task, 3> tasks;
+    std::array<parallel::VoidTask, 3> tasks;
     tasks[0] = [&com_ext_pub, &com_ext_sec, &gx, &h]() {
       com_ext_pub.alpha = gx * com_ext_sec.b1 + h * com_ext_sec.b2;
     };

@@ -101,7 +101,7 @@ struct EqualIp {
     com_pub2.xi = input.com_y;
     com_pub2.tau = proof.com_z;
 
-    std::array<parallel::Task, 2> tasks;
+    std::array<parallel::VoidTask, 2> tasks;
 
     tasks[0] = [&proof, &seed, &input1, &com_pub1, &com_sec1]() {
       HyraxA::Prove(proof.p1, seed, input1, com_pub1, com_sec1);
@@ -136,7 +136,7 @@ struct EqualIp {
   static bool Verify(h256_t const& seed, Proof const& proof,
                      VerifyInput const& input) {
     std::array<std::atomic<bool>, 2> rets;
-    std::array<parallel::Task, 2> tasks;
+    std::array<parallel::VoidTask, 2> tasks;
     tasks[0] = [&proof, &input, &rets, &seed]() {
       typename HyraxA::CommitmentPub com_pub;
       com_pub.xi = input.com_x;

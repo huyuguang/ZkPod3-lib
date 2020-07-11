@@ -343,7 +343,7 @@ struct Sec43b {
 #endif
     }
 
-    std::array<parallel::Task, 2> tasks;
+    std::array<parallel::VoidTask, 2> tasks;
     tasks[0] = [&para53, &proof, &seed]() {
       Sec53::Prove(proof.proof_53, seed, std::move(*para53.input_53),
                    std::move(para53.com_pub_53), std::move(para53.com_sec_53));
@@ -387,7 +387,7 @@ struct Sec43b {
     std::vector<Fr> t(n);
     ComputeChallengeKT(seed, k, t);
 
-    std::array<parallel::Task, 2> tasks;
+    std::array<parallel::VoidTask, 2> tasks;
     bool ret_53 = false;
     tasks[0] = [&ret_53, &proof, &input, m, &com_pub, &k, &t, &seed]() {
       typename Sec53::CommitmentPub com_pub_53;

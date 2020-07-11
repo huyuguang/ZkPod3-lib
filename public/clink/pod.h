@@ -198,7 +198,7 @@ struct Pod {
     output.w.resize(n + 1);
     ComputeFst(seed, "pod", output.w);
 
-    std::array<parallel::Task, 2> tasks;
+    std::array<parallel::VoidTask, 2> tasks;
     std::array<int64_t, 2> ret{0, 0};
 
     // check consistency of the encrypted m, vm and k.

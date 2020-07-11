@@ -157,7 +157,7 @@ struct A3 {
   static void ComputeCom(CommitmentPub& com_pub, CommitmentSec const& com_sec,
                          ProveInput const& input) {
     // Tick tick(__FN__);
-    std::array<parallel::Task, 2> tasks;
+    std::array<parallel::VoidTask, 2> tasks;
     tasks[0] = [&com_pub, &input, &com_sec]() {
       com_pub.xi =
           pc::PcComputeCommitmentG(input.get_gx, input.x, com_sec.r_xi);
@@ -209,7 +209,7 @@ struct A3 {
       Fr x1_a2;
       Fr x2_a1;
 
-      std::array<parallel::Task, 2> tasks;
+      std::array<parallel::VoidTask, 2> tasks;
       tasks[0] = [&x1, &a2, &h, &r_gamma_neg_1, &gy, &g2, &gamma_neg_1,
                   &x1_a2]() {
         x1_a2 = InnerProduct(x1, a2);
@@ -420,7 +420,7 @@ bool A3::Test(int64_t n) {
   std::vector<Fr> a(n);
   FrRand(a.data(), n);
 
-  h256_t UpdateSeed = misc::RandH256();
+  h256_t seed = misc::RandH256();
 
   int64_t x_g_offset = 20;
   pc::GetRefG get_gx = [x_g_offset](int64_t i) -> G1 const& {
@@ -435,7 +435,7 @@ bool A3::Test(int64_t n) {
   ComputeCom(com_pub, com_sec, prove_input);
 
   Proof proof;
-  Prove(proof, UpdateSeed, prove_input, com_pub, com_sec);
+  Prove(proof, seed, prove_input, com_pub, com_sec);
 
 #ifndef DISABLE_SERIALIZE_CHECK
   // serialize to buffer
@@ -456,7 +456,7 @@ bool A3::Test(int64_t n) {
 #endif
 
   VerifyInput verify_input(a, com_pub, get_gx, gy);
-  bool success = Verify(proof, UpdateSeed, verify_input);
+  bool success = Verify(proof, seed, verify_input);
   std::cout << __FILE__ << " " << __FN__ << ": " << success << "\n\n\n\n\n\n";
   return success;
 }

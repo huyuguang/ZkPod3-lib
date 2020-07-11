@@ -4,8 +4,9 @@
 #include "./details.h"
 
 // batch a3
-// a_i: public vector<Fr>, size = n, i\in[0,m-1]
-// x_i: secret vector<Fr>, size = n, i\in[0,m-1]
+// a_i: public vector<Fr>, i\in[0,m-1], a_i.size() maybe neq a_j.size()
+// x_i: secret vector<Fr>, i\in[0,m-1], x_i.size() maybe neq x_j.size()
+// a_i.size() must eq x_i.size()
 // z: secret Fr
 // open: com(gx,x), com(gz,z)
 // prove: z = \sum_{i=0}^{m}<x_i,a_i>
@@ -47,11 +48,19 @@ struct A4 {
                 std::vector<std::vector<Fr>> ia, G1 const& gz)
         : com_pub(com_pub), get_gx(get_gx), a(std::move(ia)), gz(gz) {
       // align
+      size_t max_len = 0;
+      for (auto const& i : a) {
+        if (max_len < i.size()) max_len = i.size();
+      }
+      for (auto& i : a) {
+        i.resize(max_len, FrZero());
+      }
+
       if (m() > (int64_t)a.size()) {
         auto old_size = a.size();
         a.resize(m());
         for (int64_t i = old_size; i < m(); ++i) {
-          a[i].resize(n(), FrZero());
+          a[i].resize(max_len, FrZero());
         }
       }
     }
@@ -92,8 +101,7 @@ struct A4 {
       assert(!x.empty() && x.size() == a.size());
       Fr check_z = FrZero();
       for (int64_t i = 0; i < m(); ++i) {
-        assert(x[i].size() == (size_t)n());
-        assert(a[i].size() == (size_t)n());
+        assert(x[i].size() == a[i].size());
         check_z += InnerProduct(x[i], a[i]);
       }
       assert(z == check_z);
@@ -102,6 +110,17 @@ struct A4 {
 
     // pad some trivial values
     void Align() {
+      size_t max_len = 0;
+      for (auto const& i : a) {
+        if (max_len < i.size()) max_len = i.size();
+      }
+      for (auto& i : a) {
+        i.resize(max_len, FrZero());
+      }
+      for (auto& i : x) {
+        i.resize(max_len, FrZero());
+      }
+
       int64_t old_m = m();
       int64_t new_m = (int64_t)misc::Pow2UB(old_m);
       if (old_m == new_m) return;
@@ -110,8 +129,8 @@ struct A4 {
       a.resize(new_m);
 
       for (int64_t i = old_m; i < new_m; ++i) {
-        x[i].resize(n(), FrZero());
-        a[i].resize(n(), FrZero());
+        x[i].resize(max_len, FrZero());
+        a[i].resize(max_len, FrZero());
       }
     }
 
@@ -394,12 +413,14 @@ struct A4 {
       i.resize(n);
       FrRand(i.data(), n);
     }
+    x.back().resize(n / 2);
 
     std::vector<std::vector<Fr>> a(m);
     for (auto& i : a) {
       i.resize(n);
       FrRand(i.data(), n);
     }
+    a.back().resize(n / 2);
 
     Fr z = FrZero();
     for (int64_t i = 0; i < m; ++i) {

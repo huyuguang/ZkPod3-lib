@@ -74,6 +74,8 @@ inline std::unique_ptr<tbb::task_scheduler_init> InitTbb(int thread_num) {
 }
 
 typedef std::function<void()> Task;
+typedef std::function<void()> VoidTask;
+typedef std::function<bool()> BoolTask;
 
 template <typename T, typename F>
 void For(T count, F& f, bool direct = false) {

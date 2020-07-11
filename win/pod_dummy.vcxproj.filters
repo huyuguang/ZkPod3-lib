@@ -481,5 +481,17 @@
     <ClInclude Include="..\public\clink\vgg16\adapt.h">
       <Filter>public\clink\vgg16</Filter>
     </ClInclude>
+    <ClInclude Include="..\public\clink\equality2.h">
+      <Filter>public\clink</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\clink\vgg16\conv_pub.h">
+      <Filter>public\clink\vgg16</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\clink\vgg16\pooling_pub.h">
+      <Filter>public\clink\vgg16</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\clink\vgg16\relubn_pub.h">
+      <Filter>public\clink\vgg16</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

@@ -166,6 +166,7 @@ int main(int argc, char** argv) {
   bool circuit = false;
   bool opening = false;
   bool equality = false;
+  bool equality2 = false;
   bool vcp_mnist = false;
   bool iop = false;
   int64_t pack_n = 0;
@@ -227,7 +228,7 @@ int main(int argc, char** argv) {
         "pc_commitment", po::value<int64_t>(&pc_commitment_n), "")(
         "multiexp", po::value<int64_t>(&multiexp_n), "")(
         "disable_vrs_cache", "")("mcl", po::value<int64_t>(&mcl_n), "")(
-        "opening", "")("equality", "")("vcp_mnist", "")("iop", "")(
+        "opening", "")("equality", "")("equality2", "")("vcp_mnist", "")("iop", "")(
         "vgg16_publish", po::value<Param2Str>(&vgg16_publish),
         "\"para_path working_path\", ex: /vgg16/features /temp/vgg16")(
         "vgg16_infer", po::value<Param2Str>(&vgg16_infer),
@@ -286,6 +287,10 @@ int main(int argc, char** argv) {
 
     if (vmap.count("equality")) {
       equality = true;
+    }
+
+    if (vmap.count("equality2")) {
+      equality2 = true;
     }
 
     if (vmap.count("vcp_mnist")) {
@@ -647,6 +652,10 @@ int main(int argc, char** argv) {
 
   if (equality) {
     rets["equality"] = clink::Equality::Test();
+  }
+
+  if (equality2) {
+    rets["equality2"] = clink::Equality2::Test();
   }
 
   if (vcp_mnist) {

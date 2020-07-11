@@ -45,6 +45,7 @@ struct Proof {
   PoolingProof pooling;
   DenseProof dense0;
   DenseProof dense1;
+  hyrax::A4::Proof adapt_proof;
 
   Proof(std::string const& file) {
     Tick tick(__FN__);
@@ -56,7 +57,8 @@ struct Proof {
 
   bool operator==(Proof const& b) const {
     return conv == b.conv && relubn == b.relubn && pooling == b.pooling &&
-           dense0 == b.dense0 && dense1 == b.dense1;
+           dense0 == b.dense0 && dense1 == b.dense1 &&
+           adapt_proof == b.adapt_proof;
   }
 
   bool operator!=(Proof const& b) const { return !(*this == b); }
@@ -64,12 +66,14 @@ struct Proof {
   template <typename Ar>
   void serialize(Ar& ar) const {
     ar& YAS_OBJECT_NVP("vgg16.Proof", ("c", conv), ("r", relubn),
-                       ("p", pooling), ("d0", dense0), ("d1", dense1));
+                       ("p", pooling), ("d0", dense0), ("d1", dense1),
+                       ("a", adapt_proof));
   }
   template <typename Ar>
   void serialize(Ar& ar) {
     ar& YAS_OBJECT_NVP("vgg16.Proof", ("c", conv), ("r", relubn),
-                       ("p", pooling), ("d0", dense0), ("d1", dense1));
+                       ("p", pooling), ("d0", dense0), ("d1", dense1),
+                       ("a", adapt_proof));
   }
 };
 
@@ -79,39 +83,52 @@ inline bool Prove(h256_t seed, dbl::Image const& test_image,
   if (!InferAndCommit(test_image, working_path)) return false;
 
   ProveContext context(working_path);
+  AdaptProveItemMan item_man;
+  ParallelVoidTaskMan task_man;
 
-  std::vector<std::function<void()>> tasks;
+  std::vector<parallel::VoidTask> tasks;
 
+  // TODO
   // conv
-  for (size_t i = 0; i < kConvLayers.size(); ++i) {
-    tasks.emplace_back([&context, &seed, &proof, i]() {
-      OneConvProve(seed, context, kConvLayers[i], proof.conv[i]);
+  size_t conv_count = 3;  //kConvLayers.size();
+  for (size_t i = 0; i < conv_count; ++i) {
+    tasks.emplace_back([&context, &seed, &proof, i, &item_man, &task_man]() {
+      OneConvProvePreprocess(seed, context, kConvLayers[i], proof.conv[i],
+                             item_man, task_man);
     });
   }
 
-  // relubn
-  tasks.emplace_back([&context, &seed, &proof]() {
-    ReluBnProve(seed, context, proof.relubn);
+  //// relubn
+  //tasks.emplace_back([&context, &seed, &proof, &item_man, &task_man]() {
+  //  ReluBnProvePreprocess(seed, context, proof.relubn, item_man, task_man);
+  //});
+
+  //// pooling
+  //tasks.emplace_back([&context, &seed, &proof, &item_man, &task_man]() {
+  //  PoolingProvePreprocess(seed, context, proof.pooling, item_man, task_man);
+  //});
+
+  //// dense0
+  //tasks.emplace_back([&context, &seed, &proof]() {
+  //  DenseProve<0>(seed, context, proof.dense0);
+  //});
+
+  //// dense1
+  //tasks.emplace_back([&context, &seed, &proof]() {
+  //  DenseProve<1>(seed, context, proof.dense1);
+  //});
+
+  auto f1 = [&tasks](int64_t i) { tasks[i](); };
+  parallel::For(tasks.size(), f1);
+ 
+  std::vector<parallel::VoidTask> void_tasks;
+  task_man.take(void_tasks);
+  void_tasks.emplace_back([&seed, &item_man,&proof]() {
+    AdaptProve(seed, item_man, proof.adapt_proof);
   });
 
-  // pooling
-  tasks.emplace_back([&context, &seed, &proof]() {
-    PoolingProve(seed, context, proof.pooling);
-  });
-
-  // dense0
-  tasks.emplace_back([&context, &seed, &proof]() {
-    DenseProve<0>(seed, context, proof.dense0);
-  });
-
-  // dense1
-  tasks.emplace_back([&context, &seed, &proof]() {
-    DenseProve<1>(seed, context, proof.dense1);
-  });
-
-  auto parallel_f = [&tasks](int64_t i) { tasks[i](); };
-  parallel::For(tasks.size(), parallel_f);
-
+  auto f2 = [&void_tasks](int64_t i) { void_tasks[i](); };
+  parallel::For(void_tasks.size(), f2);
   return true;
 }
 

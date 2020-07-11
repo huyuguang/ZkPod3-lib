@@ -109,7 +109,7 @@ struct A2 {
     // Tick tick(__FN__);
     auto const& com_pub = input.com_pub;
 
-    std::array<parallel::Task, 2> tasks;
+    std::array<parallel::VoidTask, 2> tasks;
     bool ret1 = false;
     tasks[0] = [&ret1, &com_pub, &com_ext_pub, &challenge, &sub_proof,
                 &input]() {
@@ -140,7 +140,7 @@ struct A2 {
   static void ComputeCom(CommitmentPub& com_pub, CommitmentSec const& com_sec,
                          ProveInput const& input) {
     // Tick tick(__FN__);
-    std::array<parallel::Task, 2> tasks;
+    std::array<parallel::VoidTask, 2> tasks;
     tasks[0] = [&com_pub, &input, &com_sec]() {
       com_pub.xi =
           pc::PcComputeCommitmentG(input.get_gx, input.x, com_sec.r_xi);
@@ -162,7 +162,7 @@ struct A2 {
     com_ext_sec.r_beta = FrRand();
     com_ext_sec.r_delta = FrRand();
 
-    std::array<parallel::Task, 2> tasks;
+    std::array<parallel::VoidTask, 2> tasks;
     tasks[0] = [&com_ext_pub, &com_ext_sec, &input]() {
       com_ext_pub.delta = pc::PcComputeCommitmentG(input.get_gx, com_ext_sec.d,
                                                    com_ext_sec.r_delta);

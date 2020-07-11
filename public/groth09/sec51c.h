@@ -94,7 +94,7 @@ struct Sec51c {
     proof.com_yt = pc::PcComputeCommitmentG(input.get_gyt, input.yt, com_yt_r);
     UpdateSeed(seed, proof.com_yt);
 
-    std::array<parallel::Task, 2> tasks;
+    std::array<parallel::VoidTask, 2> tasks;
     
     tasks[0] = [&proof,&seed,&input,&com_pub,&com_sec,&com_yt_r]() {
       // prove yt = <y o t>
@@ -163,7 +163,7 @@ struct Sec51c {
     UpdateSeed(seed, proof.com_yt);
 
     std::array<std::atomic<bool>, 2> rets;
-    std::array<parallel::Task, 2> tasks;
+    std::array<parallel::VoidTask, 2> tasks;
     
     tasks[0] = [&rets, &proof, &seed, &input]() {
       rets[0] = VerifyYt(proof, seed, input);
@@ -197,7 +197,7 @@ struct Sec51c {
     com_sec.s = FrRand();
     com_sec.t = FrRand();
 
-    std::array<parallel::Task, 3> tasks;
+    std::array<parallel::VoidTask, 3> tasks;
     tasks[0] = [&com_pub, &input, &com_sec]() {
       com_pub.a = pc::PcComputeCommitmentG(input.get_gx, input.x, com_sec.r);
     };
