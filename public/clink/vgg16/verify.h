@@ -26,9 +26,8 @@ inline bool Verify(h256_t seed, std::string const& pub_path,
     return c == context.image_com_pub().c[0];
   });
 
-  // TODO, just for debug
   // conv
-  size_t conv_count = 3;  //kConvLayers.size();
+  size_t conv_count = kConvLayers.size();
   for (size_t i = 0; i < conv_count; ++i) {
     tasks.emplace_back([&context, &seed, &proof, i, &item_man, &task_man]() {
       return OneConvVerifyPreprocess(seed, context, kConvLayers[i],
@@ -36,27 +35,27 @@ inline bool Verify(h256_t seed, std::string const& pub_path,
     });
   }
 
-  //// relubn
-  //tasks.emplace_back([&context, &seed, &proof, &item_man, &task_man]() {
-  //  return ReluBnVerifyPreprocess(seed, context, proof.relubn, item_man,
-  //                                task_man);
-  //});
+  // relubn
+  tasks.emplace_back([&context, &seed, &proof, &item_man, &task_man]() {
+    return ReluBnVerifyPreprocess(seed, context, proof.relubn, item_man,
+                                  task_man);
+  });
 
-  //// pooling
-  //tasks.emplace_back([&context, &seed, &proof, &item_man, &task_man]() {
-  //  return PoolingVerifyPreprocess(seed, context, proof.pooling, item_man,
-  //                                 task_man);
-  //});
+  // pooling
+  tasks.emplace_back([&context, &seed, &proof, &item_man, &task_man]() {
+    return PoolingVerifyPreprocess(seed, context, proof.pooling, item_man,
+                                   task_man);
+  });
 
-  //// dense0
-  //tasks.emplace_back([&context, &seed, &proof]() {
-  //  return DenseVerify<0>(seed, context, proof.dense0);
-  //});
+  // dense0
+  tasks.emplace_back([&context, &seed, &proof]() {
+    return DenseVerify<0>(seed, context, proof.dense0);
+  });
 
-  //// dense1
-  //tasks.emplace_back([&context, &seed, &proof]() {
-  //  return DenseVerify<1>(seed, context, proof.dense1);
-  //});
+  // dense1
+  tasks.emplace_back([&context, &seed, &proof]() {
+    return DenseVerify<1>(seed, context, proof.dense1);
+  });
 
   bool all_success = false;
   auto f1 = [&tasks](int64_t i) { return tasks[i](); };

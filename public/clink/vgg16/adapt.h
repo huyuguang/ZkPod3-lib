@@ -110,8 +110,8 @@ inline void AdaptProve(h256_t seed, AdaptProveItemMan& item_man,
             });
 
   for (auto const& i : items) {
-#ifdef _DEBUG_CHECK
     std::cout << i.order_tag << "\n";
+#ifdef _DEBUG_CHECK
     if (!i.CheckFormat()) {
       std::string errmsg = i.order_tag + " oops";
       std::cout << errmsg << "\n";

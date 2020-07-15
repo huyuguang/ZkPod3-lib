@@ -15,7 +15,6 @@ inline bool OneConvInputVerifyPreprocess(
     std::vector<Fr> q;
   } ctx;
   
-  size_t const order = kLayerTypeOrders[layer].second;
   auto K = kImageInfos[layer + 1].C;
   auto C = kImageInfos[layer].C;
   auto D = kImageInfos[layer].D;
@@ -23,12 +22,6 @@ inline bool OneConvInputVerifyPreprocess(
   auto CDD = C * DD;
   auto KCDD = K * CDD;
   
-  auto get_col_b_u = [&context, order](int64_t i) -> G1 const& {
-    auto range = context.auxi().data_u_conv(order);
-    if (i >= (range.second - range.first)) throw std::runtime_error("oops");
-    return range.first[i];
-  };
-
   // build B
   ctx.B.resize(KCDD);
   for (size_t i = 0; i < CDD; ++i) {
