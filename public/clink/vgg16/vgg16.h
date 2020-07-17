@@ -97,6 +97,7 @@ inline bool TestProve(std::string const& test_image_path,
   Proof proof;
   if (!Prove(seed, test_image, working_path, proof)) return false;
   YasSaveBin(working_path + "/proof", proof);
+  TestSerialize(working_path);
   return Verify(seed, working_path + "/pub", test_image, proof);
 }
 

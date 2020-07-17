@@ -155,7 +155,7 @@ struct Sec43b {
 
   static void ComputeCom(CommitmentPub& com_pub, CommitmentSec& com_sec,
                          ProveInput const& input) {
-    // Tick tick(__FN__);
+    Tick tick(__FN__);
     auto const m = input.m();
     com_sec.r.resize(m);
     FrRand(com_sec.r.data(), m);
