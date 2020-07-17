@@ -104,6 +104,7 @@ inline bool TestSerialize(std::string const& working_path) {
     std::cout << "\t output: " << YasGetBinLen(proof.pooling.output_pub) << "\n";
     std::cout << "proof dense0: " << YasGetBinLen(proof.dense0) << "\n";
     std::cout << "proof dense1: " << YasGetBinLen(proof.dense1) << "\n";
+    std::cout << "proof adapt: " << YasGetBinLen(proof.adapt_proof) << "\n";
     return true;
   } catch (std::exception& e) {
     std::cerr << __FN__ << ": " << __LINE__ << " " << e.what() << "\n";
