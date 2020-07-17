@@ -84,23 +84,6 @@ inline bool TestDense(std::string const& working_path) {
   return true;
 }
 
-inline bool TestProve(std::string const& test_image_path,
-                    std::string const& working_path) {
-  Tick tick(__FN__);
-  h256_t seed = misc::RandH256();
-
-  dbl::Image test_image(kImageInfos[0]);
-  if (!dbl::LoadTestImage(test_image_path, test_image)) {
-    return false;
-  }
-
-  Proof proof;
-  if (!Prove(seed, test_image, working_path, proof)) return false;
-  YasSaveBin(working_path + "/proof", proof);
-  TestSerialize(working_path);
-  return Verify(seed, working_path + "/pub", test_image, proof);
-}
-
 inline bool TestSerialize(std::string const& working_path) {
   try {
     Proof proof(working_path + "/proof");
@@ -126,6 +109,23 @@ inline bool TestSerialize(std::string const& working_path) {
     std::cerr << __FN__ << ": " << __LINE__ << " " << e.what() << "\n";
     return false;
   }
+}
+
+inline bool TestProve(std::string const& test_image_path,
+                    std::string const& working_path) {
+  Tick tick(__FN__);
+  h256_t seed = misc::RandH256();
+
+  dbl::Image test_image(kImageInfos[0]);
+  if (!dbl::LoadTestImage(test_image_path, test_image)) {
+    return false;
+  }
+
+  Proof proof;
+  if (!Prove(seed, test_image, working_path, proof)) return false;
+  YasSaveBin(workingß_path + "/proof", proof);
+  if (!TestSerialize(working_path)) return fa
+  return Verify(seed, working_path + "/pub", test_image, proof);
 }
 //
 //// "E:/code/crypto/pod_doc/vgg16_2/test_image"
