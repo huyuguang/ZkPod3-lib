@@ -9,7 +9,7 @@ inline void PoolingInputProvePreprocess(h256_t seed,
                                         ProveContext const& context,
                                         PoolingProof& proof,
                                         PoolingInputSec& input_sec,
-                                        AdaptProveItemMan& item_man) {
+                                        AdaptProveItemMan& adapt_man) {
   Tick tick(__FN__);
   PoolingInputPub& input_pub = proof.input_pub;
   std::array<std::vector<Fr>, 9> x;
@@ -69,7 +69,7 @@ inline void PoolingInputProvePreprocess(h256_t seed,
   input_sec.r_d = com_x_r[8];
 
   AdaptProveItem adapt_item;
-  adapt_item.Init(9, "pooling_input");
+  adapt_item.Init(9, PoolingAdaptTag(true));
   for (size_t j = 0; j < 9; ++j) {
     adapt_item.x[j] = std::move(x[j]);
     adapt_item.a[j] = std::move(q[j]);
@@ -77,17 +77,16 @@ inline void PoolingInputProvePreprocess(h256_t seed,
     adapt_item.rx[j] = com_x_r[j];
     if (j < 5) adapt_item.a[j] = -adapt_item.a[j];
   }
-  item_man.emplace(std::move(adapt_item));
+  adapt_man.emplace(std::move(adapt_item));
 }
 
 inline void PoolingR1csProvePreprocess(
     h256_t seed, ProveContext const& /*context*/,
     PoolingInputSec const& input_sec, PoolingProof& proof,
-    std::shared_ptr<PoolingR1csSec> pr1cs_sec, ParallelVoidTaskMan& task_man) {
+    std::shared_ptr<PoolingR1csSec> pr1cs_sec, R1csProveItemMan& r1cs_man) {
   Tick tick(__FN__);
   auto const& input_pub = proof.input_pub;
   auto& r1cs_pub = proof.r1cs_pub;
-  auto& r1cs_proof = proof.r1cs_proof;
   auto& r1cs_sec = *pr1cs_sec;
   libsnark::protoboard<Fr> pb;
   circuit::vgg16::PoolingGadget<8, 24> gadget(pb, "vgg16 pooling gadget");
@@ -150,21 +149,20 @@ inline void PoolingR1csProvePreprocess(
   r1cs_sec.y = r1cs_sec.w[r1cs_pub.r1cs_ret_index];
   r1cs_sec.ry = r1cs_sec.com_w_r[r1cs_pub.r1cs_ret_index];
 
-  parallel::VoidTask task = [seed, &r1cs_pub, pr1cs_sec, &r1cs_proof]() {
-    typename R1cs::ProveInput r1cs_input(
-        *pr1cs_sec->r1cs_info, std::move(pr1cs_sec->w), r1cs_pub.com_w,
-        pr1cs_sec->com_w_r, pc::kGetRefG);
-
-    R1cs::Prove(r1cs_proof, seed, std::move(r1cs_input));
-  };
-  task_man.emplace(std::move(task));
+  R1csProveItem item;
+  item.r1cs_sec = pr1cs_sec; // save ref
+  item.r1cs_input.reset(new R1cs::ProveInput(
+    *pr1cs_sec->r1cs_info, PoolingR1csTag(),
+    std::move(pr1cs_sec->w), r1cs_pub.com_w,
+        pr1cs_sec->com_w_r, pc::kGetRefG));
+  r1cs_man.emplace(std::move(item));
 }
 
 inline void PoolingOutputProvePreprocess(h256_t seed,
                                          ProveContext const& context,                                         
                                          PoolingR1csSec const& r1cs_sec,                                         
                                          PoolingProof& proof,
-                                         AdaptProveItemMan& item_man) {
+                                         AdaptProveItemMan& adapt_man) {
   Tick tick(__FN__);
   auto const& r1cs_pub = proof.r1cs_pub;
   auto& output_pub = proof.output_pub;
@@ -225,7 +223,7 @@ inline void PoolingOutputProvePreprocess(h256_t seed,
   // parallel::For(6, parallel_f2);
 
   AdaptProveItem adapt_item;
-  adapt_item.Init(6, "pooling_output");
+  adapt_item.Init(6, PoolingAdaptTag(false));
   for (size_t i = 0; i < 6; ++i) {
     adapt_item.x[i] = std::move(x[i]);
     adapt_item.a[i] = std::move(q[i]);
@@ -235,21 +233,21 @@ inline void PoolingOutputProvePreprocess(h256_t seed,
       adapt_item.a[i] = -adapt_item.a[i];
     }
   }
-  item_man.emplace(std::move(adapt_item));
+  adapt_man.emplace(std::move(adapt_item));
 }
 
 inline void PoolingProvePreprocess(h256_t seed, ProveContext const& context,
                                    PoolingProof& proof,
-                                   AdaptProveItemMan& item_man,
-                                   ParallelVoidTaskMan& task_man) {
+                                   AdaptProveItemMan& adapt_man,
+                                   R1csProveItemMan& r1cs_man) {
   Tick tick(__FN__);
   PoolingInputSec input_sec;
-  PoolingInputProvePreprocess(seed, context, proof, input_sec, item_man);
+  PoolingInputProvePreprocess(seed, context, proof, input_sec, adapt_man);
 
   std::shared_ptr<PoolingR1csSec> r1cs_sec(new PoolingR1csSec);
   PoolingR1csProvePreprocess(seed, context, input_sec, proof, r1cs_sec,
-                             task_man);
+                             r1cs_man);
 
-  PoolingOutputProvePreprocess(seed, context, *r1cs_sec, proof, item_man);
+  PoolingOutputProvePreprocess(seed, context, *r1cs_sec, proof, adapt_man);
 }
 }  // namespace clink::vgg16

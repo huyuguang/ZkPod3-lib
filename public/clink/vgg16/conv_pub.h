@@ -3,13 +3,14 @@
 #include <memory>
 
 #include "./adapt.h"
+#include "./r1cs.h"
 #include "./context.h"
 #include "./image_com.h"
 #include "./policy.h"
+#include "./r1cs_pub.h"
 #include "circuit/vgg16/vgg16.h"
 #include "clink/equal_ip.h"
 #include "clink/equality2.h"
-#include "clink/parallel_r1cs.h"
 
 namespace clink::vgg16 {
 inline void OneConvUpdateSeed(h256_t& seed, std::array<G1, 9> const& c) {
@@ -72,13 +73,9 @@ struct OneConvR1csPub {
   }
 };
 
-struct OneConvR1csSec {
+struct OneConvR1csSec : public BaseR1csSec {
   std::vector<Fr> y;
   Fr ry;
-
-  std::unique_ptr<R1csInfo> r1cs_info;
-  std::vector<Fr> com_w_r;
-  std::vector<std::vector<Fr>> mutable w;
 };
 
 struct OneConvOutputPub {
@@ -102,10 +99,9 @@ struct OneConvProof {
   OneConvInputPub input_pub;
   OneConvR1csPub r1cs_pub;
   OneConvOutputPub output_pub;
-  clink::ParallelR1cs<R1cs>::Proof r1cs_proof;
 
   bool operator==(OneConvProof const& b) const {
-    return r1cs_proof == b.r1cs_proof && input_pub == b.input_pub &&
+    return input_pub == b.input_pub &&
            r1cs_pub == b.r1cs_pub && output_pub == b.output_pub;
   }
 
@@ -113,13 +109,13 @@ struct OneConvProof {
 
   template <typename Ar>
   void serialize(Ar& ar) const {
-    ar& YAS_OBJECT_NVP("vgg16.OneConvProof", ("i", input_pub),
-                       ("r", r1cs_pub), ("o", output_pub), ("p", r1cs_proof));
+    ar& YAS_OBJECT_NVP("vgg16.OneConvProof", ("i", input_pub), ("r", r1cs_pub),
+                       ("o", output_pub));
   }
   template <typename Ar>
   void serialize(Ar& ar) {
     ar& YAS_OBJECT_NVP("vgg16.OneConvProof", ("i", input_pub), ("r", r1cs_pub),
-                       ("o", output_pub), ("p", r1cs_proof));
+                       ("o", output_pub));
   }
 };
 
@@ -171,5 +167,16 @@ inline std::vector<Fr> OneConvOutputR2S(size_t K, size_t C, size_t D,
     }
   }
   return s;
+}
+
+inline std::string ConvR1csTag(size_t layer) {
+  static const std::string tag = "conv r1cs ";
+  return tag + std::to_string(layer);
+}
+
+inline std::string ConvAdaptTag(bool in, size_t layer) {
+  static const std::string in_tag = "conv in ";
+  static const std::string out_tag = "conv out ";
+  return (in? in_tag:out_tag)+std::to_string(layer);
 }
 }  // namespace clink::vgg16

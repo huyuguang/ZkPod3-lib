@@ -4,24 +4,26 @@
 
 namespace clink::vgg16 {
 
-inline bool OneConvInputVerifyPreprocess(
-    h256_t seed, VerifyContext const& context, size_t layer,
-    OneConvProof const& proof, AdaptVerifyItemMan& item_man) {
+inline bool OneConvInputVerifyPreprocess(h256_t seed,
+                                         VerifyContext const& context,
+                                         size_t layer,
+                                         OneConvProof const& proof,
+                                         AdaptVerifyItemMan& adapt_man) {
   Tick tick(__FN__);
- 
+
   struct Ctx {
     std::array<std::vector<Fr>, 9> r;
     std::vector<std::array<int64_t, 9>> B;
     std::vector<Fr> q;
   } ctx;
-  
+
   auto K = kImageInfos[layer + 1].C;
   auto C = kImageInfos[layer].C;
   auto D = kImageInfos[layer].D;
   auto DD = D * D;
   auto CDD = C * DD;
   auto KCDD = K * CDD;
-  
+
   // build B
   ctx.B.resize(KCDD);
   for (size_t i = 0; i < CDD; ++i) {
@@ -62,7 +64,7 @@ inline bool OneConvInputVerifyPreprocess(
   }
 
   AdaptVerifyItem adapt_item;
-  adapt_item.Init(10, "conv_input_" + std::to_string(layer));
+  adapt_item.Init(10, ConvAdaptTag(true,layer));
   for (size_t j = 0; j < 9; ++j) {
     adapt_item.a[j] = ctx.r[j];
     adapt_item.cx[j] = proof.input_pub.cb[j];
@@ -70,14 +72,14 @@ inline bool OneConvInputVerifyPreprocess(
   adapt_item.a.back() = -ctx.q;
   adapt_item.cx.back() = context.image_com_pub().c[layer];
 
-  item_man.emplace(std::move(adapt_item));
+  adapt_man.emplace(std::move(adapt_item));
   return true;
 }
 
-inline bool OneConvR1csVerifyPreprocess(
-    h256_t seed, VerifyContext const& context, size_t layer,
-    OneConvProof const& proof,
-    ParallelBoolTaskMan& task_man) {
+inline bool OneConvR1csVerifyPreprocess(h256_t seed,
+                                        VerifyContext const& context,
+                                        size_t layer, OneConvProof const& proof,
+                                        R1csVerifyItemMan& r1cs_man) {
   Tick tick(__FN__);
   auto K = kImageInfos[layer + 1].C;
   auto C = kImageInfos[layer].C;
@@ -90,7 +92,8 @@ inline bool OneConvR1csVerifyPreprocess(
       std::cout << __FN__ << ": " << __LINE__ << ": proof invalid\n";
       return false;
     }
-    if (proof.r1cs_pub.com_w[i + 9] != context.para_com_pub().conv.coef[order][i]) {
+    if (proof.r1cs_pub.com_w[i + 9] !=
+        context.para_com_pub().conv.coef[order][i]) {
       std::cout << __FN__ << ": " << __LINE__ << ": proof invalid\n";
       return false;
     }
@@ -106,24 +109,22 @@ inline bool OneConvR1csVerifyPreprocess(
     return false;
   }
 
-  std::shared_ptr<R1csInfo> r1cs_info(new R1csInfo(pb));
-  parallel::BoolTask task = [seed, &proof, r1cs_info, KCDD]() {
-    std::vector<std::vector<Fr>> public_w;  // empty
-    R1cs::VerifyInput input(KCDD, *r1cs_info, proof.r1cs_pub.com_w, public_w,
-                            pc::kGetRefG);
-    if (!R1cs::Verify(proof.r1cs_proof, seed, input)) {
-      std::cout << __FN__ << ": " << __LINE__ << ": verify failed\n";
-      return false;
-    }
-    return true;
-  };
-  task_man.emplace(std::move(task));
+  R1csVerifyItem item;
+  item.public_w.reset(new std::vector<std::vector<Fr>>);
+  item.r1cs_info.reset(new R1csInfo(pb));
+  item.r1cs_input.reset(new R1cs::VerifyInput(
+      KCDD, *item.r1cs_info, ConvR1csTag(layer),
+      proof.r1cs_pub.com_w, *item.public_w, pc::kGetRefG));
+
+  r1cs_man.emplace(std::move(item));
   return true;
 }
 
-inline bool OneConvOutputVerifyPreprocess(
-    h256_t seed, VerifyContext const& context, size_t layer,
-    OneConvProof const& proof, AdaptVerifyItemMan& item_man) {
+inline bool OneConvOutputVerifyPreprocess(h256_t seed,
+                                          VerifyContext const& context,
+                                          size_t layer,
+                                          OneConvProof const& proof,
+                                          AdaptVerifyItemMan& adapt_man) {
   Tick tick(__FN__);
   namespace fp = circuit::fp;
   auto K = kImageInfos[layer + 1].C;
@@ -150,49 +151,49 @@ inline bool OneConvOutputVerifyPreprocess(
   std::vector<Fr> s = OneConvOutputR2S(K, C, D, r);
 
   AdaptVerifyItem adapt_item;
-  adapt_item.Init(2, "conv_output_" + std::to_string(layer));
+  adapt_item.Init(2, ConvAdaptTag(false,layer));
   adapt_item.a[0] = std::move(s);
   adapt_item.cx[0] = cx;
   adapt_item.a[1] = std::move(r);
   adapt_item.a[1] = -adapt_item.a[1];
   adapt_item.cx[1] = proof.output_pub.cy;
-  item_man.emplace(std::move(adapt_item));
+  adapt_man.emplace(std::move(adapt_item));
 
   return true;
 
   //// <x,s>==<y,r>
-  //EqualIp<HyraxA>::VerifyInput input(s, cx, pc::kGetRefG, r, proof.output.cy,
+  // EqualIp<HyraxA>::VerifyInput input(s, cx, pc::kGetRefG, r, proof.output.cy,
   //                                   pc::kGetRefG);
-  //if (!EqualIp<HyraxA>::Verify(seed, proof.output.eip_proof, input)) {
+  // if (!EqualIp<HyraxA>::Verify(seed, proof.output.eip_proof, input)) {
   //  std::cout << __FN__ << ": " << __LINE__ << ": verify failed\n";
   //  return false;
   //}
 
-  //return true;
+  // return true;
 }
 
-inline bool OneConvVerifyPreprocess(
-    h256_t seed, VerifyContext const& context, size_t layer,
-    OneConvProof const& proof, AdaptVerifyItemMan& item_man,
-    ParallelBoolTaskMan& task_man) {
+inline bool OneConvVerifyPreprocess(h256_t seed, VerifyContext const& context,
+                                    size_t layer, OneConvProof const& proof,
+                                    AdaptVerifyItemMan& adapt_man,
+                                    R1csVerifyItemMan& r1cs_man) {
   Tick tick(__FN__);
 
   // can parallel but need to protect adapt_items and parallel_tasks
-  if (!OneConvInputVerifyPreprocess(seed, context, layer, proof, item_man)) {
+  if (!OneConvInputVerifyPreprocess(seed, context, layer, proof, adapt_man)) {
 #ifdef _DEBUG_CHECK
     throw std::runtime_error("oops");
 #endif
     return false;
   }
 
-  if (!OneConvR1csVerifyPreprocess(seed, context, layer, proof, task_man)) {
+  if (!OneConvR1csVerifyPreprocess(seed, context, layer, proof, r1cs_man)) {
 #ifdef _DEBUG_CHECK
     throw std::runtime_error("oops");
 #endif
     return false;
   }
 
-  if (!OneConvOutputVerifyPreprocess(seed, context, layer, proof, item_man)) {
+  if (!OneConvOutputVerifyPreprocess(seed, context, layer, proof, adapt_man)) {
 #ifdef _DEBUG_CHECK
     throw std::runtime_error("oops");
 #endif

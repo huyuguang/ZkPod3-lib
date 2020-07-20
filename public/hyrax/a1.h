@@ -116,7 +116,7 @@ struct A1 {
     };
 
     bool ret2 = false;
-    tasks[2] = [&ret2, &com_pub, &com_ext_pub, &c, &sub_proof, &input]() {
+    tasks[2] = [&ret2, &com_pub, &com_ext_pub, &c, &sub_proof]() {
       G1 left = com_ext_pub.delta + com_pub.z * c;
       G1 right = com_pub.x * sub_proof.z3 + pc::PcH() * sub_proof.z5;
       ret2 = left == right;

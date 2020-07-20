@@ -219,7 +219,7 @@ struct Mnist {
     }
 #endif
 
-    typename R1cs::ProveInput r1cs_input(*input.r1cs_info, std::move(input.w),
+    typename R1cs::ProveInput r1cs_input(*input.r1cs_info, "mnist", std::move(input.w),
                                          com_w, com_w_r, pc::kGetRefG);
     R1cs::Prove(proof.r1cs_proof, seed, std::move(r1cs_input));
     proof.com_w = std::move(com_w);
@@ -296,7 +296,7 @@ struct Mnist {
     // Not need to check com of public input since R1cs::VerifyConv will check
     // it.
 
-    typename R1cs::VerifyInput pr_input(input.n, *input.r1cs_info, proof.com_w,
+    typename R1cs::VerifyInput pr_input(input.n, *input.r1cs_info, "mnist", proof.com_w,
                                         input.public_w, pc::kGetRefG);
     return R1cs::Verify(proof.r1cs_proof, seed, pr_input);
   }
@@ -602,7 +602,7 @@ struct Mnist {
 #endif
 
     // prove
-    typename R1cs::ProveInput r1cs_input(*input.r1cs_info, std::move(input.w),
+    typename R1cs::ProveInput r1cs_input(*input.r1cs_info, "mnist", std::move(input.w),
                                          com_w, com_w_r, pc::kGetRefG);
     R1cs::Prove(proof.r1cs_proof, seed, std::move(r1cs_input));
     proof.com_w = std::move(com_w);
@@ -644,7 +644,7 @@ struct Mnist {
       return false;
     }
 
-    typename R1cs::VerifyInput pr_input(input.n, *input.r1cs_info, proof.com_w,
+    typename R1cs::VerifyInput pr_input(input.n, *input.r1cs_info, "mnist",proof.com_w,
                                         input.public_w, pc::kGetRefG);
     return R1cs::Verify(proof.r1cs_proof, seed, pr_input);
   }

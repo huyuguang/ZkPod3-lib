@@ -3,10 +3,10 @@
 #include "./adapt.h"
 #include "./image_com.h"
 #include "./infer.h"
-#include "./prove_conv.h"
-#include "./prove_dense.h"
-#include "./prove_pooling.h"
-#include "./prove_relubn.h"
+#include "./conv_prove.h"
+#include "./dense_prove.h"
+#include "./pooling_prove.h"
+#include "./relubn_prove.h"
 
 namespace clink::vgg16 {
 
@@ -46,6 +46,7 @@ struct Proof {
   DenseProof dense0;
   DenseProof dense1;
   hyrax::A4::Proof adapt_proof;
+  clink::ParallelR1cs<R1cs>::Proof r1cs_proof;
 
   Proof(std::string const& file) {
     Tick tick(__FN__);
@@ -83,29 +84,33 @@ inline bool Prove(h256_t seed, dbl::Image const& test_image,
   if (!InferAndCommit(test_image, working_path)) return false;
 
   ProveContext context(working_path);
-  std::unique_ptr<AdaptProveItemMan> pitem_man(new AdaptProveItemMan);
-  auto& item_man = *pitem_man;
-  ParallelVoidTaskMan task_man;
+
+  std::unique_ptr<AdaptProveItemMan> padapt_man(new AdaptProveItemMan);
+  auto& adapt_man = *padapt_man;
+  std::unique_ptr<R1csProveItemMan> pr1cs_man(new R1csProveItemMan);
+  auto& r1cs_man = *pr1cs_man;
+
+  //ParallelVoidTaskMan task_man;
 
   std::vector<parallel::VoidTask> tasks;
 
   // conv
   size_t conv_count = kConvLayers.size();
   for (size_t i = 0; i < conv_count; ++i) {
-    tasks.emplace_back([&context, &seed, &proof, i, &item_man, &task_man]() {
+    tasks.emplace_back([&context, &seed, &proof, i, &adapt_man, &r1cs_man]() {
       OneConvProvePreprocess(seed, context, kConvLayers[i], proof.conv[i],
-                             item_man, task_man);
+                             adapt_man, r1cs_man);
     });
   }
-
+#if 1
   // relubn
-  tasks.emplace_back([&context, &seed, &proof, &item_man, &task_man]() {
-    ReluBnProvePreprocess(seed, context, proof.relubn, item_man, task_man);
+  tasks.emplace_back([&context, &seed, &proof, &adapt_man, &r1cs_man]() {
+    ReluBnProvePreprocess(seed, context, proof.relubn, adapt_man, r1cs_man);
   });
 
   // pooling
-  tasks.emplace_back([&context, &seed, &proof, &item_man, &task_man]() {
-    PoolingProvePreprocess(seed, context, proof.pooling, item_man, task_man);
+  tasks.emplace_back([&context, &seed, &proof, &adapt_man, &r1cs_man]() {
+    PoolingProvePreprocess(seed, context, proof.pooling, adapt_man, r1cs_man);
   });
 
   // dense0
@@ -117,26 +122,29 @@ inline bool Prove(h256_t seed, dbl::Image const& test_image,
   tasks.emplace_back([&context, &seed, &proof]() {
     DenseProve<1>(seed, context, proof.dense1);
   });
-  
+#endif // #if 0
+
   {
     Tick subtick("preprocess");
     auto f1 = [&tasks](int64_t i) { tasks[i](); };
     parallel::For(tasks.size(), f1);
   }
 
-  AdaptProve(seed, item_man, proof.adapt_proof);
-  pitem_man.reset();
+  AdaptProve(seed, adapt_man, proof.adapt_proof);
+  padapt_man.reset();
 
-  std::vector<parallel::VoidTask> void_tasks;
-  task_man.take(void_tasks);
-  //void_tasks.emplace_back([&seed, &item_man,&proof]() {
-   // AdaptProve(seed, item_man, proof.adapt_proof);
+  R1csProve(seed, r1cs_man, proof.r1cs_proof);
+
+  //std::vector<parallel::VoidTask> void_tasks;
+  //task_man.take(void_tasks);
+  //void_tasks.emplace_back([&seed, &adapt_man,&proof]() {
+   // AdaptProve(seed, adapt_man, proof.adapt_proof);
   //});
-  {
-    Tick subtick("r1cs prove");
-    auto f2 = [&void_tasks](int64_t i) { void_tasks[i](); };
-    parallel::For(void_tasks.size(), f2);
-  }
+  //{
+  //  Tick subtick("r1cs prove");
+  //  auto f2 = [&void_tasks](int64_t i) { void_tasks[i](); };
+  //  parallel::For(void_tasks.size(), f2);
+  //}
   return true;
 }
 

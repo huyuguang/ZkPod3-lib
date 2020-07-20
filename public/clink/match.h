@@ -105,7 +105,7 @@ struct Match {
     };
     parallel::For<int64_t>(1, input.s - 1, parallel_f);
 
-    typename R1cs::ProveInput r1cs_input(*input.r1cs_info, std::move(input.w),
+    typename R1cs::ProveInput r1cs_input(*input.r1cs_info, "match", std::move(input.w),
                                          com_w, com_w_r, input.get_g);
     R1cs::Prove(proof.r1cs_proof, seed, std::move(r1cs_input));
     proof.com_w = std::move(com_w);
@@ -146,7 +146,7 @@ struct Match {
     //  return false;
     //}
 
-    typename R1cs::VerifyInput pr_input(input.n, *input.r1cs_info, proof.com_w,
+    typename R1cs::VerifyInput pr_input(input.n, *input.r1cs_info, "match", proof.com_w,
                                         input.public_w, input.get_g);
     return R1cs::Verify(proof.r1cs_proof, seed, pr_input);
   }

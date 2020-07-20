@@ -4,6 +4,7 @@
 
 #include "./context.h"
 #include "./image_com.h"
+#include "./r1cs_pub.h"
 #include "circuit/vgg16/vgg16.h"
 
 namespace clink::vgg16 {
@@ -58,33 +59,27 @@ struct ReluBnR1csPub {
   }
 };
 
-struct ReluBnR1csSec {
-  std::unique_ptr<R1csInfo> r1cs_info;
-  std::vector<Fr> com_w_r;
-  std::vector<std::vector<Fr>> mutable w;
+struct ReluBnR1csSec : public BaseR1csSec {
+  // nothing
 };
 
 struct ReluBnProof {
   ReluBnInOutPub io_pub;
   ReluBnR1csPub r1cs_pub;
-  clink::ParallelR1cs<R1cs>::Proof r1cs_proof;
 
   bool operator==(ReluBnProof const& b) const {
-    return io_pub == b.io_pub && r1cs_pub == b.r1cs_pub &&
-           r1cs_proof == b.r1cs_proof;
+    return io_pub == b.io_pub && r1cs_pub == b.r1cs_pub;
   }
 
   bool operator!=(ReluBnProof const& b) const { return !(*this == b); }
 
   template <typename Ar>
   void serialize(Ar& ar) const {
-    ar& YAS_OBJECT_NVP("vgg16.ReluBnProof", ("i", io_pub), ("r", r1cs_pub),
-                       ("p", r1cs_proof));
+    ar& YAS_OBJECT_NVP("vgg16.ReluBnProof", ("i", io_pub), ("r", r1cs_pub));
   }
   template <typename Ar>
   void serialize(Ar& ar) {
-    ar& YAS_OBJECT_NVP("vgg16.ReluBnProof", ("i", io_pub), ("r", r1cs_pub),
-                       ("p", r1cs_proof));
+    ar& YAS_OBJECT_NVP("vgg16.ReluBnProof", ("i", io_pub), ("r", r1cs_pub));
   }
 };
 
@@ -195,4 +190,14 @@ inline size_t ReluBnGetCircuitCount() {
   return size;
 }
 
+inline std::string const& ReluBnR1csTag() {
+  static const std::string kTag = "relubn r1cs";
+  return kTag;
+}
+
+inline std::string const& ReluBnAdaptTag(bool in) {
+  static const std::string kTagIn = "relubn in";
+  static const std::string kTagOut = "relubn out";
+  return in ? kTagIn : kTagOut;
+}
 }  // namespace clink::vgg16

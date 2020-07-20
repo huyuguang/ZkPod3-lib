@@ -310,7 +310,7 @@ inline void ComputeConvCommitment(std::array<Para::ConvLayer, 13> const& para,
                        C](int64_t j) {
       auto const& coefs = layer.coefs;
       auto const& coefs_r = sec_coef[j];
-      auto get_coef = [&coefs, &coefs_r, j, K, C](int64_t i) -> Fr const& {
+      auto get_coef = [&coefs, &coefs_r, j, C](int64_t i) -> Fr const& {
         return i ? coefs[(i - 1) / C][(i - 1) % C][j / 3][j % 3] : coefs_r;
       };
       pub_coef[j] = MultiExpBdlo12<G1>(get_coef_u, get_coef, K * C + 1);

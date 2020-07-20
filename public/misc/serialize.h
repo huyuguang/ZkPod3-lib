@@ -123,7 +123,7 @@ bool YasLoadBin(char const* data, size_t size, T& t) {
 template<typename T>
 bool YasSaveBin(std::string const &file,T const& t) {
   try {
-    boost::system::error_code dummy;
+    //boost::system::error_code dummy;
     fs::remove(file);
     yas::file_ostream os(file.c_str());
     yas::binary_oarchive<yas::file_ostream, YasBinF()> oa(os);
@@ -146,7 +146,7 @@ bool YasSaveBin(std::string const &file,T const& t) {
 template<typename T>
 bool YasSaveBin(yas::shared_buffer& data,T const& t) {
   try {
-    boost::system::error_code dummy;
+    //boost::system::error_code dummy;
     yas::mem_ostream os;
     yas::binary_oarchive<yas::mem_ostream, YasBinF()> oa(os);
     oa.serialize(t);

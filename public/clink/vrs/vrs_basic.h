@@ -193,7 +193,7 @@ struct VrsBasic {
     G1 vw_com = pc::PcComputeCommitmentG(input.gvw, vw, input.vw_com_r);
 
     // proof v[i] = hash(p[i],key)
-    typename R1cs::ProveInput r1cs_input(input.r1cs_info(), std::move(vars),
+    typename R1cs::ProveInput r1cs_input(input.r1cs_info(), "vrs", std::move(vars),
                                          input.var_coms, input.var_coms_r,
                                          pc::kGetRefG);
     R1cs::Prove(proof.r1cs_proof, seed, std::move(r1cs_input));
@@ -278,7 +278,7 @@ struct VrsBasic {
     // check r1cs (hp product)
     std::vector<std::vector<Fr>> public_w{std::move(p)};
     typename R1cs::VerifyInput r1cs_input(
-        input.n, input.r1cs_info(), proof.var_coms, public_w, pc::kGetRefG);
+        input.n, input.r1cs_info(), "vrs", proof.var_coms, public_w, pc::kGetRefG);
     if (!R1cs::Verify(proof.r1cs_proof, seed, r1cs_input)) {
       assert(false);
       return false;

@@ -94,20 +94,17 @@ inline bool TestSerialize(std::string const& working_path) {
       std::cout << "\t input pub:" << YasGetBinLen(proof.conv[i].input_pub) << "\n";
       std::cout << "\t r1cs pub:" << YasGetBinLen(proof.conv[i].r1cs_pub) << "\n";
       std::cout << "\t output pub:" << YasGetBinLen(proof.conv[i].output_pub) << "\n";
-      std::cout << "\t r1cs proof: " << YasGetBinLen(proof.conv[i].r1cs_proof) << "\n";
     }
     std::cout << "\n";
     std::cout << "proof relubn: " << YasGetBinLen(proof.relubn) << "\n";
     std::cout << "\t io pub: " << YasGetBinLen(proof.relubn.io_pub) << "\n";
     std::cout << "\t r1cs pub: " << YasGetBinLen(proof.relubn.r1cs_pub) << "\n";
-    std::cout << "\t r1cs proof: " << YasGetBinLen(proof.relubn.r1cs_proof) << "\n";
     std::cout << "\n";
 
     std::cout << "proof pooling: " << YasGetBinLen(proof.pooling) << "\n";
     std::cout << "\t input pub: " << YasGetBinLen(proof.pooling.input_pub) << "\n";
     std::cout << "\t r1cs pub: " << YasGetBinLen(proof.pooling.r1cs_pub) << "\n";
     std::cout << "\t output pub: " << YasGetBinLen(proof.pooling.output_pub) << "\n";
-    std::cout << "\t r1cs proof: " << YasGetBinLen(proof.pooling.r1cs_proof) << "\n";
     std::cout << "\n";
 
     std::cout << "proof dense0: " << YasGetBinLen(proof.dense0) << "\n";
@@ -115,6 +112,7 @@ inline bool TestSerialize(std::string const& working_path) {
     std::cout << "\n";
 
     std::cout << "proof adapt: " << YasGetBinLen(proof.adapt_proof) << "\n";
+    std::cout << "proof r1cs: " << YasGetBinLen(proof.r1cs_proof) << "\n";
     std::cout << "\n";
     return true;
   } catch (std::exception& e) {

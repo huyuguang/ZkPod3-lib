@@ -4,6 +4,7 @@
 
 #include "./image_com.h"
 #include "./para_com.h"
+#include "./r1cs_pub.h"
 #include "circuit/vgg16/vgg16.h"
 
 namespace clink::vgg16 {
@@ -65,13 +66,9 @@ struct PoolingR1csPub {
   }
 };
 
-struct PoolingR1csSec {
+struct PoolingR1csSec : public BaseR1csSec {
   std::vector<Fr> y;
   Fr ry;
-
-  std::unique_ptr<R1csInfo> r1cs_info;
-  std::vector<Fr> com_w_r;
-  std::vector<std::vector<Fr>> mutable w;
 };
 
 struct PoolingOutputPub {
@@ -95,11 +92,10 @@ struct PoolingProof {
   PoolingInputPub input_pub;
   PoolingR1csPub r1cs_pub;
   PoolingOutputPub output_pub;
-  clink::ParallelR1cs<R1cs>::Proof r1cs_proof;
 
   bool operator==(PoolingProof const& b) const {
-    return r1cs_proof == b.r1cs_proof && input_pub == b.input_pub &&
-           r1cs_pub == b.r1cs_pub && output_pub == b.output_pub;
+    return input_pub == b.input_pub && r1cs_pub == b.r1cs_pub &&
+           output_pub == b.output_pub;
   }
 
   bool operator!=(PoolingProof const& b) const { return !(*this == b); }
@@ -107,12 +103,12 @@ struct PoolingProof {
   template <typename Ar>
   void serialize(Ar& ar) const {
     ar& YAS_OBJECT_NVP("vgg16.PoolingProof", ("i", input_pub), ("r", r1cs_pub),
-                       ("o", output_pub), ("p", r1cs_proof));
+                       ("o", output_pub));
   }
   template <typename Ar>
   void serialize(Ar& ar) {
     ar& YAS_OBJECT_NVP("vgg16.PoolingProof", ("i", input_pub), ("r", r1cs_pub),
-                       ("o", output_pub), ("p", r1cs_proof));
+                       ("o", output_pub));
   }
 };
 
@@ -257,4 +253,14 @@ inline void PoolingBuildOutputQ(h256_t const& seed,
   }
 }
 
+inline std::string const& PoolingR1csTag() {
+  static std::string kTag = "pooling r1cs";
+  return kTag;
+}
+
+inline std::string const& PoolingAdaptTag(bool in) {
+  static const std::string kTagIn = "pooling in";
+  static const std::string kTagOut = "pooling out";
+  return in ? kTagIn : kTagOut;
+}
 }  // namespace clink::vgg16
