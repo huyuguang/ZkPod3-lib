@@ -56,3 +56,6 @@ win/pod_publish
 win/vrs_cache
 
 data/vgg16/working/
+
+.vscode
+.DS_Store
