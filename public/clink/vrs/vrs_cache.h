@@ -95,7 +95,7 @@ struct VrsCache {
           return false;
         }
       }
-      auto check_var_com = pc::PcComputeCommitmentG(data, var_com_r);
+      auto check_var_com = pc::ComputeCom(data, var_com_r);
       if (var_com != check_var_com) {
         assert(false);
         return false;
@@ -177,7 +177,7 @@ struct VrsCache {
       } else {
         var_com_r = FrRand();
       }
-      var_com = pc::PcComputeCommitmentG(data, var_com_r);
+      var_com = pc::ComputeCom(data, var_com_r);
     }
   }
 

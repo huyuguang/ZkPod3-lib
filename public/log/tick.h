@@ -13,8 +13,7 @@ struct Tick {
     std::cout << GetIndentString(UpdateIndent(1) - 1);
     std::cout << "==> " << desc_ << "\n";
   }
-  Tick(std::string const& desc, std::string const& desc2)
-      : desc_(desc) {
+  Tick(std::string const& desc, std::string const& desc2) : desc_(desc) {
     Uniform();
     desc_ += " ";
     desc_ += desc2;

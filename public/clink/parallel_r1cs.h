@@ -38,7 +38,7 @@ struct ParallelR1cs {
   struct ProveInput {
     ProveInput(R1csInfo const &r1cs_info, std::string const &unique_tag,
                std::vector<std::vector<Fr>> &&w, std::vector<G1> const &com_w,
-               std::vector<Fr> const &com_w_r, pc::GetRefG const &get_g)
+               std::vector<Fr> const &com_w_r, GetRefG1 const &get_g)
         : r1cs_info(r1cs_info),
           unique_tag(unique_tag),
           com_w(com_w),
@@ -56,7 +56,7 @@ struct ParallelR1cs {
       }
 
       for (int64_t i = 0; i < s; ++i) {
-        if (com_w[i] != pc::PcComputeCommitmentG(get_g, w[i], com_w_r[i]))
+        if (com_w[i] != pc::ComputeCom(get_g, w[i], com_w_r[i]))
           throw std::runtime_error("opps");
       }
 #endif
@@ -98,7 +98,7 @@ struct ParallelR1cs {
     std::string unique_tag;
     std::vector<G1> const &com_w;
     std::vector<Fr> const &com_w_r;
-    pc::GetRefG const &get_g;
+    GetRefG1 const &get_g;
     int64_t const m;
     int64_t const s;
     int64_t const n;
@@ -133,10 +133,9 @@ struct ParallelR1cs {
 
   struct VerifyInput {
     VerifyInput(int64_t n, R1csInfo const &r1cs_info,
-                std::string const &unique_tag,
-                std::vector<G1> const &com_w,
+                std::string const &unique_tag, std::vector<G1> const &com_w,
                 std::vector<std::vector<Fr>> const &public_w,
-                pc::GetRefG const &get_g)
+                GetRefG1 const &get_g)
         : n(n),
           r1cs_info(r1cs_info),
           unique_tag(unique_tag),
@@ -165,8 +164,8 @@ struct ParallelR1cs {
         if ((int64_t)i.size() != n) {
           assert(false);
           std::cout << "public_w.size(): " << public_w.size() << "\n";
-          std::cout << "constraint_system().primary_input_size: " <<
-              constraint_system().primary_input_size << "\n";
+          std::cout << "constraint_system().primary_input_size: "
+                    << constraint_system().primary_input_size << "\n";
           std::cerr << __FN__ << ":" << __LINE__ << " oops\n";
           return false;
         }
@@ -180,8 +179,7 @@ struct ParallelR1cs {
 
       bool all_success = false;
       auto parallel_f = [this](int64_t i) {
-        return com_w[i] ==
-               pc::PcComputeCommitmentG(get_g, public_w[i], FrZero());
+        return com_w[i] == pc::ComputeCom(get_g, public_w[i], FrZero());
       };
       parallel::For(&all_success, (int64_t)public_w.size(), parallel_f);
       if (!all_success) {
@@ -196,7 +194,7 @@ struct ParallelR1cs {
     std::string const unique_tag;
     std::vector<G1> const &com_w;
     std::vector<std::vector<Fr>> const &public_w;
-    pc::GetRefG const &get_g;
+    GetRefG1 const &get_g;
     int64_t const m;
     int64_t const s;
   };
@@ -230,7 +228,7 @@ struct ParallelR1cs {
       int64_t m, int64_t n, std::vector<G1> const &com_w,
       std::vector<Fr> const &com_w_r,
       std::vector<libsnark::r1cs_constraint<Fr>> const &constraints,
-      pc::GetRefG const &get_g, typename Sec43::CommitmentPub &com_pub,
+      GetRefG1 const &get_g, typename Sec43::CommitmentPub &com_pub,
       typename Sec43::CommitmentSec &com_sec) {
     com_pub.a.resize(m);
     G1Zero(com_pub.a);
@@ -245,7 +243,7 @@ struct ParallelR1cs {
     com_sec.t.resize(m);
     FrZero(com_sec.t);
 
-    auto pds_sigma_g = pc::PcComputeSigmaG(get_g, n);
+    auto pds_sigma_g = pc::ComputeSigmaG(get_g, n);
     auto parallel_f = [&com_pub, &com_sec, &com_w, &com_w_r, &pds_sigma_g,
                        &constraints](int64_t i) {
       auto &com_pub_a = com_pub.a[i];
@@ -280,18 +278,15 @@ struct ParallelR1cs {
       auto &com_sec_t = com_sec.t[i];
 
       auto const &xi = input.x[i];
-      G1 check_com_pub_a =
-          pc::PcComputeCommitmentG(input.get_gx, xi, com_sec_r);
+      G1 check_com_pub_a = pc::ComputeCom(input.get_gx, xi, com_sec_r);
       assert(check_com_pub_a == com_pub_a);
 
       auto const &yi = input.y[i];
-      G1 check_com_pub_b =
-          pc::PcComputeCommitmentG(input.get_gy, yi, com_sec_s);
+      G1 check_com_pub_b = pc::ComputeCom(input.get_gy, yi, com_sec_s);
       assert(check_com_pub_b == com_pub_b);
 
       auto const &zi = input.z[i];
-      G1 check_com_pub_c =
-          pc::PcComputeCommitmentG(input.get_gz, zi, com_sec_t);
+      G1 check_com_pub_c = pc::ComputeCom(input.get_gz, zi, com_sec_t);
       assert(check_com_pub_c == com_pub_c);
     }
 #else
@@ -306,7 +301,7 @@ struct ParallelR1cs {
   static void BuildHpCom(
       int64_t m, int64_t n, std::vector<G1> const &com_w,
       std::vector<libsnark::r1cs_constraint<Fr>> const &constraints,
-      pc::GetRefG const &get_g, typename Sec43::CommitmentPub &com_pub) {
+      GetRefG1 const &get_g, typename Sec43::CommitmentPub &com_pub) {
     com_pub.a.resize(m);
     G1Zero(com_pub.a);
     com_pub.b.resize(m);
@@ -314,7 +309,7 @@ struct ParallelR1cs {
     com_pub.c.resize(m);
     G1Zero(com_pub.c);
 
-    auto pds_sigma_g = pc::PcComputeSigmaG(get_g, n);
+    auto pds_sigma_g = pc::ComputeSigmaG(get_g, n);
     auto parallel_f = [&com_pub, &com_w, &pds_sigma_g,
                        &constraints](int64_t i) {
       auto &com_pub_a = com_pub.a[i];
@@ -377,8 +372,6 @@ struct ParallelR1cs {
       }
     }
   }
-
-
 
   static void UpdateSeed(h256_t &seed, std::vector<G1> const &com_w) {
     // update seed

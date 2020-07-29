@@ -14,8 +14,8 @@
 // gyt MUST NOT overlapped with gy
 // prove: z = <X, Y o t>
 // proof size: 2log(n) Fr and 4 G1
-// prove cost: 
-// verify cost: 
+// prove cost:
+// verify cost:
 
 namespace groth09 {
 
@@ -26,23 +26,22 @@ struct Sec51c {
     std::vector<Fr> const& t;   // size = n
     std::vector<Fr> const& yt;  // yt = y o t
     Fr const z;                 // z = <x, y o t>
-    pc::GetRefG const& get_gx;
-    pc::GetRefG const& get_gy;
-    pc::GetRefG get_gyt;
+    GetRefG1 const& get_gx;
+    GetRefG1 const& get_gy;
+    GetRefG1 get_gyt;
     G1 const& gz;
 
     int64_t n() const { return (int64_t)x.size(); }
     ProveInput(std::vector<Fr> const& x, std::vector<Fr> const& y,
                std::vector<Fr> const& t, std::vector<Fr> const& yt, Fr const& z,
-               pc::GetRefG const& get_gx, pc::GetRefG const& get_gy,
-               G1 const& gz)
+               GetRefG1 const& get_gx, GetRefG1 const& get_gy, G1 const& gz)
         : x(x),
           y(y),
           t(t),
           yt(yt),
           z(z),
           get_gx(get_gx),
-          get_gy(get_gy),          
+          get_gy(get_gy),
           gz(gz) {
       assert(!x.empty());
       assert(x.size() == y.size());
@@ -91,12 +90,12 @@ struct Sec51c {
                     CommitmentSec const& com_sec) {
     UpdateSeed(seed, com_pub, input.t);
     Fr com_yt_r = FrRand();
-    proof.com_yt = pc::PcComputeCommitmentG(input.get_gyt, input.yt, com_yt_r);
+    proof.com_yt = pc::ComputeCom(input.get_gyt, input.yt, com_yt_r);
     UpdateSeed(seed, proof.com_yt);
 
     std::array<parallel::VoidTask, 2> tasks;
-    
-    tasks[0] = [&proof,&seed,&input,&com_pub,&com_sec,&com_yt_r]() {
+
+    tasks[0] = [&proof, &seed, &input, &com_pub, &com_sec, &com_yt_r]() {
       // prove yt = <y o t>
       ProveYt(proof, seed, input, com_pub, com_sec, com_yt_r);
     };
@@ -124,13 +123,8 @@ struct Sec51c {
 
   struct VerifyInput {
     VerifyInput(std::vector<Fr> const& t, CommitmentPub const& com_pub,
-                pc::GetRefG const& get_gx, pc::GetRefG const& get_gy,
-                G1 const& gz)
-        : t(t),
-          com_pub(com_pub),
-          get_gx(get_gx),
-          get_gy(get_gy),
-          gz(gz) {
+                GetRefG1 const& get_gx, GetRefG1 const& get_gy, G1 const& gz)
+        : t(t), com_pub(com_pub), get_gx(get_gx), get_gy(get_gy), gz(gz) {
       get_gyt = [this](int64_t i) -> G1 const& {
         size_t offset = pc::GetPcBase().kGSize - this->n();
         return pc::PcG()[offset + i];
@@ -139,9 +133,9 @@ struct Sec51c {
     int64_t n() const { return (int64_t)t.size(); }
     std::vector<Fr> const& t;
     CommitmentPub const& com_pub;
-    pc::GetRefG const& get_gx;
-    pc::GetRefG const& get_gy;
-    pc::GetRefG get_gyt;
+    GetRefG1 const& get_gx;
+    GetRefG1 const& get_gy;
+    GetRefG1 get_gyt;
     G1 const& gz;
   };
 
@@ -164,7 +158,7 @@ struct Sec51c {
 
     std::array<std::atomic<bool>, 2> rets;
     std::array<parallel::VoidTask, 2> tasks;
-    
+
     tasks[0] = [&rets, &proof, &seed, &input]() {
       rets[0] = VerifyYt(proof, seed, input);
       assert(rets[0]);
@@ -199,13 +193,13 @@ struct Sec51c {
 
     std::array<parallel::VoidTask, 3> tasks;
     tasks[0] = [&com_pub, &input, &com_sec]() {
-      com_pub.a = pc::PcComputeCommitmentG(input.get_gx, input.x, com_sec.r);
+      com_pub.a = pc::ComputeCom(input.get_gx, input.x, com_sec.r);
     };
     tasks[1] = [&com_pub, &input, &com_sec]() {
-      com_pub.b = pc::PcComputeCommitmentG(input.get_gy, input.y, com_sec.s);
+      com_pub.b = pc::ComputeCom(input.get_gy, input.y, com_sec.s);
     };
     tasks[2] = [&com_pub, &input, &com_sec]() {
-      com_pub.c = pc::PcComputeCommitmentG(input.gz, input.z, com_sec.t);
+      com_pub.c = pc::ComputeCom(input.gz, input.z, com_sec.t);
     };
     parallel::Invoke(tasks);
   }
@@ -213,7 +207,6 @@ struct Sec51c {
   static bool Test(int64_t n);
 
  private:
-
   static void UpdateSeed(h256_t& seed, CommitmentPub const& com_pub,
                          std::vector<Fr> const& t) {
     CryptoPP::Keccak_256 hash;
@@ -276,10 +269,10 @@ bool Sec51c::Test(int64_t n) {
 
   int64_t x_g_offset = 10;
   int64_t y_g_offset = 30;
-  pc::GetRefG get_gx = [x_g_offset](int64_t i) -> G1 const& {
+  GetRefG1 get_gx = [x_g_offset](int64_t i) -> G1 const& {
     return pc::PcG()[x_g_offset + i];
   };
-  pc::GetRefG get_gy = [y_g_offset](int64_t i) -> G1 const& {
+  GetRefG1 get_gy = [y_g_offset](int64_t i) -> G1 const& {
     return pc::PcG()[y_g_offset + i];
   };
 
@@ -315,8 +308,7 @@ bool Sec51c::Test(int64_t n) {
 
   VerifyInput verify_input(t, com_pub, get_gx, get_gy, pc::PcU());
   bool success = Verify(proof, seed, verify_input);
-  std::cout << __FILE__ << " " << __FN__ << ": " << success
-            << "\n\n\n\n\n\n";
+  std::cout << __FILE__ << " " << __FN__ << ": " << success << "\n\n\n\n\n\n";
   return success;
 }
 }  // namespace groth09

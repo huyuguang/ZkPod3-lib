@@ -1,7 +1,7 @@
 #pragma once
 
-#include "./para_fr.h"
 #include "./auxi_pub.h"
+#include "./para_fr.h"
 #include "ecc/ecc.h"
 #include "ecc/pc_base.h"
 #include "misc/misc.h"
@@ -10,7 +10,7 @@
 
 namespace clink::vgg16 {
 
-struct BnCommitmentPub {  
+struct BnCommitmentPub {
   G1 mu;
   G1 alpha;
   G1 beta;
@@ -104,8 +104,10 @@ struct DenseCommitmentPub {
   template <size_t Order>
   auto const& get() const {
     static_assert(Order == 0 || Order == 1, "invalid Order");
-    if constexpr (Order == 0) return d0;
-    else return d1;
+    if constexpr (Order == 0)
+      return d0;
+    else
+      return d1;
   }
 
   bool operator==(DenseCommitmentPub const& b) const {
@@ -132,8 +134,10 @@ struct DenseCommitmentSec {
   template <size_t Order>
   auto const& get() const {
     static_assert(Order == 0 || Order == 1, "invalid Order");
-    if constexpr (Order == 0) return d0_r;
-    else return d1_r;
+    if constexpr (Order == 0)
+      return d0_r;
+    else
+      return d1_r;
   }
 
   bool operator==(DenseCommitmentSec const& b) const {
@@ -218,7 +222,7 @@ struct ParaCommitmentSec {
 inline void ComputeBnCommitment(std::array<Para::BnLayer, 14> const& para,
                                 AuxiPub const& auxi, BnCommitmentPub& pub,
                                 BnCommitmentSec& sec) {
-  Tick tick(__FN__);  
+  Tick tick(__FN__);
   sec.alpha_r = FrRand();
   sec.beta_r = FrRand();
   sec.mu_r = FrRand();
@@ -231,7 +235,7 @@ inline void ComputeBnCommitment(std::array<Para::BnLayer, 14> const& para,
   std::vector<Fr> all_mu;
   all_mu.reserve(4736);
 
-  for (auto const& i : para) {    
+  for (auto const& i : para) {
     all_alpha.insert(all_alpha.end(), i.alpha.begin(), i.alpha.end());
     all_beta.insert(all_beta.end(), i.beta.begin(), i.beta.end());
     all_mu.insert(all_mu.end(), i.mu.begin(), i.mu.end());
@@ -243,14 +247,14 @@ inline void ComputeBnCommitment(std::array<Para::BnLayer, 14> const& para,
   if (all_mu.size() != 4736) throw std::runtime_error("oops");
 #endif
 
-  pub.alpha = pc::PcComputeCommitmentG(all_alpha.size(),auxi.para_u_bn().first,
-                                       all_alpha.data(),sec.alpha_r);
+  pub.alpha = pc::ComputeCom(all_alpha.size(), auxi.para_u_bn().first,
+                             all_alpha.data(), sec.alpha_r);
 
-  pub.beta = pc::PcComputeCommitmentG(all_beta.size(),auxi.para_u_bn().first,
-                                       all_beta.data(),sec.beta_r);
+  pub.beta = pc::ComputeCom(all_beta.size(), auxi.para_u_bn().first,
+                            all_beta.data(), sec.beta_r);
 
-  pub.mu = pc::PcComputeCommitmentG(all_mu.size(),auxi.para_u_bn().first,
-                                       all_mu.data(),sec.mu_r);
+  pub.mu = pc::ComputeCom(all_mu.size(), auxi.para_u_bn().first, all_mu.data(),
+                          sec.mu_r);
 
 #ifdef _DEBUG_CHECK
   std::vector<Fr> extended_alpha;
@@ -265,20 +269,20 @@ inline void ComputeBnCommitment(std::array<Para::BnLayer, 14> const& para,
     if (C != bn_para.alpha.size()) throw std::runtime_error("oops");
     for (size_t j = 0; j < bn_para.alpha.size(); ++j) {
       // repeat DD times
-      for (size_t k = 0; k < D*D; ++k) {
+      for (size_t k = 0; k < D * D; ++k) {
         extended_alpha.push_back(bn_para.alpha[j]);
         extended_beta.push_back(bn_para.beta[j]);
         extended_mu.push_back(bn_para.mu[j]);
       }
-    }    
+    }
   }
-  if (pub.alpha != pc::PcComputeCommitmentG(extended_alpha, sec.alpha_r)) {
+  if (pub.alpha != pc::ComputeCom(extended_alpha, sec.alpha_r)) {
     throw std::runtime_error("oops");
   }
-  if (pub.beta != pc::PcComputeCommitmentG(extended_beta, sec.beta_r)) {
+  if (pub.beta != pc::ComputeCom(extended_beta, sec.beta_r)) {
     throw std::runtime_error("oops");
   }
-  if (pub.mu != pc::PcComputeCommitmentG(extended_mu, sec.mu_r)) {
+  if (pub.mu != pc::ComputeCom(extended_mu, sec.mu_r)) {
     throw std::runtime_error("oops");
   }
 #endif
@@ -338,17 +342,17 @@ inline void ComputeDenseCommitment(std::array<Para::DenseLayer, 2> const& para,
   Tick tick(__FN__);
   FrRand(sec.d0_r.data(), sec.d0_r.size());
   FrRand(sec.d1_r.data(), sec.d1_r.size());
-  
+
   assert(para[0].weight.size() == pub.d0.size());
   for (size_t i = 0; i < para[0].weight.size(); ++i) {
     auto const& w = para[0].weight[i];
-    pub.d0[i] = pc::PcComputeCommitmentG(w, sec.d0_r[i]);
+    pub.d0[i] = pc::ComputeCom(w, sec.d0_r[i]);
   }
 
   assert(para[1].weight.size() == pub.d1.size());
   for (size_t i = 0; i < para[1].weight.size(); ++i) {
     auto const& w = para[1].weight[i];
-    pub.d1[i] = pc::PcComputeCommitmentG(w, sec.d1_r[i]);
+    pub.d1[i] = pc::ComputeCom(w, sec.d1_r[i]);
   }
 }
 

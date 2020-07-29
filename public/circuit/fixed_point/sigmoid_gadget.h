@@ -10,10 +10,9 @@ template <size_t D, size_t N>
 class SigmoidGadget : public libsnark::gadget<Fr> {
  public:
   SigmoidGadget(libsnark::protoboard<Fr>& pb,
-                libsnark::pb_linear_combination<Fr> const& x,
-                size_t level, const std::string& annotation_prefix = "")
+                libsnark::pb_linear_combination<Fr> const& x, size_t level,
+                const std::string& annotation_prefix = "")
       : libsnark::gadget<Fr>(pb, annotation_prefix), x_(x) {
-
     neg_x_.assign(this->pb, -x);
 
     exp_gadget_.reset(new ExpGadget<D, N>(
@@ -26,7 +25,7 @@ class SigmoidGadget : public libsnark::gadget<Fr> {
     pb_lc_sign.assign(pb, FrOne());  // exp_plus_1 always > 0
     inv_gadget_.reset(
         new InvGadget<D, N>(pb, exp_plus_1_, &pb_lc_sign,
-                                FMT(this->annotation_prefix, " inv_gadget")));
+                            FMT(this->annotation_prefix, " inv_gadget")));
   }
 
   void generate_r1cs_constraints() {
@@ -75,8 +74,8 @@ bool SigmoidGadget<D, N>::Test(double const& double_x) {
   if (!pb.is_satisfied()) return false;
 
   Fr fr_ret = pb.lc_val(gadget.ret());
-  std::cout << "fr_ret: " << fr_ret << "\t"
-            << RationalToDouble<D, N>(fr_ret) << "\n";
+  std::cout << "fr_ret: " << fr_ret << "\t" << RationalToDouble<D, N>(fr_ret)
+            << "\n";
   std::cout << "num_constraints: " << pb.num_constraints() << "\n";
   std::cout << "num_variables: " << pb.num_variables() << "\n";
   return true;
@@ -96,4 +95,4 @@ inline static bool TestSigmoid() {
 
   return std::all_of(rets.begin(), rets.end(), [](auto i) { return i; });
 }
-}  // namespace circuit
+}  // namespace circuit::fixed_point

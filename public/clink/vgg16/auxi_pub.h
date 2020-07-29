@@ -15,12 +15,12 @@ class AuxiPub {
     Tick tick(__FN__);
     InitPtr();
 
-    ComputeParaBn(*para_u_bn_);    
-    
-    ComputeParaConv<32, 64, 64>(*para_u_conv1_);    
-    ComputeParaConv<16, 128, 128>(*para_u_conv3_);    
-    ComputeParaConv<8, 256, 256>(*para_u_conv6_);    
-    ComputeParaConv<4, 512, 512>(*para_u_conv9_);    
+    ComputeParaBn(*para_u_bn_);
+
+    ComputeParaConv<32, 64, 64>(*para_u_conv1_);
+    ComputeParaConv<16, 128, 128>(*para_u_conv3_);
+    ComputeParaConv<8, 256, 256>(*para_u_conv6_);
+    ComputeParaConv<4, 512, 512>(*para_u_conv9_);
     ComputeParaConv<2, 512, 512>(*para_u_conv12_);
 
     ComputeDataConv<32, 3, 64>(*data_u_conv0_);
@@ -86,19 +86,22 @@ class AuxiPub {
 
   // para bn
   std::pair<G1 const*, G1 const*> para_u_bn() const {
-    return std::make_pair(para_u_bn_->data(), para_u_bn_->data() + para_u_bn_->size());
+    return std::make_pair(para_u_bn_->data(),
+                          para_u_bn_->data() + para_u_bn_->size());
   }
 
   // para conv coef
   std::pair<G1 const*, G1 const*> para_u_conv_coef(size_t order) const {
-    return std::make_pair(para_u_conv_ptr_[order],
-                          para_u_conv_ptr_[order] + para_u_conv_coef_size_[order]);
+    return std::make_pair(
+        para_u_conv_ptr_[order],
+        para_u_conv_ptr_[order] + para_u_conv_coef_size_[order]);
   }
 
   // para conv bias
   std::pair<G1 const*, G1 const*> para_u_conv_bias(size_t order) const {
-    return std::make_pair(para_u_conv_ptr_[order],
-                          para_u_conv_ptr_[order] + para_u_conv_bias_size_[order]);
+    return std::make_pair(
+        para_u_conv_ptr_[order],
+        para_u_conv_ptr_[order] + para_u_conv_bias_size_[order]);
   }
 
   // data conv
@@ -194,7 +197,7 @@ class AuxiPub {
     for (size_t k = 0; k < kCount; ++k) {
       for (size_t i = 0; i < range_i[k]; ++i) {
         u[i + u_offsets[k]] =
-            pc::PcComputeSigmaG(g_offsets[k] + i * range_j[k], range_j[k]);
+            pc::ComputeSigmaG(g_offsets[k] + i * range_j[k], range_j[k]);
       }
     }
   }
@@ -203,7 +206,7 @@ class AuxiPub {
   void ComputeParaConv(std::array<G1, K * C>& u) {
     auto DD = D * D;
     for (size_t i = 0; i < K * C; ++i) {
-      u[i] = pc::PcComputeSigmaG(i * DD, DD);
+      u[i] = pc::ComputeSigmaG(i * DD, DD);
     }
   }
 

@@ -21,15 +21,15 @@ struct Sec51b {
     std::vector<Fr> const& t;   // size = n
     std::vector<Fr> const& yt;  // yt = y o t
     Fr const z;                 // z = <x, y o t>
-    pc::GetRefG const get_gx;
-    pc::GetRefG const get_gy;
+    GetRefG1 const get_gx;
+    GetRefG1 const get_gy;
     G1 const gz;
     bool const gx_equal_gy;
 
     int64_t n() const { return (int64_t)x.size(); }
     ProveInput(std::vector<Fr> const& x, std::vector<Fr> const& y,
                std::vector<Fr> const& t, std::vector<Fr> const& yt, Fr const& z,
-               pc::GetRefG const& get_gx, pc::GetRefG const& get_gy,
+               GetRefG1 const& get_gx, GetRefG1 const& get_gy,
                G1 const& gz)
         : x(x),
           y(y),
@@ -133,13 +133,13 @@ struct Sec51b {
 
     std::array<parallel::VoidTask, 3> tasks;
     tasks[0] = [&com_pub, &input, &com_sec]() {
-      com_pub.a = pc::PcComputeCommitmentG(input.get_gx, input.x, com_sec.r);
+      com_pub.a = pc::ComputeCom(input.get_gx, input.x, com_sec.r);
     };
     tasks[1] = [&com_pub, &input, &com_sec]() {
-      com_pub.b = pc::PcComputeCommitmentG(input.get_gy, input.y, com_sec.s);
+      com_pub.b = pc::ComputeCom(input.get_gy, input.y, com_sec.s);
     };
     tasks[2] = [&com_pub, &input, &com_sec]() {
-      com_pub.c = pc::PcComputeCommitmentG(input.gz, input.z, com_sec.t);
+      com_pub.c = pc::ComputeCom(input.gz, input.z, com_sec.t);
     };
     parallel::Invoke(tasks);
   }
@@ -167,17 +167,17 @@ struct Sec51b {
 
     std::array<parallel::VoidTask, 3> tasks;
     tasks[0] = [&com_ext_pub, &com_ext_sec, &input]() {
-      com_ext_pub.ad = pc::PcComputeCommitmentG(input.get_gx, com_ext_sec.dx,
+      com_ext_pub.ad = pc::ComputeCom(input.get_gx, com_ext_sec.dx,
                                             com_ext_sec.rd);
     };
     tasks[1] = [&com_ext_pub, &com_ext_sec, &input]() {
-      com_ext_pub.bd = pc::PcComputeCommitmentG(input.get_gy, com_ext_sec.dy,
+      com_ext_pub.bd = pc::ComputeCom(input.get_gy, com_ext_sec.dy,
                                             com_ext_sec.sd);
     };
     tasks[2] = [&com_ext_pub, &com_ext_sec, &xdy_dxy, &input]() {
       com_ext_pub.c1 =
-          pc::PcComputeCommitmentG(input.gz, xdy_dxy, com_ext_sec.t1);
-      com_ext_pub.c0 = pc::PcComputeCommitmentG(input.gz, com_ext_sec.dz,
+          pc::ComputeCom(input.gz, xdy_dxy, com_ext_sec.t1);
+      com_ext_pub.c0 = pc::ComputeCom(input.gz, com_ext_sec.dz,
                                             com_ext_sec.t0);
     };
     parallel::Invoke(tasks);
@@ -222,8 +222,8 @@ struct Sec51b {
 
   struct VerifyInput {
     VerifyInput(std::vector<Fr> const& t, CommitmentPub const& com_pub,
-                pc::GetRefG const& get_gx,
-                pc::GetRefG const& get_gy, G1 const& gz)
+                GetRefG1 const& get_gx,
+                GetRefG1 const& get_gy, G1 const& gz)
         : t(t),
           com_pub(com_pub),
           get_gx(get_gx),
@@ -232,8 +232,8 @@ struct Sec51b {
           gx_equal_gy(get_gx(0) == get_gy(0)) {}
     std::vector<Fr> const& t;
     CommitmentPub const& com_pub;
-    pc::GetRefG const get_gx;
-    pc::GetRefG const get_gy;
+    GetRefG1 const get_gx;
+    GetRefG1 const get_gy;
     G1 const gz;
     bool const gx_equal_gy;
   };
@@ -261,7 +261,7 @@ struct Sec51b {
         // com(alpha * fx + fy,alpha * rx + sy)
         std::vector<Fr> alpha_fx_fy = sub_proof.fx * alpha + sub_proof.fy;
         Fr alpha_rx_sy = alpha * sub_proof.rx + sub_proof.sy;
-        G1 right = pc::PcComputeCommitmentG(get_g, alpha_fx_fy, alpha_rx_sy);
+        G1 right = pc::ComputeCom(get_g, alpha_fx_fy, alpha_rx_sy);
         rets[0] = left == right;
         assert(rets[0]);
       };
@@ -273,7 +273,7 @@ struct Sec51b {
         G1 left = (com_pub.a * e + com_ext_pub.ad);
         // com(fx,rx)
         G1 right =
-            pc::PcComputeCommitmentG(input.get_gx, sub_proof.fx, sub_proof.rx);
+            pc::ComputeCom(input.get_gx, sub_proof.fx, sub_proof.rx);
         rets[0] = left == right;
         assert(rets[0]);
       };
@@ -282,7 +282,7 @@ struct Sec51b {
         G1 left = com_pub.b * e + com_ext_pub.bd;
         // com(fy,sy)
         G1 right =
-            pc::PcComputeCommitmentG(input.get_gy, sub_proof.fy, sub_proof.sy);
+            pc::ComputeCom(input.get_gy, sub_proof.fy, sub_proof.sy);
         rets[1] = left == right;
         assert(rets[1]);
       };
@@ -297,7 +297,7 @@ struct Sec51b {
       std::vector<Fr> proof_fyt(n);
       HadamardProduct(proof_fyt, sub_proof.fy, input.t);
       Fr fz = InnerProduct(sub_proof.fx, proof_fyt);
-      G1 right = pc::PcComputeCommitmentG(input.gz, fz, sub_proof.tz);
+      G1 right = pc::ComputeCom(input.gz, fz, sub_proof.tz);
       rets.back() = left == right;
       assert(rets.back());
     };
@@ -390,10 +390,10 @@ bool Sec51b::Test(int64_t n) {
   int64_t y_g_offset = 30;
   std::vector<Fr> yt(n);
 
-  pc::GetRefG get_gx = [x_g_offset](int64_t i) -> G1 const& {
+  GetRefG1 get_gx = [x_g_offset](int64_t i) -> G1 const& {
     return pc::PcG()[x_g_offset + i];
   };
-  pc::GetRefG get_gy = [y_g_offset](int64_t i) -> G1 const& {
+  GetRefG1 get_gy = [y_g_offset](int64_t i) -> G1 const& {
     return pc::PcG()[y_g_offset + i];
   };
 

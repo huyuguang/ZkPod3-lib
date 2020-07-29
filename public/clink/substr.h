@@ -43,7 +43,7 @@ struct Substr {
   struct ProveInput {
     ProveInput(std::string const& k, std::vector<Fr> const& x, G1 const& com_x,
                Fr const& com_x_r, std::vector<Fr> const& y, G1 const& com_y,
-               Fr const& com_y_r, pc::GetRefG const& get_g)
+               Fr const& com_y_r, GetRefG1 const& get_g)
         : k(k),
           x(x),
           com_x(com_x),
@@ -80,7 +80,7 @@ struct Substr {
     std::vector<Fr> const& y;
     G1 const& com_y;
     Fr const& com_y_r;
-    pc::GetRefG const& get_g;
+    GetRefG1 const& get_g;
 
     int64_t const n;
     std::unique_ptr<R1csInfo> r1cs_info;
@@ -102,20 +102,20 @@ struct Substr {
       // Tick tick2("compute com(witness)");
       auto parallel_f = [&com_w_r, &com_w, &input](int64_t i) {
         com_w_r[i] = FrRand();
-        com_w[i] =
-            pc::PcComputeCommitmentG(input.get_g, input.w[i], com_w_r[i], true);
+        com_w[i] = pc::ComputeCom(input.get_g, input.w[i], com_w_r[i], true);
       };
       parallel::For<int64_t>(1LL, input.s - 1, parallel_f);
     }
 
-    typename R1cs::ProveInput r1cs_input(*input.r1cs_info, "substr", std::move(input.w),
-                                         com_w, com_w_r, input.get_g);
+    typename R1cs::ProveInput r1cs_input(*input.r1cs_info, "substr",
+                                         std::move(input.w), com_w, com_w_r,
+                                         input.get_g);
     R1cs::Prove(proof.r1cs_proof, seed, std::move(r1cs_input));
     proof.com_w = std::move(com_w);
   }
 
   struct VerifyInput {
-    VerifyInput(int64_t n, std::string const& k, pc::GetRefG const& get_g)
+    VerifyInput(int64_t n, std::string const& k, GetRefG1 const& get_g)
         : n(n), k(k), get_g(get_g) {
       libsnark::protoboard<Fr> pb;
       circuit::SubstrGadget gadget(pb, k);
@@ -127,7 +127,7 @@ struct Substr {
     }
     int64_t n;
     std::string const& k;
-    pc::GetRefG const& get_g;
+    GetRefG1 const& get_g;
 
     std::unique_ptr<R1csInfo> r1cs_info;
     int64_t m;
@@ -151,7 +151,8 @@ struct Substr {
     //}
 
     typename ParallelR1cs<Policy>::VerifyInput pr_input(
-        input.n, *input.r1cs_info, "substr", proof.com_w, input.public_w, input.get_g);
+        input.n, *input.r1cs_info, "substr", proof.com_w, input.public_w,
+        input.get_g);
     return ParallelR1cs<Policy>::Verify(proof.r1cs_proof, seed, pr_input);
   }
 
@@ -162,7 +163,7 @@ template <typename Policy>
 bool Substr<Policy>::Test() {
   auto seed = misc::RandH256();
   int64_t g_offset = 30;
-  pc::GetRefG get_g = [g_offset](int64_t i) -> G1 const& {
+  GetRefG1 get_g = [g_offset](int64_t i) -> G1 const& {
     return pc::PcG()[g_offset + i];
   };
 
@@ -200,9 +201,9 @@ bool Substr<Policy>::Test() {
 
   Tick tick(__FN__);
   Fr com_x_r = FrRand();
-  G1 com_x = pc::PcComputeCommitmentG(get_g, x, com_x_r);
+  G1 com_x = pc::ComputeCom(get_g, x, com_x_r);
   Fr com_y_r = FrRand();
-  G1 com_y = pc::PcComputeCommitmentG(get_g, y, com_y_r, true);  // y is {0,1}
+  G1 com_y = pc::ComputeCom(get_g, y, com_y_r, true);  // y is {0,1}
 
   ProveInput prove_input(k, x, com_x, com_x_r, y, com_y, com_y_r, get_g);
   Proof proof;

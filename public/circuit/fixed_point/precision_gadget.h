@@ -15,10 +15,11 @@ template <size_t D, size_t N, size_t M>
 class PrecisionGadget : public libsnark::gadget<Fr> {
   static_assert(D + N < 253, "invalid D or N");
   static_assert(N > M, "invalid N or M");
+
  public:
   PrecisionGadget(libsnark::protoboard<Fr>& pb,
-             libsnark::pb_linear_combination<Fr> const& a,
-             const std::string& annotation_prefix = "")
+                  libsnark::pb_linear_combination<Fr> const& a,
+                  const std::string& annotation_prefix = "")
       : libsnark::gadget<Fr>(pb, annotation_prefix), a_(a) {
     a_off_.assign(this->pb, a_ + RationalConst<D, N>().kFrDN);
     // 2kFrDN > a_ + kFrDN >=0, so use D+N+1 bits

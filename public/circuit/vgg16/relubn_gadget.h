@@ -27,7 +27,7 @@ class ReluBnGadget : public libsnark::gadget<Fr> {
     ret_.allocate(this->pb, FMT(this->annotation_prefix, " ret"));
     alpha_.allocate(this->pb, FMT(this->annotation_prefix, " alpha"));
     beta_.allocate(this->pb, FMT(this->annotation_prefix, " beta"));
-    mu_.allocate(this->pb, FMT(this->annotation_prefix, " mu"));    
+    mu_.allocate(this->pb, FMT(this->annotation_prefix, " mu"));
 
     b_.allocate(this->pb, FMT(this->annotation_prefix, " b"));
     c_.allocate(this->pb, FMT(this->annotation_prefix, " c"));
@@ -36,7 +36,7 @@ class ReluBnGadget : public libsnark::gadget<Fr> {
         this->pb, a_, FMT(this->annotation_prefix, " precision_gadget a")));
 
     precision_gadget2_.reset(new fp::PrecisionGadget<D, 2 * N, N>(
-        this->pb, c_, FMT(this->annotation_prefix, " precision_gadget c")));    
+        this->pb, c_, FMT(this->annotation_prefix, " precision_gadget c")));
     generate_r1cs_constraints();
   }
 
@@ -83,33 +83,33 @@ class ReluBnGadget : public libsnark::gadget<Fr> {
     auto alpha = this->pb.val(alpha_);
     auto beta = this->pb.val(beta_);
     auto mu = this->pb.val(mu_);
-    //std::cout << "gadget alpha:" << alpha << "\n";
-    //std::cout << "gadget beta:" << beta << "\n";
-    //std::cout << "gadget mu:" << mu << "\n";
+    // std::cout << "gadget alpha:" << alpha << "\n";
+    // std::cout << "gadget beta:" << beta << "\n";
+    // std::cout << "gadget mu:" << mu << "\n";
 
     precision_gadget1_->generate_r1cs_witness();
-    //auto a = this->pb.val(a_);
-    //std::cout << "gadget a: " << a << "\n";
+    // auto a = this->pb.val(a_);
+    // std::cout << "gadget a: " << a << "\n";
 
     precision_gadget1_->ret().evaluate(this->pb);
     auto a2 = this->pb.lc_val(precision_gadget1_->ret());
-    //std::cout << "gadget a2: " << a2 << "\n";
+    // std::cout << "gadget a2: " << a2 << "\n";
 
     precision_gadget1_->sign().evaluate(this->pb);
     auto sign = this->pb.lc_val(precision_gadget1_->sign());
     auto b = sign == Fr(0) ? Fr(0) : a2;
     this->pb.val(b_) = b;
-    //std::cout << "gadget b: " << b << "\n";
+    // std::cout << "gadget b: " << b << "\n";
 
     auto c = alpha * (b - mu) + beta * fp::RationalConst<D, N>().kFrN;
     this->pb.val(c_) = c;
-    //std::cout << "gadget c: " << c << "\n";
+    // std::cout << "gadget c: " << c << "\n";
 
-    precision_gadget2_->generate_r1cs_witness();    
+    precision_gadget2_->generate_r1cs_witness();
     precision_gadget2_->ret().evaluate(this->pb);
     auto ret = this->pb.lc_val(precision_gadget2_->ret());
     this->pb.val(ret_) = ret;
-    //std::cout << "gadget ret: " << ret << "\n";
+    // std::cout << "gadget ret: " << ret << "\n";
   }
 
  private:

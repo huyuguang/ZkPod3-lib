@@ -81,8 +81,8 @@ void serialize(Ar &ar, h256_t &t) {
   }
 }
 //
-//template<typename T>
-//bool YasLoadJson(char const* data, size_t size, T& t) {
+// template<typename T>
+// bool YasLoadJson(char const* data, size_t size, T& t) {
 //  try {
 //    yas::mem_istream is(data, size);
 //    yas::json_iarchive<yas::mem_istream, YasBinF()> ia(is);
@@ -94,8 +94,8 @@ void serialize(Ar &ar, h256_t &t) {
 //  }
 //}
 
-template<typename T>
-bool YasLoadBin(std::string const &file, T& t) {
+template <typename T>
+bool YasLoadBin(std::string const &file, T &t) {
   try {
     yas::file_istream is(file.c_str());
     yas::binary_iarchive<yas::file_istream, YasBinF()> ia(is);
@@ -107,8 +107,8 @@ bool YasLoadBin(std::string const &file, T& t) {
   }
 }
 
-template<typename T>
-bool YasLoadBin(char const* data, size_t size, T& t) {
+template <typename T>
+bool YasLoadBin(char const *data, size_t size, T &t) {
   try {
     yas::mem_istream is(data, size);
     yas::binary_iarchive<yas::mem_istream, YasBinF()> ia(is);
@@ -120,10 +120,10 @@ bool YasLoadBin(char const* data, size_t size, T& t) {
   }
 }
 
-template<typename T>
-bool YasSaveBin(std::string const &file,T const& t) {
+template <typename T>
+bool YasSaveBin(std::string const &file, T const &t) {
   try {
-    //boost::system::error_code dummy;
+    // boost::system::error_code dummy;
     fs::remove(file);
     yas::file_ostream os(file.c_str());
     yas::binary_oarchive<yas::file_ostream, YasBinF()> oa(os);
@@ -142,11 +142,10 @@ bool YasSaveBin(std::string const &file,T const& t) {
   return true;
 }
 
-
-template<typename T>
-bool YasSaveBin(yas::shared_buffer& data,T const& t) {
+template <typename T>
+bool YasSaveBin(yas::shared_buffer &data, T const &t) {
   try {
-    //boost::system::error_code dummy;
+    // boost::system::error_code dummy;
     yas::mem_ostream os;
     yas::binary_oarchive<yas::mem_ostream, YasBinF()> oa(os);
     oa.serialize(t);
@@ -158,14 +157,14 @@ bool YasSaveBin(yas::shared_buffer& data,T const& t) {
 
 #ifdef _DEBUG_CHECK
   T check;
-  if (!YasLoadBin(data.data.get(),data.size, check)) return false;
+  if (!YasLoadBin(data.data.get(), data.size, check)) return false;
   if (t != check) return false;
 #endif
 
   return true;
 }
 
-template<typename T>
+template <typename T>
 size_t YasGetBinLen(T const &t) {
   yas::shared_buffer data;
   if (!YasSaveBin(data, t)) return (size_t)-1;

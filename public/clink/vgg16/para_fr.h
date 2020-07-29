@@ -11,8 +11,7 @@ namespace vgg16 {
 struct Para {
   struct ConvLayer {
     ConvLayer() {}
-    ConvLayer(ConvLayerInfo const& info)
-        : order(info.order), D(info.D) {
+    ConvLayer(ConvLayerInfo const& info) : order(info.order), D(info.D) {
       coefs.resize(info.K);
       for (auto& i : coefs) {
         i.resize(info.C);
@@ -20,8 +19,7 @@ struct Para {
       bias.resize(info.K);
     }
 
-    ConvLayer(dbl::Para::ConvLayer const& dbl)
-        : order(dbl.order), D(dbl.D) {
+    ConvLayer(dbl::Para::ConvLayer const& dbl) : order(dbl.order), D(dbl.D) {
       namespace fp = circuit::fp;
       coefs.resize(dbl.coefs.size());
       for (auto& i : coefs) {
@@ -45,8 +43,7 @@ struct Para {
     }
 
     bool operator==(ConvLayer const& b) const {
-      return order == b.order && D == b.D && coefs == b.coefs &&
-             bias == b.bias;
+      return order == b.order && D == b.D && coefs == b.coefs && bias == b.bias;
     }
 
     bool operator!=(ConvLayer const& b) const { return !(*this == b); }
@@ -236,7 +233,7 @@ struct Para {
     Tick tick(__FN__);
     try {
       boost::system::error_code dummy;
-      fs::remove(file,dummy);
+      fs::remove(file, dummy);
       yas::file_ostream os(file.c_str());
       yas::binary_oarchive<yas::file_ostream, YasBinF()> oa(os);
       oa.serialize(*this);
@@ -284,7 +281,7 @@ struct Image {
     for (size_t i = 0; i < dbl.size(); ++i) {
       data[i] = fp::DoubleToRational<8, 24>(dbl.data[i]);
     }
-  }  
+  }
 
   bool operator==(Image const& b) const {
     return order == b.order && data == b.data && C() == b.C() && D() == b.D();
@@ -310,7 +307,7 @@ struct Image {
   size_t C() const { return pixels.shape()[0]; }
   size_t D() const { return pixels.shape()[1]; }
 
-  template<size_t D, size_t N>
+  template <size_t D, size_t N>
   void dump() const {
     namespace fp = circuit::fp;
     for (auto const& i : data) {
@@ -319,8 +316,6 @@ struct Image {
     }
     std::cout << "\n\n";
   }
-
-
 };
 }  // namespace vgg16
 }  // namespace clink

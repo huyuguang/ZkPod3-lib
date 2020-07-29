@@ -39,13 +39,12 @@ struct Opening {
   }
 
   static void Prove(Proof& proof, h256_t seed, std::vector<Fr> const& x,
-                    G1 const& com_x,
-                    Fr const& r, pc::GetRefG const& get_gx) {
-    assert(com_x == pc::PcComputeCommitmentG(get_gx, x, r));
+                    G1 const& com_x, Fr const& r, GetRefG1 const& get_gx) {
+    assert(com_x == pc::ComputeCom(get_gx, x, r));
     std::vector<Fr> t1(x.size());
     FrRand(t1);
     Fr t2 = FrRand();
-    proof.alpha = pc::PcComputeCommitmentG(get_gx, t1, t2);
+    proof.alpha = pc::ComputeCom(get_gx, t1, t2);
     UpdateSeed(seed, com_x, proof.alpha, (int64_t)x.size());
     Fr c = H256ToFr(seed);
     proof.z1 = x * c + t1;
@@ -53,10 +52,10 @@ struct Opening {
   }
 
   static bool Verify(Proof const& proof, h256_t seed, G1 const& com_x,
-                     pc::GetRefG const& get_gx) {
+                     GetRefG1 const& get_gx) {
     UpdateSeed(seed, com_x, proof.alpha, (int64_t)proof.z1.size());
     Fr c = H256ToFr(seed);
-    G1 left = pc::PcComputeCommitmentG(get_gx, proof.z1, proof.z2);
+    G1 left = pc::ComputeCom(get_gx, proof.z1, proof.z2);
     G1 right = com_x * c + proof.alpha;
     return left == right;
   }
@@ -67,14 +66,14 @@ struct Opening {
 bool Opening::Test() {
   auto seed = misc::RandH256();
   int64_t g_offset = 30;
-  pc::GetRefG get_gx = [g_offset](int64_t i) -> G1 const& {
+  GetRefG1 get_gx = [g_offset](int64_t i) -> G1 const& {
     return pc::PcG()[g_offset + i];
   };
 
   std::vector<Fr> x(4);
   FrRand(x);
   Fr r = FrRand();
-  G1 com_x = pc::PcComputeCommitmentG(get_gx, x, r);
+  G1 com_x = pc::ComputeCom(get_gx, x, r);
 
   Proof proof;
   Prove(proof, seed, x, com_x, r, get_gx);
@@ -98,8 +97,7 @@ bool Opening::Test() {
 #endif
 
   bool success = Verify(proof, seed, com_x, get_gx);
-  std::cout << __FILE__ << " " << __FN__ << ": " << success
-            << "\n\n\n\n\n\n";
+  std::cout << __FILE__ << " " << __FN__ << ": " << success << "\n\n\n\n\n\n";
   return success;
 }
 }  // namespace clink

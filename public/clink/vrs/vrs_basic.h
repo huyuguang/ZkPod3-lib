@@ -59,7 +59,7 @@ struct VrsBasic {
       return vars;
     }
 
-    G1 ComputeSigmaG() const { return pc::PcComputeSigmaG(0, n); }
+    G1 ComputeSigmaG() const { return pc::ComputeSigmaG(0, n); }
 
     R1csInfo const& r1cs_info() const { return *scheme->r1cs_info; }
 
@@ -69,7 +69,7 @@ struct VrsBasic {
     GetP get_p;
     GetW get_w;
     Fr const& vw_com_r;
-    G1 const& gvw;    
+    G1 const& gvw;
     std::unique_ptr<Scheme> scheme;
     int64_t const n;
     int64_t const m;
@@ -104,8 +104,7 @@ struct VrsBasic {
           }
         }
         auto parallel_f = [this, &vars](int64_t i) {
-          var_coms[i] =
-              pc::PcComputeCommitmentG(vars[i], var_coms_r[i]);
+          var_coms[i] = pc::ComputeCom(vars[i], var_coms_r[i]);
         };
         parallel::For(m, parallel_f);
       }
@@ -130,7 +129,7 @@ struct VrsBasic {
       auto parallel_f = [&vars, &check_cached_var_coms,
                          &cached_var_coms_r](int64_t i) {
         check_cached_var_coms[i] =
-            pc::PcComputeCommitmentG(vars[i], cached_var_coms_r[i]);
+            pc::ComputeCom(vars[i], cached_var_coms_r[i]);
       };
       parallel::For(m, parallel_f);
 
@@ -190,17 +189,16 @@ struct VrsBasic {
     }
 
     Fr vw = InnerProduct(v, w);
-    G1 vw_com = pc::PcComputeCommitmentG(input.gvw, vw, input.vw_com_r);
+    G1 vw_com = pc::ComputeCom(input.gvw, vw, input.vw_com_r);
 
     // proof v[i] = hash(p[i],key)
-    typename R1cs::ProveInput r1cs_input(input.r1cs_info(), "vrs", std::move(vars),
-                                         input.var_coms, input.var_coms_r,
-                                         pc::kGetRefG);
+    typename R1cs::ProveInput r1cs_input(input.r1cs_info(), "vrs",
+                                         std::move(vars), input.var_coms,
+                                         input.var_coms_r, pc::kGetRefG1);
     R1cs::Prove(proof.r1cs_proof, seed, std::move(r1cs_input));
 
     // proof vw = inner_product(v, w)
-    typename HyraxA::ProveInput ip_input(v, w, vw, pc::kGetRefG,
-                                         input.gvw);
+    typename HyraxA::ProveInput ip_input(v, w, vw, pc::kGetRefG1, input.gvw);
     typename HyraxA::CommitmentPub ip_com_pub;
     typename HyraxA::CommitmentSec ip_com_sec;
     ip_com_sec.r_xi = input.var_coms_r.back();
@@ -228,7 +226,7 @@ struct VrsBasic {
           n(n),
           m(scheme->num_variables()) {}
 
-    G1 ComputeSigmaG() const { return pc::PcComputeSigmaG(0, n); }
+    G1 ComputeSigmaG() const { return pc::ComputeSigmaG(0, n); }
 
     R1csInfo const& r1cs_info() const { return *scheme->r1cs_info; }
 
@@ -258,7 +256,7 @@ struct VrsBasic {
     }
 
     // check com_plain
-    if (proof.var_coms[0] != pc::PcComputeCommitmentG(p, FrZero())) {
+    if (proof.var_coms[0] != pc::ComputeCom(p, FrZero())) {
       assert(false);
       return false;
     }
@@ -268,7 +266,7 @@ struct VrsBasic {
     // the last var is the v
     ip_com_pub.xi = proof.var_coms.back();  // com(v)
     ip_com_pub.tau = proof.vw_com;          // com(vw)
-    typename HyraxA::VerifyInput ip_input(w, ip_com_pub, pc::kGetRefG,
+    typename HyraxA::VerifyInput ip_input(w, ip_com_pub, pc::kGetRefG1,
                                           input.gvw);
     if (!HyraxA::Verify(proof.ip_proof, seed, ip_input)) {
       assert(false);
@@ -277,8 +275,9 @@ struct VrsBasic {
 
     // check r1cs (hp product)
     std::vector<std::vector<Fr>> public_w{std::move(p)};
-    typename R1cs::VerifyInput r1cs_input(
-        input.n, input.r1cs_info(), "vrs", proof.var_coms, public_w, pc::kGetRefG);
+    typename R1cs::VerifyInput r1cs_input(input.n, input.r1cs_info(), "vrs",
+                                          proof.var_coms, public_w,
+                                          pc::kGetRefG1);
     if (!R1cs::Verify(proof.r1cs_proof, seed, r1cs_input)) {
       assert(false);
       return false;

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "./para_fr.h"
 #include "./para_com.h"
+#include "./para_fr.h"
 
 namespace clink::vgg16 {
 
@@ -21,13 +21,11 @@ inline bool Publish(std::string const& para_path,
 
   std::string pub_path = working_path + "/pub";
   std::string sec_path = working_path + "/sec";
-  if (!fs::is_directory(pub_path) &&
-      !fs::create_directories(pub_path)) {
+  if (!fs::is_directory(pub_path) && !fs::create_directories(pub_path)) {
     std::cerr << "Create " << pub_path << " failed\n";
     return false;
   }
-  if (!fs::is_directory(sec_path) &&
-      !fs::create_directories(sec_path)) {
+  if (!fs::is_directory(sec_path) && !fs::create_directories(sec_path)) {
     std::cerr << "Create " << sec_path << " failed\n";
     return false;
   }
@@ -41,7 +39,7 @@ inline bool Publish(std::string const& para_path,
     }
 
     std::unique_ptr<AuxiPub> auxi(new AuxiPub);
-    if (!YasSaveBin(pub_path + "/auxi",*auxi)) {
+    if (!YasSaveBin(pub_path + "/auxi", *auxi)) {
       std::cerr << "save auxi failed\n";
       return false;
     }

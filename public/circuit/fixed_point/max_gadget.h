@@ -19,9 +19,7 @@ class MaxGadget : public libsnark::gadget<Fr> {
   MaxGadget(libsnark::protoboard<Fr>& pb,
             libsnark::pb_linear_combination_array<Fr> const& x,
             const std::string& annotation_prefix = "")
-      : libsnark::gadget<Fr>(pb, annotation_prefix),
-        x_(x),
-        diffs_(x.size()) {
+      : libsnark::gadget<Fr>(pb, annotation_prefix), x_(x), diffs_(x.size()) {
     assert(x.size() > 1);
 
     max_.allocate(this->pb, " max");

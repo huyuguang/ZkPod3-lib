@@ -107,7 +107,7 @@ inline double RationalToDouble(Fr const& fr_x) {
   if (constances.IsOverflow(mpz_x, neg)) {
     throw std::runtime_error(__FN__);
   }
-  
+
   double double_x = mpz_x.get_d();
   uint64_t n = N;
   for (;;) {

@@ -20,8 +20,8 @@ struct Pack {
 
   struct ProveInput {
     ProveInput(std::vector<Fr> const& x, G1 const& com_x, Fr const& com_x_r,
-               pc::GetRefG const& get_gx, std::vector<Fr> const& y,
-               G1 const& com_y, Fr const& com_y_r, pc::GetRefG const& get_gy)
+               GetRefG1 const& get_gx, std::vector<Fr> const& y,
+               G1 const& com_y, Fr const& com_y_r, GetRefG1 const& get_gy)
         : x(x),
           com_x(com_x),
           com_x_r(com_x_r),
@@ -47,11 +47,11 @@ struct Pack {
     std::vector<Fr> const& x;
     G1 const& com_x;
     Fr const& com_x_r;
-    pc::GetRefG const& get_gx;
+    GetRefG1 const& get_gx;
     std::vector<Fr> const& y;
     G1 const& com_y;
     Fr const& com_y_r;
-    pc::GetRefG const& get_gy;
+    GetRefG1 const& get_gy;
   };
 
   static void Prove(Proof& proof, h256_t seed, ProveInput const& input) {
@@ -91,8 +91,8 @@ struct Pack {
   }
 
   struct VerifyInput {
-    VerifyInput(int64_t xn, G1 const& com_x, pc::GetRefG const& get_gx,
-                G1 const& com_y, pc::GetRefG const& get_gy)
+    VerifyInput(int64_t xn, G1 const& com_x, GetRefG1 const& get_gx,
+                G1 const& com_y, GetRefG1 const& get_gy)
         : xn(xn),
           yn((xn + 252) / 253),
           com_x(com_x),
@@ -102,9 +102,9 @@ struct Pack {
     int64_t const xn;
     int64_t const yn;
     G1 const& com_x;
-    pc::GetRefG const& get_gx;
+    GetRefG1 const& get_gx;
     G1 const& com_y;
-    pc::GetRefG const& get_gy;
+    GetRefG1 const& get_gy;
   };
 
   // NOET: n is x.size()
@@ -157,10 +157,10 @@ template <typename HyraxA>
 bool Pack<HyraxA>::Test(int64_t xn) {
   int64_t x_g_offset = 2990;
   int64_t y_g_offset = 670;
-  pc::GetRefG get_gx = [x_g_offset](int64_t i) -> G1 const& {
+  GetRefG1 get_gx = [x_g_offset](int64_t i) -> G1 const& {
     return pc::PcG()[x_g_offset + i];
   };
-  pc::GetRefG get_gy = [y_g_offset](int64_t i) -> G1 const& {
+  GetRefG1 get_gy = [y_g_offset](int64_t i) -> G1 const& {
     return pc::PcG()[y_g_offset + i];
   };
 
@@ -169,9 +169,9 @@ bool Pack<HyraxA>::Test(int64_t xn) {
   for (auto& i : x) i = rand() % 2;
   auto y = FrBitsToFrs(x);
   auto com_x_r = FrRand();
-  auto com_x = pc::PcComputeCommitmentG(get_gx, x, com_x_r);
+  auto com_x = pc::ComputeCom(get_gx, x, com_x_r);
   auto com_y_r = FrRand();
-  auto com_y = pc::PcComputeCommitmentG(get_gy, y, com_y_r);
+  auto com_y = pc::ComputeCom(get_gy, y, com_y_r);
 
   ProveInput prove_input(x, com_x, com_x_r, get_gx, y, com_y, com_y_r, get_gy);
   Proof proof;

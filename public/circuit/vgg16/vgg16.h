@@ -1,12 +1,12 @@
-#pragma once 
+#pragma once
 
 #include "./ip_gadget.h"
-#include "./relubn_gadget.h"
 #include "./pooling_gadget.h"
+#include "./relubn_gadget.h"
 
 namespace circuit::vgg16 {
 inline bool Test() {
-  //bool ret;
+  // bool ret;
   std::vector<bool> rets;
 
   // ret = TestConvolution();

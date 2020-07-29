@@ -433,18 +433,6 @@
     <ClInclude Include="..\public\clink\vgg16\infer.h">
       <Filter>public\clink\vgg16</Filter>
     </ClInclude>
-    <ClInclude Include="..\public\clink\vgg16\prove_dense.h">
-      <Filter>public\clink\vgg16</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\clink\vgg16\prove_pooling.h">
-      <Filter>public\clink\vgg16</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\clink\vgg16\prove_relubn.h">
-      <Filter>public\clink\vgg16</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\clink\vgg16\prove_conv.h">
-      <Filter>public\clink\vgg16</Filter>
-    </ClInclude>
     <ClInclude Include="..\public\circuit\vgg16\ip_gadget.h">
       <Filter>public\circuit\vgg16</Filter>
     </ClInclude>
@@ -452,18 +440,6 @@
       <Filter>public\clink\vgg16</Filter>
     </ClInclude>
     <ClInclude Include="..\public\clink\vgg16\policy.h">
-      <Filter>public\clink\vgg16</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\clink\vgg16\verify_dense.h">
-      <Filter>public\clink\vgg16</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\clink\vgg16\verify_pooling.h">
-      <Filter>public\clink\vgg16</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\clink\vgg16\verify_relubn.h">
-      <Filter>public\clink\vgg16</Filter>
-    </ClInclude>
-    <ClInclude Include="..\public\clink\vgg16\verify_conv.h">
       <Filter>public\clink\vgg16</Filter>
     </ClInclude>
     <ClInclude Include="..\public\circuit\vgg16\relubn_gadget.h">
@@ -491,6 +467,39 @@
       <Filter>public\clink\vgg16</Filter>
     </ClInclude>
     <ClInclude Include="..\public\clink\vgg16\relubn_pub.h">
+      <Filter>public\clink\vgg16</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\clink\vgg16\conv_prove.h">
+      <Filter>public\clink\vgg16</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\clink\vgg16\conv_verify.h">
+      <Filter>public\clink\vgg16</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\clink\vgg16\dense_prove.h">
+      <Filter>public\clink\vgg16</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\clink\vgg16\dense_verify.h">
+      <Filter>public\clink\vgg16</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\clink\vgg16\pooling_prove.h">
+      <Filter>public\clink\vgg16</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\clink\vgg16\pooling_verify.h">
+      <Filter>public\clink\vgg16</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\clink\vgg16\r1cs.h">
+      <Filter>public\clink\vgg16</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\clink\vgg16\r1cs_pub.h">
+      <Filter>public\clink\vgg16</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\clink\vgg16\relubn_prove.h">
+      <Filter>public\clink\vgg16</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\clink\vgg16\relubn_verify.h">
+      <Filter>public\clink\vgg16</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\clink\vgg16\safevec.h">
       <Filter>public\clink\vgg16</Filter>
     </ClInclude>
   </ItemGroup>

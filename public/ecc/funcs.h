@@ -19,6 +19,9 @@
 #pragma warning(pop)
 #endif
 
+typedef std::function<Fr const&(int64_t i)> GetRefFr;
+typedef std::function<G1 const&(int64_t i)> GetRefG1;
+
 inline void InitEcc() {
   std::cout << "init mcl in main\n";
   mcl::bn::CurveParam cp = mcl::BN_SNARK1;

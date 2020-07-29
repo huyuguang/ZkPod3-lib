@@ -8,6 +8,5 @@
 namespace clink {
 struct Affine {
   //
-
 };
 }  // namespace clink

@@ -31,13 +31,8 @@ struct Sec52b {
 
   struct VerifyInput {
     VerifyInput(std::vector<Fr> const& t, CommitmentPub const& com_pub,
-                pc::GetRefG const& get_gx, pc::GetRefG const& get_gy,
-               G1 const& gz)
-        : t(t),
-          com_pub(com_pub),
-          get_gx(get_gx),
-          get_gy(get_gy),
-          gz(gz) {}
+                GetRefG1 const& get_gx, GetRefG1 const& get_gy, G1 const& gz)
+        : t(t), com_pub(com_pub), get_gx(get_gx), get_gy(get_gy), gz(gz) {}
     std::vector<Fr> const& t;
     CommitmentPub const& com_pub;
     int64_t m() const { return com_pub.m(); }
@@ -45,8 +40,8 @@ struct Sec52b {
       if (t.size() != (uint64_t)check_n) return false;
       return com_pub.CheckFormat();
     }
-    pc::GetRefG const& get_gx;
-    pc::GetRefG const& get_gy;
+    GetRefG1 const& get_gx;
+    GetRefG1 const& get_gy;
     G1 const& gz;
   };
 
@@ -56,8 +51,8 @@ struct Sec52b {
     std::vector<Fr> const& t;                // n
     std::vector<std::vector<Fr>> const& yt;  // m*n
     Fr const z;
-    pc::GetRefG const& get_gx;
-    pc::GetRefG const& get_gy;
+    GetRefG1 const& get_gx;
+    GetRefG1 const& get_gy;
     G1 const& gz;
     std::vector<Fr> sum_xy;  // m * 2 - 1
 
@@ -67,8 +62,7 @@ struct Sec52b {
     ProveInput(std::vector<std::vector<Fr>> const& x,
                std::vector<std::vector<Fr>> const& y, std::vector<Fr> const& t,
                std::vector<std::vector<Fr>> const& yt, Fr const& z,
-               pc::GetRefG const& get_gx, pc::GetRefG const& get_gy,
-               G1 const& gz)
+               GetRefG1 const& get_gx, GetRefG1 const& get_gy, G1 const& gz)
         : x(x),
           y(y),
           t(t),
@@ -160,14 +154,12 @@ struct Sec52b {
     com_pub.b.resize(m);
 
     auto parallel_f = [&input, &com_pub, &com_sec](int64_t i) {
-      com_pub.a[i] =
-          pc::PcComputeCommitmentG(input.get_gx, input.x[i], com_sec.r[i]);
-      com_pub.b[i] =
-          pc::PcComputeCommitmentG(input.get_gy, input.y[i], com_sec.s[i]);
+      com_pub.a[i] = pc::ComputeCom(input.get_gx, input.x[i], com_sec.r[i]);
+      com_pub.b[i] = pc::ComputeCom(input.get_gy, input.y[i], com_sec.s[i]);
     };
     parallel::For(m, parallel_f);
 
-    com_pub.c = pc::PcComputeCommitmentG(input.gz, input.z, com_sec.t);
+    com_pub.c = pc::ComputeCom(input.gz, input.z, com_sec.t);
   }
 
   static void ComputeComExt(CommitmentExtPub& com_ext_pub,
@@ -185,8 +177,8 @@ struct Sec52b {
     com_ext_pub.cl.resize(m * 2 - 1);
 
     auto parallel_f = [&input, &com_ext_pub, &com_ext_sec](int64_t l) {
-      com_ext_pub.cl[l] = pc::PcComputeCommitmentG(
-          input.gz, input.sum_xy[l], com_ext_sec.tl[l]);
+      com_ext_pub.cl[l] =
+          pc::ComputeCom(input.gz, input.sum_xy[l], com_ext_sec.tl[l]);
     };
     parallel::For(m * 2 - 1, parallel_f);
 
@@ -226,7 +218,7 @@ struct Sec52b {
     ComputePowOfE(e, m, e_pow, e_pow_reverse);
 
     std::vector<Fr> x(n, FrZero());
-    //std::fill(x.begin(), x.end(), FrZero());
+    // std::fill(x.begin(), x.end(), FrZero());
 
     auto parallel_fx = [m, &x, &e_pow, &input](int64_t j) {
       for (int64_t i = 0; i < m; ++i) {
@@ -236,7 +228,7 @@ struct Sec52b {
     parallel::For(n, parallel_fx);
 
     std::vector<Fr> y(n, FrZero());
-    //std::fill(y.begin(), y.end(), FrZero());
+    // std::fill(y.begin(), y.end(), FrZero());
 
     auto parallel_fy = [m, &y, &e_pow_reverse, &input](int64_t j) {
       for (int64_t i = 0; i < m; ++i) {
@@ -248,8 +240,8 @@ struct Sec52b {
     auto const& t = input.t;
     std::vector<Fr> yt = HadamardProduct(y, t);
     auto z = InnerProduct(x, yt);
-    Sec51b::ProveInput input_51(x, y, t, yt, z, input.get_gx,
-                                input.get_gy, input.gz);
+    Sec51b::ProveInput input_51(x, y, t, yt, z, input.get_gx, input.get_gy,
+                                input.gz);
 
     assert(z == InnerProduct(input.sum_xy, e_pow));
 
@@ -275,14 +267,11 @@ struct Sec52b {
     }
 
 #ifdef _DEBUG
-    auto check_a =
-        pc::PcComputeCommitmentG(input_51.get_gx, input_51.x, com_sec_51.r);
+    auto check_a = pc::ComputeCom(input_51.get_gx, input_51.x, com_sec_51.r);
     assert(check_a == com_pub_51.a);
-    auto check_b =
-        pc::PcComputeCommitmentG(input_51.get_gy, input_51.y, com_sec_51.s);
+    auto check_b = pc::ComputeCom(input_51.get_gy, input_51.y, com_sec_51.s);
     assert(check_b == com_pub_51.b);
-    auto check_c =
-        pc::PcComputeCommitmentG(input_51.gz, input_51.z, com_sec_51.t);
+    auto check_c = pc::ComputeCom(input_51.gz, input_51.z, com_sec_51.t);
     assert(check_c == com_pub_51.c);
 #endif
 
@@ -347,10 +336,10 @@ struct Sec52b {
 
     int64_t x_g_offset = 10;
     int64_t y_g_offset = 550;
-    pc::GetRefG get_gx = [x_g_offset](int64_t i) -> G1 const& {
+    GetRefG1 get_gx = [x_g_offset](int64_t i) -> G1 const& {
       return pc::PcG()[x_g_offset + i];
     };
-    pc::GetRefG get_gy = [y_g_offset](int64_t i) -> G1 const& {
+    GetRefG1 get_gy = [y_g_offset](int64_t i) -> G1 const& {
       return pc::PcG()[y_g_offset + i];
     };
 
@@ -371,8 +360,7 @@ struct Sec52b {
 
     VerifyInput verify_input(t, com_pub, get_gx, get_gy, pc::PcU());
     bool success = Verify(proof, seed, verify_input);
-    std::cout << __FILE__ << " " << __FN__ << ": " << success
-              << "\n\n\n\n\n\n";
+    std::cout << __FILE__ << " " << __FN__ << ": " << success << "\n\n\n\n\n\n";
     return success;
   }
 

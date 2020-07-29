@@ -64,7 +64,7 @@ inline bool OneConvInputVerifyPreprocess(h256_t seed,
   }
 
   AdaptVerifyItem adapt_item;
-  adapt_item.Init(10, ConvAdaptTag(true,layer));
+  adapt_item.Init(10, ConvAdaptTag(true, layer));
   for (size_t j = 0; j < 9; ++j) {
     adapt_item.a[j] = ctx.r[j];
     adapt_item.cx[j] = proof.input_pub.cb[j];
@@ -114,8 +114,8 @@ inline bool OneConvR1csVerifyPreprocess(h256_t seed,
   item.public_w.reset(new std::vector<std::vector<Fr>>);
   item.r1cs_info.reset(new R1csInfo(pb));
   item.r1cs_input.reset(new R1cs::VerifyInput(
-      KCDD, *item.r1cs_info, ConvR1csTag(layer),
-      proof.r1cs_pub.com_w, *item.public_w, pc::kGetRefG));
+      KCDD, *item.r1cs_info, ConvR1csTag(layer), proof.r1cs_pub.com_w,
+      *item.public_w, pc::kGetRefG1));
 
   r1cs_man.emplace(std::move(item));
   return true;
@@ -152,7 +152,7 @@ inline bool OneConvOutputVerifyPreprocess(h256_t seed,
   std::vector<Fr> s = OneConvOutputR2S(K, C, D, r);
 
   AdaptVerifyItem adapt_item;
-  adapt_item.Init(2, ConvAdaptTag(false,layer));
+  adapt_item.Init(2, ConvAdaptTag(false, layer));
   adapt_item.a[0] = std::move(s);
   adapt_item.cx[0] = cx;
   adapt_item.a[1] = std::move(r);
@@ -163,8 +163,9 @@ inline bool OneConvOutputVerifyPreprocess(h256_t seed,
   return true;
 
   //// <x,s>==<y,r>
-  // EqualIp<HyraxA>::VerifyInput input(s, cx, pc::kGetRefG, r, proof.output.cy,
-  //                                   pc::kGetRefG);
+  // EqualIp<HyraxA>::VerifyInput input(s, cx, pc::kGetRefG1, r,
+  // proof.output.cy,
+  //                                   pc::kGetRefG1);
   // if (!EqualIp<HyraxA>::Verify(seed, proof.output.eip_proof, input)) {
   //  std::cout << __FN__ << ": " << __LINE__ << ": verify failed\n";
   //  return false;

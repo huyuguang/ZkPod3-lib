@@ -4,7 +4,6 @@
 
 namespace clink::vgg16 {
 
-
 inline void PoolingInputProvePreprocess(h256_t seed,
                                         ProveContext const& context,
                                         PoolingProof& proof,
@@ -27,7 +26,7 @@ inline void PoolingInputProvePreprocess(h256_t seed,
 
   auto parallel_f = [&com_x_r, &input_pub, &x](int64_t i) {
     com_x_r[i] = FrRand();
-    input_pub.cx[i] = pc::PcComputeCommitmentG(x[i], com_x_r[i]);
+    input_pub.cx[i] = pc::ComputeCom(x[i], com_x_r[i]);
   };
   parallel::For<int64_t>(5, 9, parallel_f);
 
@@ -45,7 +44,7 @@ inline void PoolingInputProvePreprocess(h256_t seed,
   SelectInputComIpR(com_xq_r);
   auto parallel_f2 = [&x, &q, &xq, &com_xq_r, &com_xq](int64_t i) {
     xq[i] = InnerProduct(x[i], q[i]);
-    com_xq[i] = pc::PcComputeCommitmentG(xq[i], com_xq_r[i]);
+    com_xq[i] = pc::ComputeCom(xq[i], com_xq_r[i]);
   };
   parallel::For<int64_t>(9, parallel_f2);
 
@@ -142,7 +141,7 @@ inline void PoolingR1csProvePreprocess(
     Fr& r = r1cs_sec.com_w_r[i + 4];
     G1& c = r1cs_pub.com_w[i + 4];
     r = FrRand();
-    c = pc::PcComputeCommitmentG(x, r, true);
+    c = pc::ComputeCom(x, r, true);
   };
   parallel::For<int64_t>(s - 4, parallel_f);
 
@@ -151,17 +150,16 @@ inline void PoolingR1csProvePreprocess(
   r1cs_sec.ry = r1cs_sec.com_w_r[r1cs_pub.r1cs_ret_index];
 
   R1csProveItem item;
-  item.r1cs_sec = pr1cs_sec; // save ref
+  item.r1cs_sec = pr1cs_sec;  // save ref
   item.r1cs_input.reset(new R1cs::ProveInput(
-    *pr1cs_sec->r1cs_info, PoolingR1csTag(),
-    std::move(pr1cs_sec->w), r1cs_pub.com_w,
-        pr1cs_sec->com_w_r, pc::kGetRefG));
+      *pr1cs_sec->r1cs_info, PoolingR1csTag(), std::move(pr1cs_sec->w),
+      r1cs_pub.com_w, pr1cs_sec->com_w_r, pc::kGetRefG1));
   r1cs_man.emplace(std::move(item));
 }
 
 inline void PoolingOutputProvePreprocess(h256_t seed,
-                                         ProveContext const& context,                                         
-                                         PoolingR1csSec const& r1cs_sec,                                         
+                                         ProveContext const& context,
+                                         PoolingR1csSec const& r1cs_sec,
                                          PoolingProof& proof,
                                          AdaptProveItemMan& adapt_man) {
   Tick tick(__FN__);
@@ -202,7 +200,7 @@ inline void PoolingOutputProvePreprocess(h256_t seed,
   SelectOutputComIpR(com_xq_r);
   auto parallel_f = [&x, &q, &xq, &com_xq_r, &com_xq](int64_t i) {
     xq[i] = InnerProduct(x[i], q[i]);
-    com_xq[i] = pc::PcComputeCommitmentG(xq[i], com_xq_r[i]);
+    com_xq[i] = pc::ComputeCom(xq[i], com_xq_r[i]);
   };
   parallel::For<int64_t>(xq.size(), parallel_f);
 
@@ -214,7 +212,7 @@ inline void PoolingOutputProvePreprocess(h256_t seed,
 
   // auto parallel_f2 = [&seed, &x, &q, &xq, &com_xq, &com_x_r, &com_xq_r,
   //                    &output_pub](int64_t i) {
-  //  HyraxA::ProveInput input(x[i], q[i], xq[i], pc::kGetRefG, pc::PcG(0));
+  //  HyraxA::ProveInput input(x[i], q[i], xq[i], pc::kGetRefG1, pc::PcG(0));
   //  output_pub.ip_com_pubs[i].tau = com_xq[i];
   //  HyraxA::CommitmentSec ip_com_sec(com_x_r[i], com_xq_r[i]);
   //  HyraxA::Prove(output_pub.ip_proofs[i], seed, input,

@@ -58,7 +58,7 @@ struct SubstrQuery {
 
   struct ProveInput {
     ProveInput(std::string const& key, typename Pod::CommitedData const& data_x,
-               pc::GetRefG const& get_gx, std::string const& data_dir)
+               GetRefG1 const& get_gx, std::string const& data_dir)
         : key(key),
           data_x(data_x),
           get_gx(get_gx),
@@ -67,8 +67,8 @@ struct SubstrQuery {
           s(data_x.s) {}
     std::string const& key;
     typename Pod::CommitedData const& data_x;
-    pc::GetRefG const& get_gx;
-    pc::GetRefG const& get_gpy = pc::kGetRefG;  // must be 0 because of pod
+    GetRefG1 const& get_gx;
+    GetRefG1 const& get_gpy = pc::kGetRefG1;  // must be 0 because of pod
     std::string data_dir;
     int64_t const n;
     int64_t const s;
@@ -132,7 +132,7 @@ struct SubstrQuery {
 
   struct VerifyInput {
     VerifyInput(std::string const& key, int64_t s, std::vector<G1> const& com_x,
-                pc::GetRefG const& get_gx)
+                GetRefG1 const& get_gx)
         : key(key),
           s(s),
           com_x(com_x),
@@ -141,8 +141,8 @@ struct SubstrQuery {
     std::string const& key;
     int64_t const s;
     std::vector<G1> const& com_x;
-    pc::GetRefG const& get_gx;
-    pc::GetRefG const& get_gpy = pc::kGetRefG;
+    GetRefG1 const& get_gx;
+    GetRefG1 const& get_gpy = pc::kGetRefG1;
     int64_t const n;
   };
 
@@ -238,7 +238,7 @@ bool SubstrQuery<Policy>::Test(int64_t n, int64_t s, std::string const& key,
 
   auto seed = misc::RandH256();
   int64_t x_g_offset = 0;
-  pc::GetRefG get_gx = [x_g_offset](int64_t i) -> G1 const& {
+  GetRefG1 get_gx = [x_g_offset](int64_t i) -> G1 const& {
     return pc::PcG()[x_g_offset + i];
   };
 
@@ -280,7 +280,7 @@ bool SubstrQuery<Policy>::Test(int64_t n, int64_t s, std::string const& key,
 
   std::vector<G1> com_x(n);
   auto parallel_f2 = [&x, &com_x, &com_x_r, &get_gx](int64_t i) {
-    com_x[i] = pc::PcComputeCommitmentG(get_gx, x[i], com_x_r[i]);
+    com_x[i] = pc::ComputeCom(get_gx, x[i], com_x_r[i]);
   };
   parallel::For(n, parallel_f2);
 
@@ -340,8 +340,7 @@ bool SubstrQuery<Policy>::Test(int64_t n, int64_t s, std::string const& key,
   }
 
   bool success = check_rets == rets;
-  std::cout << __FILE__ << " " << __FN__ << ": " << success
-            << "\n\n\n\n\n\n";
+  std::cout << __FILE__ << " " << __FN__ << ": " << success << "\n\n\n\n\n\n";
 
   return success;
 }

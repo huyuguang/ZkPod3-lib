@@ -105,7 +105,7 @@ G MultiExpBdlo12Inner(GET_G const& get_g, GET_F const& get_f, size_t n) {
 
 template <typename G, typename GET_G, typename GET_F>
 G MultiExpBdlo12Inner(GET_G const& get_g, GET_F const& get_f, size_t n,
-                 bool check_01) {
+                      bool check_01) {
   if (!check_01) {
     return MultiExpBdlo12Inner<G>(get_g, get_f, n);
   } else {
@@ -144,12 +144,12 @@ G MultiExpBdlo12Inner(GET_G const& get_g, GET_F const& get_f, size_t n,
 
 template <typename G, typename GET_G, typename GET_F>
 G ParallelMultiExpBdlo12Inner(GET_G const& get_g, GET_F const& get_f, size_t n,
-                         bool check_01 = false) {
+                              bool check_01 = false) {
   auto thread_num = parallel::tbb_thread_num;
   if (thread_num <= 1 || (int64_t)n < thread_num) {
     return MultiExpBdlo12Inner<G, GET_G, GET_F>(get_g, get_f, n, check_01);
   }
-  
+
   struct Item {
     size_t begin;
     size_t end;
@@ -176,8 +176,8 @@ G ParallelMultiExpBdlo12Inner(GET_G const& get_g, GET_F const& get_f, size_t n,
       return get_f(j + item.begin);
     };
 
-    item.ret = MultiExpBdlo12Inner<G>(item_get_g, item_get_f, item.end - item.begin,
-                                 check_01);
+    item.ret = MultiExpBdlo12Inner<G>(item_get_g, item_get_f,
+                                      item.end - item.begin, check_01);
   };
   parallel::For(items.size(), f);
 

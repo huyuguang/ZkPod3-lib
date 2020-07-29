@@ -16,8 +16,7 @@ class Para {
   }
 
   struct ConvLayer {
-    ConvLayer(ConvLayerInfo const& info)
-        : order(info.order), D(info.D) {
+    ConvLayer(ConvLayerInfo const& info) : order(info.order), D(info.D) {
       coefs.resize(info.K);
       for (auto& i : coefs) {
         i.resize(info.C);
@@ -308,8 +307,8 @@ inline bool LoadTestImage(std::string const& path, Image& image) {
   return true;
 }
 
-inline void InferConv(Para::ConvLayer const& layer,
-                      Image const& input_image, Image& output_image) {
+inline void InferConv(Para::ConvLayer const& layer, Image const& input_image,
+                      Image& output_image) {
   size_t const C = layer.C();
   size_t const D = layer.D;
   size_t const K = layer.K();
@@ -423,8 +422,7 @@ inline void InferReluBn(Para::BnLayer const& layer, Image const& input_image,
   return;
 }
 
-inline void InferMaxPooling(Image const& input_image,
-                            Image& output_image) {
+inline void InferMaxPooling(Image const& input_image, Image& output_image) {
   auto const& input_data = input_image.pixels;
   auto& output_data = output_image.pixels;
   for (size_t i = 0; i < output_data.size(); ++i) {
@@ -455,8 +453,8 @@ inline void InferMaxPooling(Image const& input_image,
   return;
 }
 
-inline void InferDense(Para::DenseLayer const& layer,
-                       Image const& input_image, Image& output_image) {
+inline void InferDense(Para::DenseLayer const& layer, Image const& input_image,
+                       Image& output_image) {
   Tick tick(__FN__);
   auto const& input_data = input_image.pixels;
   auto& output_data = output_image.pixels;
@@ -468,14 +466,14 @@ inline void InferDense(Para::DenseLayer const& layer,
   }
   input.back() = 1.0;
 
-  for (size_t i = 0; i < output_data.size(); ++i) {    
-    //for (size_t j = 0; j < input.size(); ++j) {
+  for (size_t i = 0; i < output_data.size(); ++i) {
+    // for (size_t j = 0; j < input.size(); ++j) {
     //  std::cout << input[j] << ";";
     //  std::cout << layer.weight[i][j] << "\n";
     //}
     output_data[i][0][0] = std::inner_product(input.begin(), input.end(),
                                               layer.weight[i].begin(), 0.0);
-    //std::cout << output_data[i][0][0] << "\n";
+    // std::cout << output_data[i][0][0] << "\n";
   }
 }
 
@@ -505,7 +503,7 @@ inline void Test() {
   InferReluBn(para.bn_layer(2), *images[6], *images[7]);
 
   InferConv(para.conv_layer(3), *images[7], *images[8]);
-  
+
   InferReluBn(para.bn_layer(3), *images[8], *images[9]);
 
   InferMaxPooling(*images[9], *images[10]);
@@ -539,7 +537,7 @@ inline void Test() {
   InferMaxPooling(*images[23], *images[24]);
 
   InferConv(para.conv_layer(10), *images[24], *images[25]);
-  
+
   InferReluBn(para.bn_layer(10), *images[25], *images[26]);
 
   InferConv(para.conv_layer(11), *images[26], *images[27]);
@@ -575,7 +573,7 @@ inline void Test() {
       }
     }
   }
-  std::cout << "max_value: " << max_value; // 176
+  std::cout << "max_value: " << max_value;  // 176
 }
 }  // namespace dbl
 }  // namespace vgg16

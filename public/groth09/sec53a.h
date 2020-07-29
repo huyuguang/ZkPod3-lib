@@ -31,11 +31,11 @@ struct Sec53a {
       int64_t old_m = a.size();
       int64_t new_m = (int64_t)misc::Pow2UB(old_m);
       if (new_m > old_m) {
-        //auto const& g0 = G1Zero();
-        a.resize(new_m,G1Zero());
-        //std::fill(a.begin() + old_m, a.end(), g0);
-        b.resize(new_m,G1Zero());
-        //std::fill(b.begin() + old_m, b.end(), g0);
+        // auto const& g0 = G1Zero();
+        a.resize(new_m, G1Zero());
+        // std::fill(a.begin() + old_m, a.end(), g0);
+        b.resize(new_m, G1Zero());
+        // std::fill(b.begin() + old_m, b.end(), g0);
       }
     }
   };
@@ -48,24 +48,24 @@ struct Sec53a {
       int64_t old_m = r.size();
       int64_t new_m = (int64_t)misc::Pow2UB(old_m);
       if (new_m > old_m) {
-        //static const Fr f0 = FrZero();
+        // static const Fr f0 = FrZero();
         r.resize(new_m, FrZero());
-        //std::fill(r.begin() + old_m, r.end(), f0);
+        // std::fill(r.begin() + old_m, r.end(), f0);
         s.resize(new_m, FrZero());
-        //std::fill(s.begin() + old_m, s.end(), f0);
+        // std::fill(s.begin() + old_m, s.end(), f0);
       }
     }
   };
 
   struct VerifyInput {
-    VerifyInput(CommitmentPub const& com_pub, pc::GetRefG const& get_gx,
-                pc::GetRefG const& get_gy, G1 const& gz)
+    VerifyInput(CommitmentPub const& com_pub, GetRefG1 const& get_gx,
+                GetRefG1 const& get_gy, G1 const& gz)
         : com_pub(com_pub), get_gx(get_gx), get_gy(get_gy), gz(gz) {}
     CommitmentPub const& com_pub;
     int64_t m() const { return com_pub.m(); }
     bool CheckFormat() const { return com_pub.CheckFormat(); }
-    pc::GetRefG const& get_gx;
-    pc::GetRefG const& get_gy;
+    GetRefG1 const& get_gx;
+    GetRefG1 const& get_gy;
     G1 const& gz;
   };
 
@@ -73,16 +73,16 @@ struct Sec53a {
     std::vector<std::vector<Fr>> x;
     std::vector<std::vector<Fr>> y;
     Fr z;
-    pc::GetRefG const& get_gx;
-    pc::GetRefG const& get_gy;
+    GetRefG1 const& get_gx;
+    GetRefG1 const& get_gy;
     G1 const& gz;
 
     int64_t m() const { return x.size(); }
     int64_t n() const { return x[0].size(); }
 
     ProveInput(std::vector<std::vector<Fr>> ix, std::vector<std::vector<Fr>> iy,
-               Fr const& z, pc::GetRefG const& get_gx,
-               pc::GetRefG const& get_gy, G1 const& gz)
+               Fr const& z, GetRefG1 const& get_gx, GetRefG1 const& get_gy,
+               G1 const& gz)
         : x(std::move(ix)),
           y(std::move(iy)),
           z(z),
@@ -175,20 +175,18 @@ struct Sec53a {
                          CommitmentSec const& com_sec) {
     // Tick tick(__FN__);
     auto const m = input.m();
-    //auto const n = input.n();
+    // auto const n = input.n();
 
     com_pub->a.resize(m);
     com_pub->b.resize(m);
 
     auto parallel_f = [&input, &com_pub, &com_sec](int64_t i) {
-      com_pub->a[i] =
-          pc::PcComputeCommitmentG(input.get_gx, input.x[i], com_sec.r[i]);
-      com_pub->b[i] =
-          pc::PcComputeCommitmentG(input.get_gy, input.y[i], com_sec.s[i]);
+      com_pub->a[i] = pc::ComputeCom(input.get_gx, input.x[i], com_sec.r[i]);
+      com_pub->b[i] = pc::ComputeCom(input.get_gy, input.y[i], com_sec.s[i]);
     };
     parallel::For(m, parallel_f);
 
-    com_pub->c = pc::PcComputeCommitmentG(input.gz, input.z, com_sec.t);
+    com_pub->c = pc::ComputeCom(input.gz, input.z, com_sec.t);
   }
 
   static void ComputeCom(ProveInput const& input, CommitmentPub* com_pub,
@@ -314,8 +312,8 @@ struct Sec53a {
     // compute cl, cu
     Fr tl = FrRand();
     Fr tu = FrRand();
-    G1 cl = pc::PcComputeCommitmentG(input.gz, sigma_xy1, tl);
-    G1 cu = pc::PcComputeCommitmentG(input.gz, sigma_xy2, tu);
+    G1 cl = pc::ComputeCom(input.gz, sigma_xy1, tl);
+    G1 cu = pc::ComputeCom(input.gz, sigma_xy2, tu);
     proof.com_ext_pub.cl.push_back(cl);
     proof.com_ext_pub.cu.push_back(cu);
 
@@ -445,10 +443,10 @@ bool Sec53a::Test(int64_t m, int64_t n) {
 
   int64_t x_g_offset = 20;
   int64_t y_g_offset = 240;
-  pc::GetRefG get_gx = [x_g_offset](int64_t i) -> G1 const& {
+  GetRefG1 get_gx = [x_g_offset](int64_t i) -> G1 const& {
     return pc::PcG()[x_g_offset + i];
   };
-  pc::GetRefG get_gy = [y_g_offset](int64_t i) -> G1 const& {
+  GetRefG1 get_gy = [y_g_offset](int64_t i) -> G1 const& {
     return pc::PcG()[y_g_offset + i];
   };
 

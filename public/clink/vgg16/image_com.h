@@ -63,7 +63,7 @@ inline void ComputePerImageCommitment(
   auto parallel_f = [&images, &pub, &sec](int64_t i) {
     auto const& image = *images[i];
     auto const& r = sec.r[i];
-    pub.c[i] = pc::PcComputeCommitmentG(image.data, r);
+    pub.c[i] = pc::ComputeCom(image.data, r);
   };
 
   parallel::For(images.size(), parallel_f);

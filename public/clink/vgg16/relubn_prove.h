@@ -110,15 +110,15 @@ inline void ReluBnR1csProvePreprocess(h256_t seed, ProveContext const& context,
   }
 
   if (context.para_com_pub().bn.alpha !=
-      pc::PcComputeCommitmentG(alpha, context.para_com_sec().bn.alpha_r)) {
+      pc::ComputeCom(alpha, context.para_com_sec().bn.alpha_r)) {
     throw std::runtime_error("oops");
   }
   if (context.para_com_pub().bn.beta !=
-      pc::PcComputeCommitmentG(beta, context.para_com_sec().bn.beta_r)) {
+      pc::ComputeCom(beta, context.para_com_sec().bn.beta_r)) {
     throw std::runtime_error("oops");
   }
   if (context.para_com_pub().bn.mu !=
-      pc::PcComputeCommitmentG(mu, context.para_com_sec().bn.mu_r)) {
+      pc::ComputeCom(mu, context.para_com_sec().bn.mu_r)) {
     throw std::runtime_error("oops");
   }
 
@@ -161,16 +161,15 @@ inline void ReluBnR1csProvePreprocess(h256_t seed, ProveContext const& context,
     Fr& r = r1cs_sec.com_w_r[i + 5];
     G1& c = r1cs_pub.com_w[i + 5];
     r = FrRand();
-    c = pc::PcComputeCommitmentG(x, r, true);
+    c = pc::ComputeCom(x, r, true);
   };
   parallel::For<int64_t>(s - 5, parallel_f);
 
   R1csProveItem item;
-  item.r1cs_sec = pr1cs_sec; // save ref
+  item.r1cs_sec = pr1cs_sec;  // save ref
   item.r1cs_input.reset(new R1cs::ProveInput(
-    *pr1cs_sec->r1cs_info, ReluBnR1csTag(),
-    std::move(pr1cs_sec->w), r1cs_pub.com_w,
-        pr1cs_sec->com_w_r, pc::kGetRefG));
+      *pr1cs_sec->r1cs_info, ReluBnR1csTag(), std::move(pr1cs_sec->w),
+      r1cs_pub.com_w, pr1cs_sec->com_w_r, pc::kGetRefG1));
   r1cs_man.emplace(std::move(item));
 }
 

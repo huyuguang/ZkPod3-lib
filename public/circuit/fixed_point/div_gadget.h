@@ -116,8 +116,8 @@ bool DivBaseGadget<D, N>::Test(double double_a, double double_b) {
   if (!pb.is_satisfied()) return false;
 
   Fr fr_ret = pb.lc_val(gadget.ret());
-  std::cout << "fr_ret: " << fr_ret << "\t"
-            << RationalToDouble<D, N>(fr_ret) << "\n";
+  std::cout << "fr_ret: " << fr_ret << "\t" << RationalToDouble<D, N>(fr_ret)
+            << "\n";
   Fr fr_sign = pb.lc_val(gadget.sign());
   std::cout << "sign: " << fr_sign << "\n";
   assert(fr_sign == (double_ret >= 0 ? 1 : 0));
@@ -388,8 +388,8 @@ bool DivGadget<D, N>::Test(double double_a, double double_b, int sign_a_flag,
   if (!pb.is_satisfied()) return false;
 
   Fr fr_ret = pb.lc_val(gadget.ret());
-  std::cout << "fr_ret: " << fr_ret << "\t"
-            << RationalToDouble<D, N>(fr_ret) << "\n";
+  std::cout << "fr_ret: " << fr_ret << "\t" << RationalToDouble<D, N>(fr_ret)
+            << "\n";
   Fr fr_sign = pb.lc_val(gadget.sign());
   std::cout << "sign: " << fr_sign << "\n";
   assert(fr_sign == (double_ret >= 0 ? 1 : 0));
@@ -526,8 +526,8 @@ bool InvGadget<D, N>::Test(double double_b, int sign_b_flag) {
   if (!pb.is_satisfied()) return false;
 
   Fr fr_ret = pb.lc_val(gadget.ret());
-  std::cout << "fr_ret: " << fr_ret << "\t"
-            << RationalToDouble<D, N>(fr_ret) << "\n";
+  std::cout << "fr_ret: " << fr_ret << "\t" << RationalToDouble<D, N>(fr_ret)
+            << "\n";
   Fr fr_sign = pb.lc_val(gadget.sign());
   std::cout << "sign: " << fr_sign << "\n";
   assert(fr_sign == (double_ret >= 0 ? 1 : 0));

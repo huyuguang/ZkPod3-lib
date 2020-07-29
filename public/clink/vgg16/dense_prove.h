@@ -41,7 +41,7 @@ struct ProveDenseInput {
     parallel::For(&all_success, N, parallel_f);
     if (!all_success) throw std::runtime_error("invalid y");
 
-    if (pc::PcComputeCommitmentG(this->y, this->com_y_r) != this->com_y) {
+    if (pc::ComputeCom(this->y, this->com_y_r) != this->com_y) {
       std::runtime_error("invalid com_y");
     }
 
@@ -120,37 +120,36 @@ static void ProveDense(h256_t seed, ProveDenseInput<M, N> const& input,
 
   Fr z = InnerProduct(x, input.y);
   Fr com_z_r = FrRand();
-  proof.com_z = pc::PcComputeCommitmentG(z, com_z_r);
+  proof.com_z = pc::ComputeCom(z, com_z_r);
   proof.com_y = input.com_y;
 
 #ifdef _DEBUG_CHECK
-  assert(com_e == pc::PcComputeCommitmentG(e, com_e_r));
+  assert(com_e == pc::ComputeCom(e, com_e_r));
   assert(z == InnerProduct(e, input.x));
 #endif
 
   // prove left
-  HyraxA::ProveInput input_hy(input.y, x, z, pc::kGetRefG, pc::PcG(0));
+  HyraxA::ProveInput input_hy(input.y, x, z, pc::kGetRefG1, pc::PcG(0));
   HyraxA::CommitmentPub com_pub_hy(input.com_y, proof.com_z);
   HyraxA::CommitmentSec com_sec_hy(input.com_y_r, com_z_r);
   HyraxA::Prove(proof.proof_hy, seed, input_hy, com_pub_hy, com_sec_hy);
 
   // prove right
   std::vector<Fr> t(e.size(), FrOne());
-  Sec51::ProveInput input_51(e, input.x, t, input.x, z, pc::kGetRefG,
-                             pc::kGetRefG, pc::PcG(0));
+  Sec51::ProveInput input_51(e, input.x, t, input.x, z, pc::kGetRefG1,
+                             pc::kGetRefG1, pc::PcG(0));
   Sec51::CommitmentPub com_pub_51(com_e, input.com_x, proof.com_z);
   Sec51::CommitmentSec com_sec_51(com_e_r, input.com_x_r, com_z_r);
   Sec51::Prove(proof.proof_51, seed, input_51, com_pub_51, com_sec_51);
 }
 
-template<size_t kOrder>
-void DenseProve(h256_t seed, ProveContext const& context,
-                        DenseProof& proof) {
+template <size_t kOrder>
+void DenseProve(h256_t seed, ProveContext const& context, DenseProof& proof) {
   Tick tick(__FN__);
 
   constexpr size_t kLayer = kDenseLayers[kOrder];
   constexpr ImageInfo const& info_in = kImageInfos[kLayer];
-  constexpr ImageInfo const& info_out = kImageInfos[kLayer+1];
+  constexpr ImageInfo const& info_out = kImageInfos[kLayer + 1];
   constexpr size_t M = info_in.C * info_in.D * info_in.D;
   constexpr size_t N = info_out.C * info_out.D * info_out.D;
 

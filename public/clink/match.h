@@ -42,7 +42,7 @@ struct Match {
   struct ProveInput {
     ProveInput(Fr const& k, std::vector<Fr> const& x, G1 const& com_x,
                Fr const& com_x_r, std::vector<Fr> const& y, G1 const& com_y,
-               Fr const& com_y_r, pc::GetRefG const& get_g)
+               Fr const& com_y_r, GetRefG1 const& get_g)
         : k(k),
           x(x),
           com_x(com_x),
@@ -79,7 +79,7 @@ struct Match {
     std::vector<Fr> const& y;
     G1 const& com_y;
     Fr const& com_y_r;
-    pc::GetRefG const& get_g;
+    GetRefG1 const& get_g;
 
     int64_t const n;
     std::unique_ptr<R1csInfo> r1cs_info;
@@ -101,18 +101,19 @@ struct Match {
     std::cout << "compute com(witness)\n";
     auto parallel_f = [&com_w_r, &com_w, &input](int64_t i) {
       com_w_r[i] = FrRand();
-      com_w[i] = pc::PcComputeCommitmentG(input.get_g, input.w[i], com_w_r[i]);
+      com_w[i] = pc::ComputeCom(input.get_g, input.w[i], com_w_r[i]);
     };
     parallel::For<int64_t>(1, input.s - 1, parallel_f);
 
-    typename R1cs::ProveInput r1cs_input(*input.r1cs_info, "match", std::move(input.w),
-                                         com_w, com_w_r, input.get_g);
+    typename R1cs::ProveInput r1cs_input(*input.r1cs_info, "match",
+                                         std::move(input.w), com_w, com_w_r,
+                                         input.get_g);
     R1cs::Prove(proof.r1cs_proof, seed, std::move(r1cs_input));
     proof.com_w = std::move(com_w);
   }
 
   struct VerifyInput {
-    VerifyInput(int64_t n, Fr const& k, pc::GetRefG const& get_g)
+    VerifyInput(int64_t n, Fr const& k, GetRefG1 const& get_g)
         : n(n), k(k), get_g(get_g) {
       libsnark::protoboard<Fr> pb;
       circuit::MatchGadget gadget(pb, k);
@@ -124,7 +125,7 @@ struct Match {
     }
     int64_t n;
     Fr const& k;
-    pc::GetRefG const& get_g;
+    GetRefG1 const& get_g;
 
     std::unique_ptr<R1csInfo> r1cs_info;
     int64_t m;
@@ -146,8 +147,9 @@ struct Match {
     //  return false;
     //}
 
-    typename R1cs::VerifyInput pr_input(input.n, *input.r1cs_info, "match", proof.com_w,
-                                        input.public_w, input.get_g);
+    typename R1cs::VerifyInput pr_input(input.n, *input.r1cs_info, "match",
+                                        proof.com_w, input.public_w,
+                                        input.get_g);
     return R1cs::Verify(proof.r1cs_proof, seed, pr_input);
   }
 
@@ -167,14 +169,14 @@ bool Match<Policy>::Test() {
   }
   std::cout << "compute com(x), com(y)\n";
   int64_t g_offset = 30;
-  pc::GetRefG get_g = [g_offset](int64_t i) -> G1 const& {
+  GetRefG1 get_g = [g_offset](int64_t i) -> G1 const& {
     return pc::PcG()[g_offset + i];
   };
 
   Fr com_x_r = FrRand();
-  G1 com_x = pc::PcComputeCommitmentG(get_g, x, com_x_r);
+  G1 com_x = pc::ComputeCom(get_g, x, com_x_r);
   Fr com_y_r = FrRand();
-  G1 com_y = pc::PcComputeCommitmentG(get_g, y, com_y_r);
+  G1 com_y = pc::ComputeCom(get_g, y, com_y_r);
 
   Tick tick(__FN__);
 

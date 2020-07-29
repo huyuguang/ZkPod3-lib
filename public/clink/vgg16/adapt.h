@@ -36,7 +36,7 @@ struct AdaptProveItem {
     if (sum != FrZero()) return false;
     bool all_success = false;
     auto parallel_f = [this](int64_t i) {
-      return cx[i] == pc::PcComputeCommitmentG(x[i], rx[i]);
+      return cx[i] == pc::ComputeCom(x[i], rx[i]);
     };
     parallel::For(&all_success, x.size(), parallel_f);
     return all_success;
@@ -47,9 +47,7 @@ struct AdaptVerifyItem {
   std::string order_tag;
   std::vector<std::vector<Fr>> a;
   std::vector<G1> cx;
-  bool CheckFormat() const {
-    return a.size() == cx.size();
-  }
+  bool CheckFormat() const { return a.size() == cx.size(); }
   void Init(size_t count, std::string const& tag) {
     order_tag = tag;
     a.resize(count);
@@ -156,7 +154,7 @@ inline void AdaptProve(h256_t seed, AdaptProveItemMan& item_man,
   }
 
   hyrax::A4::ProveInput input(std::move(combined_x), std::move(combined_a),
-                              FrZero(), pc::kGetRefG, pc::PcU());
+                              FrZero(), pc::kGetRefG1, pc::PcU());
   hyrax::A4::CommitmentPub com_pub;
   com_pub.cx = std::move(combined_cx);
   com_pub.cz = G1Zero();
@@ -232,7 +230,7 @@ inline bool AdaptVerify(h256_t seed, AdaptVerifyItemMan& item_man,
   com_pub.cx = std::move(combined_cx);
   com_pub.cz = G1Zero();
   com_pub.Align();
-  hyrax::A4::VerifyInput input(com_pub, pc::kGetRefG, std::move(combined_a),
+  hyrax::A4::VerifyInput input(com_pub, pc::kGetRefG1, std::move(combined_a),
                                pc::PcU());
   bool success = hyrax::A4::Verify(proof, seed, input);
   std::cout << __FILE__ << " " << __FN__ << ": " << success << "\n\n\n\n\n\n";

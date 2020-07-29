@@ -76,10 +76,10 @@ inline bool PoolingR1csVerifyPreprocess(h256_t seed,
   item.public_w.reset(new std::vector<std::vector<Fr>>);
   item.r1cs_info.reset(new R1csInfo(pb));
   item.r1cs_input.reset(new R1cs::VerifyInput(
-      n, *item.r1cs_info, PoolingR1csTag(),
-      proof.r1cs_pub.com_w, *item.public_w, pc::kGetRefG));
+      n, *item.r1cs_info, PoolingR1csTag(), proof.r1cs_pub.com_w,
+      *item.public_w, pc::kGetRefG1));
 
-  r1cs_man.emplace(std::move(item)); 
+  r1cs_man.emplace(std::move(item));
 
   return true;
 }

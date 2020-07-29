@@ -214,7 +214,9 @@ struct Pod {
       }
 
       // MultiExp(n*(s+1))! 70% of the time here.
-      auto get_g = [s](int64_t ij) -> G1 const& { return pc::PcHG(ij % (s + 1)); };
+      auto get_g = [s](int64_t ij) -> G1 const& {
+        return pc::PcHG(ij % (s + 1));
+      };
       G1 right1 =
           ParallelMultiExpBdlo12<G1>(get_g, proved_data.em, n * (s + 1));
       if (left1 != right1) return;
@@ -313,9 +315,11 @@ struct Pod {
 
     bool all_success = false;
     auto parallel_f = [&data](int64_t i) {
-      auto get_x = [&data, i](int64_t j) -> Fr const& { return data.get_m(i, j); };
+      auto get_x = [&data, i](int64_t j) -> Fr const& {
+        return data.get_m(i, j);
+      };
       auto const& r = data.get_r(i);
-      return pc::PcComputeCommitmentG(data.s, get_x, r) == data.get_com(i);
+      return pc::ComputeCom(data.s, get_x, r) == data.get_com(i);
     };
     parallel::For(&all_success, data.n, parallel_f);
     return all_success;
@@ -372,7 +376,7 @@ struct Pod {
     auto const& vw = proved_data.vw;
     output.sigma_vw = parallel::Accumulate(vw.begin(), vw.end(), FrZero());
     G1 check_vw_com =
-        pc::PcComputeCommitmentG(kVwG(), output.sigma_vw, proved_data.vw_com_r);
+        pc::ComputeCom(kVwG(), output.sigma_vw, proved_data.vw_com_r);
     if (Vrs::SumProofsComVw(proved_data.vrs_proofs) != check_vw_com) {
       assert(false);
       return false;
@@ -396,7 +400,7 @@ bool Pod<Scheme, Policy>::Test(int64_t n, int64_t s,
 
   std::vector<G1> com(n);
   auto parallel_f = [&m, &com, &r, s](int64_t i) {
-    com[i] = pc::PcComputeCommitmentG(s, m.data() + i * s, r[i]);
+    com[i] = pc::ComputeCom(s, m.data() + i * s, r[i]);
     com[i].normalize();
   };
   parallel::For(n, parallel_f);

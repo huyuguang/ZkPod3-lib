@@ -13,7 +13,7 @@ namespace hyrax {
 struct A3 {
   struct ProveInput {
     ProveInput(std::vector<Fr> const& x, std::vector<Fr> const& a, Fr const& y,
-               pc::GetRefG const& get_gx, G1 const& gy)
+               GetRefG1 const& get_gx, G1 const& gy)
         : x(x), a(a), y(y), get_gx(get_gx), gy(gy) {
       assert(x.size() == a.size() && !a.empty());
       assert(y == InnerProduct(x, a));
@@ -22,7 +22,7 @@ struct A3 {
     std::vector<Fr> const& x;  // x.size = n
     std::vector<Fr> const& a;  // a.size = n
     Fr const y;                // y = <x, a>
-    pc::GetRefG const get_gx;
+    GetRefG1 const get_gx;
     G1 const gy;
   };
 
@@ -102,11 +102,11 @@ struct A3 {
 
   struct VerifyInput {
     VerifyInput(std::vector<Fr> const& a, CommitmentPub const& com_pub,
-                pc::GetRefG const& get_gx, G1 const& gy)
+                GetRefG1 const& get_gx, G1 const& gy)
         : a(a), com_pub(com_pub), get_gx(get_gx), gy(gy) {}
     std::vector<Fr> const& a;  // a.size = n
     CommitmentPub const& com_pub;
-    pc::GetRefG const get_gx;
+    GetRefG1 const get_gx;
     G1 const gy;
   };
 
@@ -160,10 +160,10 @@ struct A3 {
     std::array<parallel::VoidTask, 2> tasks;
     tasks[0] = [&com_pub, &input, &com_sec]() {
       com_pub.xi =
-          pc::PcComputeCommitmentG(input.get_gx, input.x, com_sec.r_xi);
+          pc::ComputeCom(input.get_gx, input.x, com_sec.r_xi);
     };
     tasks[1] = [&com_pub, &input, &com_sec]() {
-      com_pub.tau = pc::PcComputeCommitmentG(input.gy, input.y, com_sec.r_tau);
+      com_pub.tau = pc::ComputeCom(input.gy, input.y, com_sec.r_tau);
     };
     parallel::Invoke(tasks, true);
   }
@@ -423,7 +423,7 @@ bool A3::Test(int64_t n) {
   h256_t seed = misc::RandH256();
 
   int64_t x_g_offset = 20;
-  pc::GetRefG get_gx = [x_g_offset](int64_t i) -> G1 const& {
+  GetRefG1 get_gx = [x_g_offset](int64_t i) -> G1 const& {
     return pc::PcG()[x_g_offset + i];
   };
   G1 gy = pc::PcU();

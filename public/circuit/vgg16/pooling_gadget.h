@@ -6,11 +6,11 @@
 
 namespace circuit::vgg16 {
 
-template<size_t D, size_t N, size_t S = 4>
+template <size_t D, size_t N, size_t S = 4>
 class PoolingGadget : public libsnark::gadget<Fr> {
  public:
   PoolingGadget(libsnark::protoboard<Fr>& pb,
-           const std::string& annotation_prefix = "")
+                const std::string& annotation_prefix = "")
       : libsnark::gadget<Fr>(pb, annotation_prefix) {
     data_.allocate(this->pb, S, FMT(this->annotation_prefix, " data"));
 
@@ -32,10 +32,8 @@ class PoolingGadget : public libsnark::gadget<Fr> {
 
  private:
   libsnark::pb_variable_array<Fr> data_;
-  std::unique_ptr<fixed_point::MaxGadget<D,N>> max_;
+  std::unique_ptr<fixed_point::MaxGadget<D, N>> max_;
 };
 
-inline bool TestPooling() {
-  return true;
-}
+inline bool TestPooling() { return true; }
 };  // namespace circuit::vgg16

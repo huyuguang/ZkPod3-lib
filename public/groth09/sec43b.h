@@ -86,9 +86,9 @@ struct Sec43b {
     std::vector<std::vector<Fr>> x;  // m*n
     std::vector<std::vector<Fr>> y;
     std::vector<std::vector<Fr>> z;
-    pc::GetRefG const& get_gx;
-    pc::GetRefG const& get_gy;
-    pc::GetRefG const& get_gz;
+    GetRefG1 const& get_gx;
+    GetRefG1 const& get_gy;
+    GetRefG1 const& get_gz;
 
     int64_t m() const { return x.size(); }
     int64_t n() const { return x[0].size(); }
@@ -102,8 +102,8 @@ struct Sec43b {
 
     ProveInput(int64_t original_m, std::vector<std::vector<Fr>>&& ix,
                std::vector<std::vector<Fr>>&& iy,
-               std::vector<std::vector<Fr>>&& iz, pc::GetRefG const& get_gx,
-               pc::GetRefG const& get_gy, pc::GetRefG const& get_gz)
+               std::vector<std::vector<Fr>>&& iz, GetRefG1 const& get_gx,
+               GetRefG1 const& get_gy, GetRefG1 const& get_gz)
         : original_m(original_m),
           x(std::move(ix)),
           y(std::move(iy)),
@@ -171,12 +171,9 @@ struct Sec43b {
     com_pub.c.resize(m);
 
     auto parallel_f = [&com_sec, &com_pub, &input](int64_t i) {
-      com_pub.a[i] =
-          pc::PcComputeCommitmentG(input.get_gx, input.x[i], com_sec.r[i]);
-      com_pub.b[i] =
-          pc::PcComputeCommitmentG(input.get_gy, input.y[i], com_sec.s[i]);
-      com_pub.c[i] =
-          pc::PcComputeCommitmentG(input.get_gz, input.z[i], com_sec.t[i]);
+      com_pub.a[i] = pc::ComputeCom(input.get_gx, input.x[i], com_sec.r[i]);
+      com_pub.b[i] = pc::ComputeCom(input.get_gy, input.y[i], com_sec.s[i]);
+      com_pub.c[i] = pc::ComputeCom(input.get_gz, input.z[i], com_sec.t[i]);
     };
     parallel::For(m, parallel_f);
   }
@@ -293,8 +290,7 @@ struct Sec43b {
         com_sec_53_t = com_sec_53.t;
 
         com_pub_53.b = com_pub.b;
-        com_pub_53.c =
-            pc::PcComputeCommitmentG(input_53.gz, input_53_z, com_sec_53.t);
+        com_pub_53.c = pc::ComputeCom(input_53.gz, input_53_z, com_sec_53.t);
         proof.c = com_pub_53.c;  // verifier can not compute c by com_pub.c
         com_pub_53_c = com_pub_53.c;
       }
@@ -337,8 +333,7 @@ struct Sec43b {
       com_pub_hy.xi = MultiExpBdlo12(com_pub.c, k);
 
 #ifdef _DEBUG
-      auto check_xi =
-          pc::PcComputeCommitmentG(input.get_gz, input_hy.x, com_sec_hy.r_xi);
+      auto check_xi = pc::ComputeCom(input.get_gz, input_hy.x, com_sec_hy.r_xi);
       assert(check_xi == com_pub_hy.xi);
 #endif
     }
@@ -359,8 +354,8 @@ struct Sec43b {
 
   struct VerifyInput {
     VerifyInput(int64_t m, int64_t n, CommitmentPub const& com_pub,
-                pc::GetRefG const& get_gx, pc::GetRefG const& get_gy,
-                pc::GetRefG const& get_gz)
+                GetRefG1 const& get_gx, GetRefG1 const& get_gy,
+                GetRefG1 const& get_gz)
         : m(misc::Pow2UB(m)),
           n(n),
           com_pub(com_pub),
@@ -370,9 +365,9 @@ struct Sec43b {
     int64_t const m;
     int64_t const n;
     CommitmentPub const& com_pub;
-    pc::GetRefG const& get_gx;
-    pc::GetRefG const& get_gy;
-    pc::GetRefG const& get_gz;
+    GetRefG1 const& get_gx;
+    GetRefG1 const& get_gy;
+    GetRefG1 const& get_gz;
   };
 
   static bool Verify(Proof const& proof, h256_t seed,
@@ -454,13 +449,13 @@ bool Sec43b<Sec53, HyraxA>::Test(int64_t m, int64_t n) {
   int64_t x_g_offset = 0;
   int64_t y_g_offset = 0;
   int64_t z_g_offset = 0;
-  pc::GetRefG get_gx = [x_g_offset](int64_t i) -> G1 const& {
+  GetRefG1 get_gx = [x_g_offset](int64_t i) -> G1 const& {
     return pc::PcG()[x_g_offset + i];
   };
-  pc::GetRefG get_gy = [y_g_offset](int64_t i) -> G1 const& {
+  GetRefG1 get_gy = [y_g_offset](int64_t i) -> G1 const& {
     return pc::PcG()[y_g_offset + i];
   };
-  pc::GetRefG get_gz = [z_g_offset](int64_t i) -> G1 const& {
+  GetRefG1 get_gz = [z_g_offset](int64_t i) -> G1 const& {
     return pc::PcG()[z_g_offset + i];
   };
 

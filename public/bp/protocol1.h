@@ -114,8 +114,7 @@ inline bool Test(int64_t n) {
 #endif
 
   bool success = Verify(seed, std::move(g2), std::move(h2), proof);
-  std::cout << __FILE__ << " " << __FN__ << ": " << success
-            << "\n\n\n\n\n\n";
+  std::cout << __FILE__ << " " << __FN__ << ": " << success << "\n\n\n\n\n\n";
   return success;
 }
 }  // namespace bp::p1

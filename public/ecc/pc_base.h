@@ -7,8 +7,6 @@
 #include "public.h"
 
 namespace pc {
-typedef std::function<Fr const&(int64_t i)> GetRefX;
-typedef std::function<G1 const&(int64_t i)> GetRefG;
 
 // pedersen commitment base H&G
 class Base : boost::noncopyable {
@@ -231,77 +229,75 @@ inline G1 const& PcHG(int64_t i) {
   return PcG(i - 1);
 }
 
-inline GetRefG const kGetRefG = [](int64_t i) -> G1 const& {
+inline GetRefG1 const kGetRefG1 = [](int64_t i) -> G1 const& {
   if (i >= Base::kGSize) throw std::runtime_error("oops");
   return pc::PcG()[i];
 };
 
-inline G1 PcComputeCommitmentG(int64_t n, GetRefG const& g, G1 const& h,
-                               GetRefX const& x, Fr const& r,
-                               bool check_01 = false) {
+inline G1 ComputeCom(int64_t n, GetRefG1 const& g, G1 const& h,
+                     GetRefFr const& x, Fr const& r, bool check_01 = false) {
   auto get_g = [&g, &h](int64_t i) -> G1 const& { return i ? g(i - 1) : h; };
   auto get_f = [&x, &r](int64_t i) -> Fr const& { return i ? x(i - 1) : r; };
   return MultiExpBdlo12<G1>(get_g, get_f, n + 1, check_01);
 }
 
-inline G1 PcComputeCommitmentG(int64_t n, GetRefG const& g, GetRefX const& x,
-                               Fr const& r, bool check_01 = false) {
-  return PcComputeCommitmentG(n, g, PcH(), x, r, check_01);
+inline G1 ComputeCom(int64_t n, GetRefG1 const& g, GetRefFr const& x,
+                     Fr const& r, bool check_01 = false) {
+  return ComputeCom(n, g, PcH(), x, r, check_01);
 }
 
-inline G1 PcComputeCommitmentG(int64_t n, GetRefG const& g, Fr const* x,
-                               Fr const& r, bool check_01 = false) {
+inline G1 ComputeCom(int64_t n, GetRefG1 const& g, Fr const* x, Fr const& r,
+                     bool check_01 = false) {
   auto get_f = [&x](int64_t i) -> Fr const& { return x[i]; };
-  return PcComputeCommitmentG(n, g, get_f, r, check_01);
+  return ComputeCom(n, g, get_f, r, check_01);
 }
 
-inline G1 PcComputeCommitmentG(GetRefG const& g, std::vector<Fr> const& x,
-                               Fr const& r, bool check_01 = false) {
-  return PcComputeCommitmentG(x.size(), g, x.data(), r, check_01);
+inline G1 ComputeCom(GetRefG1 const& g, std::vector<Fr> const& x, Fr const& r,
+                     bool check_01 = false) {
+  return ComputeCom(x.size(), g, x.data(), r, check_01);
 }
 
-inline G1 PcComputeCommitmentG(int64_t n, G1 const* g, G1 const& h, Fr const* x,
-                               Fr const& r, bool check_01 = false) {
+inline G1 ComputeCom(int64_t n, G1 const* g, G1 const& h, Fr const* x,
+                     Fr const& r, bool check_01 = false) {
   auto get_g = [&g, &h](int64_t i) -> G1 const& { return i ? g[i - 1] : h; };
   auto get_f = [&x, &r](int64_t i) -> Fr const& { return i ? x[i - 1] : r; };
   return MultiExpBdlo12<G1>(get_g, get_f, n + 1, check_01);
 }
 
-inline G1 PcComputeCommitmentG(int64_t n, G1 const* g, Fr const* x, Fr const& r,
-                               bool check_01 = false) {
-  return PcComputeCommitmentG(n, g, PcH(), x, r, check_01);
+inline G1 ComputeCom(int64_t n, G1 const* g, Fr const* x, Fr const& r,
+                     bool check_01 = false) {
+  return ComputeCom(n, g, PcH(), x, r, check_01);
 }
 
-inline G1 PcComputeCommitmentG(int64_t n, Fr const* x, Fr const& r,
-                               bool check_01 = false) {
-  return PcComputeCommitmentG(n, PcG().data(), PcH(), x, r, check_01);
+inline G1 ComputeCom(int64_t n, Fr const* x, Fr const& r,
+                     bool check_01 = false) {
+  return ComputeCom(n, PcG().data(), PcH(), x, r, check_01);
 }
 
-inline G1 PcComputeCommitmentG(std::vector<Fr> const& x, Fr const& r,
-                               bool check_01 = false) {
-  return PcComputeCommitmentG(x.size(), x.data(), r, check_01);
+inline G1 ComputeCom(std::vector<Fr> const& x, Fr const& r,
+                     bool check_01 = false) {
+  return ComputeCom(x.size(), x.data(), r, check_01);
 }
 
-inline G1 PcComputeCommitmentG(int64_t n, GetRefX const& x, Fr const& r,
-                               bool check_01 = false) {
+inline G1 ComputeCom(int64_t n, GetRefFr const& x, Fr const& r,
+                     bool check_01 = false) {
   auto get_g = [](int64_t i) -> G1 const& { return PcG(i); };
-  return PcComputeCommitmentG(n, get_g, PcH(), x, r, check_01);
+  return ComputeCom(n, get_g, PcH(), x, r, check_01);
 }
 
-inline G1 PcComputeCommitmentG(G1 const& g, G1 const& h, Fr const& x,
-                               Fr const& r) {
+inline G1 ComputeCom(G1 const& g, G1 const& h, Fr const& x, Fr const& r) {
   return g * x + h * r;
 }
 
-inline G1 PcComputeCommitmentG(G1 const& g, Fr const& x, Fr const& r) {
+inline G1 ComputeCom(G1 const& g, Fr const& x, Fr const& r) {
   return g * x + PcH() * r;
 }
 
-inline G1 PcComputeCommitmentG(Fr const& x, Fr const& r) {
+inline G1 ComputeCom(Fr const& x, Fr const& r) {
   return PcG(0) * x + PcH() * r;
 }
 
-inline std::vector<G1> CopyG(GetRefG const& get_g, int64_t n) {
+inline std::vector<G1> CopyG(GetRefG1 const& get_g, int64_t n) {
   std::vector<G1> ret(n);
   for (int64_t i = 0; i < n; ++i) {
     ret[i] = get_g(i);
@@ -309,7 +305,7 @@ inline std::vector<G1> CopyG(GetRefG const& get_g, int64_t n) {
   return ret;
 }
 
-inline G1 PcComputeSigmaG(GetRefG const& get_g, int64_t n) {
+inline G1 ComputeSigmaG(GetRefG1 const& get_g, int64_t n) {
   G1 ret = G1Zero();
   for (int64_t i = 0; i < n; ++i) {
     ret += get_g(i);
@@ -317,7 +313,7 @@ inline G1 PcComputeSigmaG(GetRefG const& get_g, int64_t n) {
   return ret;
 }
 
-inline G1 PcComputeSigmaG(size_t offset, int64_t n) {
+inline G1 ComputeSigmaG(size_t offset, int64_t n) {
   G1 ret = G1Zero();
   for (int64_t i = 0; i < n; ++i) {
     ret += PcG(i + offset);
@@ -334,7 +330,7 @@ inline bool TestPcCommitment(int64_t n) {
   G1 left, right;
   {
     Tick tick("multiexp1");
-    left = PcComputeCommitmentG(n, base.g().data(), base.h(), x.data(), r);
+    left = ComputeCom(n, base.g().data(), base.h(), x.data(), r);
   }
   {
     Tick tick("multiexp2");

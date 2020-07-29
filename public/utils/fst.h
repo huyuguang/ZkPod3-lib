@@ -1,8 +1,7 @@
 #pragma once
 
-#include "public.h"
-
 #include "ecc/ecc.h"
+#include "public.h"
 
 inline void HashUpdate(CryptoPP::Keccak_256& hash, uint64_t d) {
   auto big_d = boost::endian::native_to_big(d);

@@ -1,11 +1,10 @@
 #pragma once
 
-#include "public.h"
-
 #include "./funcs.h"
 #include "./multiexp.h"
 #include "./types.h"
 #include "log/tick.h"
+#include "public.h"
 
 // Order of the G1 can get through Fr::getModulo(), which return
 // 21888242871839275222246405745257275088548364400416034343698204186575808495617

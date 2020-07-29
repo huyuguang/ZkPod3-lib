@@ -17,9 +17,8 @@ struct Divide {
 
   struct ProveInput {
     ProveInput(std::vector<Fr> const& x, G1 const& com_x, Fr const& com_x_r,
-               pc::GetRefG const& get_gx, int64_t sn,
-               std::vector<G1> const& com_s, std::vector<Fr> const& com_s_r,
-               pc::GetRefG const& get_gs)
+               GetRefG1 const& get_gx, int64_t sn, std::vector<G1> const& com_s,
+               std::vector<Fr> const& com_s_r, GetRefG1 const& get_gs)
         : x(x),
           com_x(com_x),
           com_x_r(com_x_r),
@@ -36,11 +35,11 @@ struct Divide {
     std::vector<Fr> const& x;
     G1 const& com_x;
     Fr const& com_x_r;
-    pc::GetRefG const& get_gx;
+    GetRefG1 const& get_gx;
     int64_t const sn;
     std::vector<G1> const& com_s;
     std::vector<Fr> const& com_s_r;
-    pc::GetRefG const& get_gs;
+    GetRefG1 const& get_gs;
   };
 
   static void UpdateSeed(h256_t& seed, G1 const& com_x, int64_t sn,
@@ -85,8 +84,7 @@ struct Divide {
 
     // com_y_r, com_y
     Fr com_y_r = InnerProduct(input.com_s_r, d);
-    G1 com_y =
-        pc::PcComputeCommitmentG(input.get_gs, y, com_y_r);  // multiexp(sn+1)
+    G1 com_y = pc::ComputeCom(input.get_gs, y, com_y_r);  // multiexp(sn+1)
 #ifdef _DEBUG
     G1 check_com_y = MultiExpBdlo12(input.com_s, d);  // multiexp(n/sn)
     assert(check_com_y == com_y);
@@ -104,14 +102,14 @@ struct Divide {
   }
 
   struct VerifyInput {
-    VerifyInput(int64_t sn, G1 const& com_x, pc::GetRefG const& get_gx,
-                std::vector<G1> const& com_s, pc::GetRefG const& get_gs)
+    VerifyInput(int64_t sn, G1 const& com_x, GetRefG1 const& get_gx,
+                std::vector<G1> const& com_s, GetRefG1 const& get_gs)
         : sn(sn), com_x(com_x), get_gx(get_gx), com_s(com_s), get_gs(get_gs) {}
     int64_t const sn;
     G1 const& com_x;
-    pc::GetRefG const& get_gx;
+    GetRefG1 const& get_gx;
     std::vector<G1> const& com_s;
-    pc::GetRefG const& get_gs;
+    GetRefG1 const& get_gs;
   };
 
   static bool Verify(h256_t seed, VerifyInput const& input,
@@ -150,17 +148,17 @@ bool Divide<HyraxA>::Test() {
 
   int64_t x_g_offset = 50;
   int64_t s_g_offset = 770;
-  pc::GetRefG get_gx = [x_g_offset](int64_t i) -> G1 const& {
+  GetRefG1 get_gx = [x_g_offset](int64_t i) -> G1 const& {
     return pc::PcG()[x_g_offset + i];
   };
-  pc::GetRefG get_gs = [s_g_offset](int64_t i) -> G1 const& {
+  GetRefG1 get_gs = [s_g_offset](int64_t i) -> G1 const& {
     return pc::PcG()[s_g_offset + i];
   };
 
   std::vector<Fr> x(15);
   FrRand(x);
   Fr com_x_r = FrRand();
-  G1 com_x = pc::PcComputeCommitmentG(get_gx, x, com_x_r);
+  G1 com_x = pc::ComputeCom(get_gx, x, com_x_r);
 
   int64_t sn = 3;
   int64_t m = x.size() / sn;
@@ -171,7 +169,7 @@ bool Divide<HyraxA>::Test() {
     auto end = begin + sn;
     std::vector<Fr> s(begin, end);
     com_s_r[i] = FrRand();
-    com_s[i] = pc::PcComputeCommitmentG(get_gs, s, com_s_r[i]);
+    com_s[i] = pc::ComputeCom(get_gs, s, com_s_r[i]);
   }
 
   ProveInput prove_input(x, com_x, com_x_r, get_gx, sn, com_s, com_s_r, get_gs);

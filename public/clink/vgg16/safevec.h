@@ -3,9 +3,9 @@
 #include <thread>
 #include <vector>
 
-namespace clink::vgg16{
+namespace clink::vgg16 {
 
-template<typename T>
+template <typename T>
 class SafeVec {
  public:
   void emplace(T&& item) {
@@ -16,9 +16,10 @@ class SafeVec {
     std::lock_guard<std::mutex> lock(mutex_);
     items = std::move(items_);
   }
+
  private:
   std::vector<T> items_;
   std::mutex mutex_;
 };
 
-}
+}  // namespace clink::vgg16

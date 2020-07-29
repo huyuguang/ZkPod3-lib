@@ -63,24 +63,24 @@ class ConvGadget : public libsnark::gadget<Fr> {
     para_.fill_with_field_elements(this->pb, vec_para);
     generate_r1cs_witness();
 
-//#ifdef _DEBUG
-//    for (size_t i = 0; i < DataCol * DataRow; ++i) {
-//      double d = fp::RationalToDouble<4, 24>(data[i]);
-//      std::cout << std::right << std::setw(12) << std::setfill(' ') << d;
-//      if ((i + 1) % DataCol == 0) std::cout << "\n";
-//    }
-//    std::cout << "\n";
-//    for (size_t i = 0; i < ConvCol * ConvRow + 1; ++i) {
-//      double d = fp::RationalToDouble<4, 24>(para[i]);
-//      std::cout << std::right << std::setw(12) << std::setfill(' ') << d;
-//      if ((i + 1) % ConvCol == 0) std::cout << "\n";
-//    }
-//    std::cout << "\n";
-//
-//    double max = fp::RationalToDouble<4, 24>(this->pb.val(ret()));
-//    std::cout << max << "\n";
-//    std::cout << "------------------------\n";
-//#endif
+    //#ifdef _DEBUG
+    //    for (size_t i = 0; i < DataCol * DataRow; ++i) {
+    //      double d = fp::RationalToDouble<4, 24>(data[i]);
+    //      std::cout << std::right << std::setw(12) << std::setfill(' ') << d;
+    //      if ((i + 1) % DataCol == 0) std::cout << "\n";
+    //    }
+    //    std::cout << "\n";
+    //    for (size_t i = 0; i < ConvCol * ConvRow + 1; ++i) {
+    //      double d = fp::RationalToDouble<4, 24>(para[i]);
+    //      std::cout << std::right << std::setw(12) << std::setfill(' ') << d;
+    //      if ((i + 1) % ConvCol == 0) std::cout << "\n";
+    //    }
+    //    std::cout << "\n";
+    //
+    //    double max = fp::RationalToDouble<4, 24>(this->pb.val(ret()));
+    //    std::cout << max << "\n";
+    //    std::cout << "------------------------\n";
+    //#endif
   }
 
   static bool Test(std::array<double, DataCol * DataRow> const& data,

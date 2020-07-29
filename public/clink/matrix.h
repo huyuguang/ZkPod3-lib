@@ -16,9 +16,9 @@ struct Matrix {
 
   struct ProveInput {
     ProveInput(GetMatrix get_m, std::vector<G1> const& com_rows,
-               std::vector<Fr> const& com_row_rs, pc::GetRefG const& get_gr,
+               std::vector<Fr> const& com_row_rs, GetRefG1 const& get_gr,
                std::vector<G1> const& com_cols,
-               std::vector<Fr> const& com_col_rs, pc::GetRefG const& get_gc)
+               std::vector<Fr> const& com_col_rs, GetRefG1 const& get_gc)
         : get_m(get_m),
           com_rows(com_rows),
           com_row_rs(com_row_rs),
@@ -34,10 +34,10 @@ struct Matrix {
     GetMatrix get_m;
     std::vector<G1> const& com_rows;
     std::vector<Fr> const& com_row_rs;
-    pc::GetRefG const& get_gr;
+    GetRefG1 const& get_gr;
     std::vector<G1> const& com_cols;
     std::vector<Fr> const& com_col_rs;
-    pc::GetRefG const& get_gc;
+    GetRefG1 const& get_gc;
   };
 
   static void UpdateSeed(h256_t& seed, std::vector<G1> const& c1,
@@ -74,7 +74,7 @@ struct Matrix {
       com_v_r = InnerProduct(input.com_row_rs, d);
 
 #ifdef _DEBUG
-      G1 check_com_v = pc::PcComputeCommitmentG(input.get_gr, v, com_v_r);
+      G1 check_com_v = pc::ComputeCom(input.get_gr, v, com_v_r);
       assert(com_v == check_com_v);
 #endif
     };
@@ -93,7 +93,7 @@ struct Matrix {
       com_w_r = InnerProduct(input.com_col_rs, e);
 
 #ifdef _DEBUG
-      G1 check_com_w = pc::PcComputeCommitmentG(input.get_gc, w, com_w_r);
+      G1 check_com_w = pc::ComputeCom(input.get_gc, w, com_w_r);
       assert(com_w == check_com_w);
 #endif
     };
@@ -110,8 +110,8 @@ struct Matrix {
   }
 
   struct VerifyInput {
-    VerifyInput(std::vector<G1> const& com_rows, pc::GetRefG const& get_gr,
-                std::vector<G1> const& com_cols, pc::GetRefG const& get_gc)
+    VerifyInput(std::vector<G1> const& com_rows, GetRefG1 const& get_gr,
+                std::vector<G1> const& com_cols, GetRefG1 const& get_gc)
         : com_rows(com_rows),
           get_gr(get_gr),
           com_cols(com_cols),
@@ -119,9 +119,9 @@ struct Matrix {
     int64_t n() const { return (int64_t)com_rows.size(); }
     int64_t s() const { return (int64_t)com_cols.size(); }
     std::vector<G1> const& com_rows;
-    pc::GetRefG const& get_gr;
+    GetRefG1 const& get_gr;
     std::vector<G1> const& com_cols;
-    pc::GetRefG const& get_gc;
+    GetRefG1 const& get_gc;
   };
 
   static bool Verify(h256_t seed, VerifyInput const& input,
@@ -164,10 +164,10 @@ bool Matrix<HyraxA>::Test(int64_t n, int64_t s) {
   auto seed = misc::RandH256();
   int64_t r_g_offset = 10;
   int64_t c_g_offset = 30;
-  pc::GetRefG get_gr = [r_g_offset](int64_t i) -> G1 const& {
+  GetRefG1 get_gr = [r_g_offset](int64_t i) -> G1 const& {
     return pc::PcG()[r_g_offset + i];
   };
-  pc::GetRefG get_gc = [c_g_offset](int64_t i) -> G1 const& {
+  GetRefG1 get_gc = [c_g_offset](int64_t i) -> G1 const& {
     return pc::PcG()[c_g_offset + i];
   };
 
@@ -180,16 +180,16 @@ bool Matrix<HyraxA>::Test(int64_t n, int64_t s) {
   std::vector<G1> com_rows(n);
   std::vector<G1> com_cols(s);
   for (int64_t i = 0; i < n; ++i) {
-    pc::GetRefX get_x = [s, i, &m](int64_t j) -> Fr const& {
+    GetRefFr get_x = [s, i, &m](int64_t j) -> Fr const& {
       return m[i * s + j];
     };
-    com_rows[i] = pc::PcComputeCommitmentG(s, get_gr, get_x, com_row_rs[i]);
+    com_rows[i] = pc::ComputeCom(s, get_gr, get_x, com_row_rs[i]);
   }
   for (int64_t j = 0; j < s; ++j) {
-    pc::GetRefX get_x = [s, j, &m](int64_t i) -> Fr const& {
+    GetRefFr get_x = [s, j, &m](int64_t i) -> Fr const& {
       return m[i * s + j];
     };
-    com_cols[j] = pc::PcComputeCommitmentG(n, get_gc, get_x, com_col_rs[j]);
+    com_cols[j] = pc::ComputeCom(n, get_gc, get_x, com_col_rs[j]);
   }
 
   auto get_m = [&m, s](int64_t i, int64_t j) -> Fr const& {

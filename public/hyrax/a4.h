@@ -44,7 +44,7 @@ struct A4 {
   };
 
   struct VerifyInput {
-    VerifyInput(CommitmentPub const& com_pub, pc::GetRefG const& get_gx,
+    VerifyInput(CommitmentPub const& com_pub, GetRefG1 const& get_gx,
                 std::vector<std::vector<Fr>> ia, G1 const& gz)
         : com_pub(com_pub), get_gx(get_gx), a(std::move(ia)), gz(gz) {
       // align
@@ -65,12 +65,12 @@ struct A4 {
       }
     }
     CommitmentPub com_pub;
-    pc::GetRefG const& get_gx;
+    GetRefG1 const& get_gx;
     std::vector<std::vector<Fr>> a;
     G1 gz;
 
     int64_t m() const { return com_pub.m(); }
-    
+
     int64_t n() const { return a[0].size(); }
 
     bool CheckFormat() const { return com_pub.CheckFormat(); }
@@ -88,14 +88,14 @@ struct A4 {
     std::vector<std::vector<Fr>> x;
     std::vector<std::vector<Fr>> a;
     Fr z;
-    pc::GetRefG const& get_gx;
+    GetRefG1 const& get_gx;
     G1 const& gz;
 
     int64_t m() const { return x.size(); }
     int64_t n() const { return x[0].size(); }
 
     ProveInput(std::vector<std::vector<Fr>> ix, std::vector<std::vector<Fr>> ia,
-               Fr const& z, pc::GetRefG const& get_gx, G1 const& gz)
+               Fr const& z, GetRefG1 const& get_gx, G1 const& gz)
         : x(std::move(ix)), a(std::move(ia)), z(z), get_gx(get_gx), gz(gz) {
 #ifdef _DEBUG_CHECK
       assert(!x.empty() && x.size() == a.size());
@@ -208,17 +208,16 @@ struct A4 {
                          CommitmentSec const& com_sec) {
     // Tick tick(__FN__);
     auto const m = input.m();
-    //auto const n = input.n();
+    // auto const n = input.n();
 
     com_pub->cx.resize(m);
 
     auto parallel_f = [&input, &com_pub, &com_sec](int64_t i) {
-      com_pub->cx[i] =
-          pc::PcComputeCommitmentG(input.get_gx, input.x[i], com_sec.r[i]);
+      com_pub->cx[i] = pc::ComputeCom(input.get_gx, input.x[i], com_sec.r[i]);
     };
     parallel::For(m, parallel_f);
 
-    com_pub->cz = pc::PcComputeCommitmentG(input.gz, input.z, com_sec.t);
+    com_pub->cz = pc::ComputeCom(input.gz, input.z, com_sec.t);
   }
 
   static void ComputeCom(ProveInput const& input, CommitmentPub* com_pub,
@@ -329,8 +328,8 @@ struct A4 {
     // compute cl, cu
     Fr tl = FrRand();
     Fr tu = FrRand();
-    G1 cl = pc::PcComputeCommitmentG(input.gz, alpha, tl);
-    G1 cu = pc::PcComputeCommitmentG(input.gz, beta, tu);
+    G1 cl = pc::ComputeCom(input.gz, alpha, tl);
+    G1 cu = pc::ComputeCom(input.gz, beta, tu);
     proof.com_ext_pub.cl.push_back(cl);
     proof.com_ext_pub.cu.push_back(cu);
 
@@ -430,7 +429,7 @@ struct A4 {
     h256_t seed = misc::RandH256();
 
     int64_t x_g_offset = 20;
-    pc::GetRefG get_gx = [x_g_offset](int64_t i) -> G1 const& {
+    GetRefG1 get_gx = [x_g_offset](int64_t i) -> G1 const& {
       return pc::PcG()[x_g_offset + i];
     };
 

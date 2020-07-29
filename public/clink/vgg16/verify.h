@@ -1,11 +1,11 @@
 #pragma once
 
 #include "./adapt.h"
-#include "./image_com.h"
-#include "./prove.h"
 #include "./conv_verify.h"
 #include "./dense_verify.h"
+#include "./image_com.h"
 #include "./pooling_verify.h"
+#include "./prove.h"
 #include "./relubn_verify.h"
 
 namespace clink::vgg16 {
@@ -22,7 +22,7 @@ inline bool Verify(h256_t seed, std::string const& pub_path,
   // check test image
   tasks.emplace_back([&context, &test_image]() {
     Image image(test_image);
-    auto c = pc::PcComputeCommitmentG(image.data, FrZero());
+    auto c = pc::ComputeCom(image.data, FrZero());
     return c == context.image_com_pub().c[0];
   });
 
@@ -56,33 +56,31 @@ inline bool Verify(h256_t seed, std::string const& pub_path,
   tasks.emplace_back([&context, &seed, &proof]() {
     return DenseVerify<1>(seed, context, proof.dense1);
   });
-#endif // if 0
+#endif  // if 0
 
   bool all_success = false;
   auto f1 = [&tasks](int64_t i) { return tasks[i](); };
   parallel::For(&all_success, tasks.size(), f1);
   if (!all_success) {
-    std::cout << __FN__ << " " << __LINE__<< " Verify failed\n";
+    std::cout << __FN__ << " " << __LINE__ << " Verify failed\n";
     return false;
   }
 
   std::vector<parallel::BoolTask> bool_tasks;
-  bool_tasks.emplace_back([&seed, &adapt_man,&proof]() {
+  bool_tasks.emplace_back([&seed, &adapt_man, &proof]() {
     return AdaptVerify(seed, adapt_man, proof.adapt_proof);
   });
 
-  bool_tasks.emplace_back([&seed, &r1cs_man,&proof]() {
+  bool_tasks.emplace_back([&seed, &r1cs_man, &proof]() {
     return R1csVerify(seed, r1cs_man, proof.r1cs_proof);
   });
 
-  auto f2 = [&bool_tasks](int64_t i) { 
-    return bool_tasks[i]();
-  };
+  auto f2 = [&bool_tasks](int64_t i) { return bool_tasks[i](); };
 
-  parallel::For(&all_success,bool_tasks.size(), f2);
+  parallel::For(&all_success, bool_tasks.size(), f2);
 
   if (!all_success) {
-    std::cout << __FN__ << " " << __LINE__<< " Verify failed\n";
+    std::cout << __FN__ << " " << __LINE__ << " Verify failed\n";
     return false;
   }
 

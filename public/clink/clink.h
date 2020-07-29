@@ -1,6 +1,7 @@
 #pragma once
 
 // some pedersen commitment utils
+#include "./batch_r1cs.h"
 #include "./divide.h"
 #include "./equal_ip.h"
 #include "./equality.h"
@@ -13,7 +14,6 @@
 #include "./overlap.h"
 #include "./pack.h"
 #include "./parallel_r1cs.h"
-#include "./batch_r1cs.h"
 #include "./pod.h"
 #include "./substr.h"
 #include "./substrpack.h"

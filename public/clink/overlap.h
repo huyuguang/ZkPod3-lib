@@ -36,7 +36,7 @@ struct Overlap {
     ProveInput(std::vector<Fr> const& x, std::vector<Fr> const& y,
                std::vector<OverlapPosition> const& overlap, G1 const& com_x,
                G1 const& com_y, Fr const& com_x_r, Fr const& com_y_r,
-               pc::GetRefG const& get_gx, pc::GetRefG const& get_gy)
+               GetRefG1 const& get_gx, GetRefG1 const& get_gy)
         : x(x),
           y(y),
           overlap(overlap),
@@ -53,8 +53,8 @@ struct Overlap {
     G1 const& com_y;
     Fr const& com_x_r;
     Fr const& com_y_r;
-    pc::GetRefG const& get_gx;
-    pc::GetRefG const& get_gy;
+    GetRefG1 const& get_gx;
+    GetRefG1 const& get_gy;
     int64_t xn() const { return (int64_t)x.size(); }
     int64_t yn() const { return (int64_t)y.size(); }
   };
@@ -86,8 +86,8 @@ struct Overlap {
   }
 
   struct VerifyInput {
-    VerifyInput(int64_t xn, G1 const& com_x, pc::GetRefG const& get_gx, int64_t yn,
-                G1 const& com_y, pc::GetRefG const& get_gy,
+    VerifyInput(int64_t xn, G1 const& com_x, GetRefG1 const& get_gx, int64_t yn,
+                G1 const& com_y, GetRefG1 const& get_gy,
                 std::vector<OverlapPosition> const& overlap)
         : xn(xn),
           com_x(com_x),
@@ -98,10 +98,10 @@ struct Overlap {
           overlap(overlap) {}
     int64_t const xn;
     G1 const& com_x;
-    pc::GetRefG const& get_gx;
+    GetRefG1 const& get_gx;
     int64_t const yn;
     G1 const& com_y;
-    pc::GetRefG const& get_gy;
+    GetRefG1 const& get_gy;
     std::vector<OverlapPosition> const& overlap;
   };
 
@@ -134,10 +134,10 @@ bool Overlap<HyraxA>::Test() {
 
   int64_t x_g_offset = 20;
   int64_t y_g_offset = 40;
-  pc::GetRefG get_gx = [x_g_offset](int64_t i) -> G1 const& {
+  GetRefG1 get_gx = [x_g_offset](int64_t i) -> G1 const& {
     return pc::PcG()[x_g_offset + i];
   };
-  pc::GetRefG get_gy = [y_g_offset](int64_t i) -> G1 const& {
+  GetRefG1 get_gy = [y_g_offset](int64_t i) -> G1 const& {
     return pc::PcG()[y_g_offset + i];
   };
 
@@ -165,12 +165,12 @@ bool Overlap<HyraxA>::Test() {
   overlap[4].y = 4;
 
   Fr com_x_r = FrRand();
-  G1 com_x = pc::PcComputeCommitmentG(get_gx, x, com_x_r);
+  G1 com_x = pc::ComputeCom(get_gx, x, com_x_r);
   Fr com_y_r = FrRand();
-  G1 com_y = pc::PcComputeCommitmentG(get_gy, y, com_y_r);
+  G1 com_y = pc::ComputeCom(get_gy, y, com_y_r);
 
-  ProveInput prove_input(x, y, overlap, com_x, com_y, com_x_r, com_y_r,
-                         get_gx, get_gy);
+  ProveInput prove_input(x, y, overlap, com_x, com_y, com_x_r, com_y_r, get_gx,
+                         get_gy);
 
   Proof proof;
   Prove(proof, seed, prove_input);
@@ -195,11 +195,9 @@ bool Overlap<HyraxA>::Test() {
 
   auto xn = (int64_t)x.size();
   auto yn = (int64_t)y.size();
-  VerifyInput verify_input(xn, com_x, get_gx, yn, com_y, get_gy,
-                           overlap);
+  VerifyInput verify_input(xn, com_x, get_gx, yn, com_y, get_gy, overlap);
   bool success = Verify(seed, verify_input, proof);
-  std::cout << __FILE__ << " " << __FN__ << ": " << success
-            << "\n\n\n\n\n\n";
+  std::cout << __FILE__ << " " << __FN__ << ": " << success << "\n\n\n\n\n\n";
   return success;
 }
 }  // namespace clink

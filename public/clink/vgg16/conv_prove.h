@@ -72,8 +72,8 @@ inline void OneConvInputProvePreprocess(h256_t seed,
     auto get_x = [&input_sec, j](int64_t i) -> Fr const& {
       return *input_sec.b[i][j];
     };
-    input_pub.cb[j] = pc::PcComputeCommitmentG(C * D * D, get_col_b_u, get_x,
-                                               input_sec.rb[j]);
+    input_pub.cb[j] =
+        pc::ComputeCom(C * D * D, get_col_b_u, get_x, input_sec.rb[j]);
   };
   parallel::For(9, parallel_f1);
 
@@ -88,7 +88,7 @@ inline void OneConvInputProvePreprocess(h256_t seed,
     auto get_x = [&input_sec, j](int64_t i) -> Fr const& {
       return *input_sec.b[i][j];
     };
-    auto c = pc::PcComputeCommitmentG(KCDD, get_x, input_sec.rb[j]);
+    auto c = pc::ComputeCom(KCDD, get_x, input_sec.rb[j]);
     if (input_pub.cb[j] != c) {
       throw std::runtime_error("oops");
     }
@@ -206,7 +206,7 @@ inline void OneConvR1csProvePreprocess(
     Fr& r = r1cs_sec.com_w_r[i + 18];
     G1& c = r1cs_pub.com_w[i + 18];
     r = FrRand();
-    c = pc::PcComputeCommitmentG(x, r, true);
+    c = pc::ComputeCom(x, r, true);
   };
   parallel::For<int64_t>(s - 18, parallel_f);
 
@@ -215,11 +215,10 @@ inline void OneConvR1csProvePreprocess(
   r1cs_sec.ry = r1cs_sec.com_w_r[r1cs_pub.r1cs_ret_index];
 
   R1csProveItem item;
-  item.r1cs_sec = pr1cs_sec; // save ref
+  item.r1cs_sec = pr1cs_sec;  // save ref
   item.r1cs_input.reset(new R1cs::ProveInput(
-    *pr1cs_sec->r1cs_info, ConvR1csTag(layer),
-    std::move(pr1cs_sec->w), r1cs_pub.com_w,
-        pr1cs_sec->com_w_r, pc::kGetRefG));
+      *pr1cs_sec->r1cs_info, ConvR1csTag(layer), std::move(pr1cs_sec->w),
+      r1cs_pub.com_w, pr1cs_sec->com_w_r, pc::kGetRefG1));
   r1cs_man.emplace(std::move(item));
 }
 
@@ -267,7 +266,7 @@ inline void OneConvOutputProvePreprocess(h256_t seed,
       context.para_com_pub().conv.bias[order] * fp::RationalConst<8, 24>().kFrN;
 
   ry = rz - rb;
-  output_pub.cy = pc::PcComputeCommitmentG(y, ry);
+  output_pub.cy = pc::ComputeCom(y, ry);
 
   if (cz != output_pub.cy + cb) {
     throw std::runtime_error("oops");
@@ -326,7 +325,8 @@ inline void OneConvProvePreprocess(h256_t seed, ProveContext const& context,
                                    R1csProveItemMan& r1cs_man) {
   Tick tick(__FN__, std::to_string(layer));
   OneConvInputSec input_sec;
-  OneConvInputProvePreprocess(seed, context, layer, proof, input_sec, adapt_man);
+  OneConvInputProvePreprocess(seed, context, layer, proof, input_sec,
+                              adapt_man);
 
   std::shared_ptr<OneConvR1csSec> r1cs_sec(new OneConvR1csSec);
   OneConvR1csProvePreprocess(seed, context, layer, input_sec, proof, r1cs_sec,

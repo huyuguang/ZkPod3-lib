@@ -36,11 +36,11 @@ struct Sec53b {
       int64_t old_m = a.size();
       int64_t new_m = (int64_t)misc::Pow2UB(old_m);
       if (new_m > old_m) {
-        //static const G1 g0 = G1Zero();
-        a.resize(new_m,G1Zero());
-        //std::fill(a.begin() + old_m, a.end(), g0);
-        b.resize(new_m,G1Zero());
-        //std::fill(b.begin() + old_m, b.end(), g0);
+        // static const G1 g0 = G1Zero();
+        a.resize(new_m, G1Zero());
+        // std::fill(a.begin() + old_m, a.end(), g0);
+        b.resize(new_m, G1Zero());
+        // std::fill(b.begin() + old_m, b.end(), g0);
       }
     }
   };
@@ -53,19 +53,18 @@ struct Sec53b {
       int64_t old_m = r.size();
       int64_t new_m = (int64_t)misc::Pow2UB(old_m);
       if (new_m > old_m) {
-        //static const Fr f0 = FrZero();
-        r.resize(new_m,FrZero());
-        //std::fill(r.begin() + old_m, r.end(), f0);
-        s.resize(new_m,FrZero());
-        //std::fill(s.begin() + old_m, s.end(), f0);
+        // static const Fr f0 = FrZero();
+        r.resize(new_m, FrZero());
+        // std::fill(r.begin() + old_m, r.end(), f0);
+        s.resize(new_m, FrZero());
+        // std::fill(s.begin() + old_m, s.end(), f0);
       }
     }
   };
 
   struct VerifyInput {
     VerifyInput(std::vector<Fr> const& t, CommitmentPub const& com_pub,
-                pc::GetRefG const& get_gx, pc::GetRefG const& get_gy,
-                G1 const& gz)
+                GetRefG1 const& get_gx, GetRefG1 const& get_gy, G1 const& gz)
         : t(t), com_pub(com_pub), get_gx(get_gx), get_gy(get_gy), gz(gz) {}
     std::vector<Fr> const& t;  // size = n
     CommitmentPub const& com_pub;
@@ -74,8 +73,8 @@ struct Sec53b {
       if (t.size() != (uint64_t)check_n) return false;
       return com_pub.CheckFormat();
     }
-    pc::GetRefG const& get_gx;
-    pc::GetRefG const& get_gy;
+    GetRefG1 const& get_gx;
+    GetRefG1 const& get_gy;
     G1 const& gz;
   };
 
@@ -85,8 +84,8 @@ struct Sec53b {
     std::vector<Fr> const& t;
     std::vector<std::vector<Fr>> yt;
     Fr z;
-    pc::GetRefG const& get_gx;
-    pc::GetRefG const& get_gy;
+    GetRefG1 const& get_gx;
+    GetRefG1 const& get_gy;
     G1 const& gz;
 
     int64_t m() const { return x.size(); }
@@ -95,8 +94,7 @@ struct Sec53b {
     ProveInput(std::vector<std::vector<Fr>>&& ix,
                std::vector<std::vector<Fr>>&& iy, std::vector<Fr> const& it,
                std::vector<std::vector<Fr>>&& iyt, Fr const& z,
-               pc::GetRefG const& get_gx, pc::GetRefG const& get_gy,
-               G1 const& gz)
+               GetRefG1 const& get_gx, GetRefG1 const& get_gy, G1 const& gz)
         : x(std::move(ix)),
           y(std::move(iy)),
           t(it),
@@ -128,7 +126,7 @@ struct Sec53b {
       int64_t new_m = (int64_t)misc::Pow2UB(old_m);
       if (old_m == new_m) return;
 
-      //auto const& f0 = FrZero();
+      // auto const& f0 = FrZero();
 
       x.resize(new_m);
       y.resize(new_m);
@@ -136,14 +134,14 @@ struct Sec53b {
 
       for (int64_t i = old_m; i < new_m; ++i) {
         auto& x_i = x[i];
-        x_i.resize(n(),FrZero());
-        //std::fill(x_i.begin(), x_i.end(), f0);
+        x_i.resize(n(), FrZero());
+        // std::fill(x_i.begin(), x_i.end(), f0);
         auto& y_i = y[i];
-        y_i.resize(n(),FrZero());
-        //std::fill(y_i.begin(), y_i.end(), f0);
+        y_i.resize(n(), FrZero());
+        // std::fill(y_i.begin(), y_i.end(), f0);
         auto& yt_i = yt[i];
-        yt_i.resize(n(),FrZero());
-        //std::fill(yt_i.begin(), yt_i.end(), f0);
+        yt_i.resize(n(), FrZero());
+        // std::fill(yt_i.begin(), yt_i.end(), f0);
       }
     }
 
@@ -229,14 +227,12 @@ struct Sec53b {
     com_pub->b.resize(m);
 
     auto parallel_f = [&input, &com_pub, &com_sec](int64_t i) mutable {
-      com_pub->a[i] =
-          pc::PcComputeCommitmentG(input.get_gx, input.x[i], com_sec.r[i]);
-      com_pub->b[i] =
-          pc::PcComputeCommitmentG(input.get_gy, input.y[i], com_sec.s[i]);
+      com_pub->a[i] = pc::ComputeCom(input.get_gx, input.x[i], com_sec.r[i]);
+      com_pub->b[i] = pc::ComputeCom(input.get_gy, input.y[i], com_sec.s[i]);
     };
     parallel::For(m, parallel_f, n < 16 * 1024);
 
-    com_pub->c = pc::PcComputeCommitmentG(input.gz, input.z, com_sec.t);
+    com_pub->c = pc::ComputeCom(input.gz, input.z, com_sec.t);
   }
 
   static void ComputeCom(ProveInput const& input, CommitmentPub* com_pub,
@@ -366,8 +362,8 @@ struct Sec53b {
     // compute cl, cu
     Fr tl = FrRand();
     Fr tu = FrRand();
-    G1 cl = pc::PcComputeCommitmentG(input.gz, sigma_xy1, tl);
-    G1 cu = pc::PcComputeCommitmentG(input.gz, sigma_xy2, tu);
+    G1 cl = pc::ComputeCom(input.gz, sigma_xy1, tl);
+    G1 cu = pc::ComputeCom(input.gz, sigma_xy2, tu);
     proof.com_ext_pub.cl.push_back(cl);
     proof.com_ext_pub.cu.push_back(cu);
 
@@ -444,8 +440,7 @@ struct Sec53b {
     typename Sec51::CommitmentPub com_pub_51(com_pub.a[0], com_pub.b[0],
                                              com_pub.c);
     typename Sec51::VerifyInput verifier_input_51(
-        input.t, com_pub_51, input.get_gx, input.get_gy,
-        input.gz);
+        input.t, com_pub_51, input.get_gx, input.get_gy, input.gz);
     return Sec51::Verify(proof.proof_51, seed, verifier_input_51);
   }
 
@@ -483,10 +478,10 @@ bool Sec53b<Sec51>::Test(int64_t m, int64_t n) {
 
   int64_t x_g_offset = 220;
   int64_t y_g_offset = 450;
-  pc::GetRefG get_gx = [x_g_offset](int64_t i) -> G1 const& {
+  GetRefG1 get_gx = [x_g_offset](int64_t i) -> G1 const& {
     return pc::PcG()[x_g_offset + i];
   };
-  pc::GetRefG get_gy = [y_g_offset](int64_t i) -> G1 const& {
+  GetRefG1 get_gy = [y_g_offset](int64_t i) -> G1 const& {
     return pc::PcG()[y_g_offset + i];
   };
 
@@ -521,8 +516,7 @@ bool Sec53b<Sec51>::Test(int64_t m, int64_t n) {
 
   VerifyInput verify_input(t, com_pub, get_gx, get_gy, pc::PcU());
   bool success = Verify(proof, seed, verify_input);
-  std::cout << __FILE__ << " " << __FN__ << ": " << success
-            << "\n\n\n\n\n\n";
+  std::cout << __FILE__ << " " << __FN__ << ": " << success << "\n\n\n\n\n\n";
   return success;
 }
 }  // namespace groth09

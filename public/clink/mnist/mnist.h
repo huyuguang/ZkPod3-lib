@@ -58,12 +58,12 @@ struct Mnist {
       com_pub.conv[i] = MultiExpBdlo12<G1>(get_g, get_f, 6);
 
       com_sec.dense1[i] = FrRand();
-      com_pub.dense1[i] = pc::PcComputeCommitmentG(
-          13 * 13 * 5 + 1, para.dense1[i].data(), com_sec.dense1[i]);
+      com_pub.dense1[i] = pc::ComputeCom(13 * 13 * 5 + 1, para.dense1[i].data(),
+                                         com_sec.dense1[i]);
 
       com_sec.dense2[i] = FrRand();
-      com_pub.dense2[i] = pc::PcComputeCommitmentG(
-          10 + 1, para.dense2[i].data(), com_sec.dense2[i]);
+      com_pub.dense2[i] =
+          pc::ComputeCom(10 + 1, para.dense2[i].data(), com_sec.dense2[i]);
     };
     parallel::For(10, parallel_f);
 
@@ -122,7 +122,7 @@ struct Mnist {
         auto get_x = [&secret_inputs, i](int64_t j) -> Fr const& {
           return secret_inputs[j][i];
         };
-        G1 com = pc::PcComputeCommitmentG(n, get_x, para_com_sec.conv[i]);
+        G1 com = pc::ComputeCom(n, get_x, para_com_sec.conv[i]);
         assert(com == para_com_pub.conv[i]);
       };
       parallel::For(3 * 3 + 1, parallel_sec_com);
@@ -192,13 +192,13 @@ struct Mnist {
     auto parallel_f = [&com_w_r, &com_w, &input](int64_t i) {
       if (i < 4 * 4) {
         com_w_r[i] = FrZero();
-        com_w[i] = pc::PcComputeCommitmentG(input.w[i], com_w_r[i], true);
+        com_w[i] = pc::ComputeCom(input.w[i], com_w_r[i], true);
       } else if (i >= 4 * 4 && i < 4 * 4 + 3 * 3 + 1) {
         com_w[i] = input.para_com_pub.conv[i - 4 * 4];
         com_w_r[i] = input.para_com_sec.conv[i - 4 * 4];
       } else {
         com_w_r[i] = FrRand();
-        com_w[i] = pc::PcComputeCommitmentG(input.w[i], com_w_r[i], true);
+        com_w[i] = pc::ComputeCom(input.w[i], com_w_r[i], true);
       }
     };
     parallel::For<int64_t>(input.s, parallel_f);
@@ -219,8 +219,9 @@ struct Mnist {
     }
 #endif
 
-    typename R1cs::ProveInput r1cs_input(*input.r1cs_info, "mnist", std::move(input.w),
-                                         com_w, com_w_r, pc::kGetRefG);
+    typename R1cs::ProveInput r1cs_input(*input.r1cs_info, "mnist",
+                                         std::move(input.w), com_w, com_w_r,
+                                         pc::kGetRefG1);
     R1cs::Prove(proof.r1cs_proof, seed, std::move(r1cs_input));
     proof.com_w = std::move(com_w);
   }
@@ -296,8 +297,9 @@ struct Mnist {
     // Not need to check com of public input since R1cs::VerifyConv will check
     // it.
 
-    typename R1cs::VerifyInput pr_input(input.n, *input.r1cs_info, "mnist", proof.com_w,
-                                        input.public_w, pc::kGetRefG);
+    typename R1cs::VerifyInput pr_input(input.n, *input.r1cs_info, "mnist",
+                                        proof.com_w, input.public_w,
+                                        pc::kGetRefG1);
     return R1cs::Verify(proof.r1cs_proof, seed, pr_input);
   }
 
@@ -336,21 +338,21 @@ struct Mnist {
     hyrax::A2::Proof proof_hy;
 
     bool operator==(DenseProof const& b) const {
-      return com == b.com && com_z == b.com_z &&
-             proof_51 == b.proof_51 && proof_hy == b.proof_hy;
+      return com == b.com && com_z == b.com_z && proof_51 == b.proof_51 &&
+             proof_hy == b.proof_hy;
     }
 
     bool operator!=(DenseProof const& b) const { return !(*this == b); }
 
     template <typename Ar>
     void serialize(Ar& ar) const {
-      ar& YAS_OBJECT_NVP("d.p", ("cd", com), ("cz", com_z),
-                         ("51", proof_51), ("hy", proof_hy));
+      ar& YAS_OBJECT_NVP("d.p", ("cd", com), ("cz", com_z), ("51", proof_51),
+                         ("hy", proof_hy));
     }
     template <typename Ar>
     void serialize(Ar& ar) {
-      ar& YAS_OBJECT_NVP("d.p", ("cd", com), ("cz", com_z),
-                         ("51", proof_51), ("hy", proof_hy));
+      ar& YAS_OBJECT_NVP("d.p", ("cd", com), ("cz", com_z), ("51", proof_51),
+                         ("hy", proof_hy));
     }
   };
 
@@ -366,8 +368,8 @@ struct Mnist {
   }
 
   template <size_t M, size_t N>
-  static void ProveDense(DenseProof& proof, ProveOutput& output,
-                         h256_t seed, ProveDenseInput<M, N> const& input) {
+  static void ProveDense(DenseProof& proof, ProveOutput& output, h256_t seed,
+                         ProveDenseInput<M, N> const& input) {
     Tick tick(__FN__);
     namespace fp = circuit::fp;
     assert(input.para_dense.size() == N);
@@ -392,18 +394,17 @@ struct Mnist {
     };
     parallel::For(N, parallel_f);
 
-//#ifdef _DEBUG
+    //#ifdef _DEBUG
     std::cout << "dense before relu:\n";
     for (size_t i = 0; i < N; ++i) {
       double ret = fp::RationalToDouble<6, 24 + 24>(output.data[i]);
       std::cout << std::right << std::setw(12) << std::setfill(' ') << ret;
     }
     std::cout << "\n";
-//#endif
+    //#endif
 
     output.com_r = FrRand();
-    output.com = pc::PcComputeCommitmentG(
-        output.data, output.com_r);
+    output.com = pc::ComputeCom(output.data, output.com_r);
 
     // prove
     std::vector<Fr> x = ComputeDenseFst<M, N>(seed);
@@ -425,29 +426,30 @@ struct Mnist {
     Fr z =
         std::inner_product(x.begin(), x.end(), output.data.begin(), FrZero());
     Fr com_z_r = FrRand();
-    G1 com_z = pc::PcComputeCommitmentG(z, com_z_r);
+    G1 com_z = pc::ComputeCom(z, com_z_r);
     proof.com_z = com_z;
     proof.com = output.com;
 
 #ifdef _DEBUG
-    assert(com_e == pc::PcComputeCommitmentG(e, com_e_r));
+    assert(com_e == pc::ComputeCom(e, com_e_r));
     assert(z == std::inner_product(e.begin(), e.end(), input.data.begin(),
                                    FrZero()));
 #endif
 
     // prove left
-    hyrax::A2::ProveInput input_hy(output.data, x, z, pc::kGetRefG, pc::PcG(0));
+    hyrax::A2::ProveInput input_hy(output.data, x, z, pc::kGetRefG1,
+                                   pc::PcG(0));
     hyrax::A2::CommitmentPub com_pub_hy(output.com, com_z);
     hyrax::A2::CommitmentSec com_sec_hy(output.com_r, com_z_r);
     hyrax::A2::Prove(proof.proof_hy, seed, input_hy, com_pub_hy, com_sec_hy);
 
     // prove right
-    //std::cout << "prove, seed: " << misc::HexToStr(seed) << "\n";
-    //std::cout << "prove, com_e: " << com_e << "\n";
-    //std::cout << "prove, com_data: " << input.com_data << "\n";
-    //std::cout << "prove, com_z: " << com_z << "\n";
-    groth09::Sec51a::ProveInput input_51(e, input.data, z, pc::kGetRefG,
-                                         pc::kGetRefG, pc::PcG(0));
+    // std::cout << "prove, seed: " << misc::HexToStr(seed) << "\n";
+    // std::cout << "prove, com_e: " << com_e << "\n";
+    // std::cout << "prove, com_data: " << input.com_data << "\n";
+    // std::cout << "prove, com_z: " << com_z << "\n";
+    groth09::Sec51a::ProveInput input_51(e, input.data, z, pc::kGetRefG1,
+                                         pc::kGetRefG1, pc::PcG(0));
     groth09::Sec51a::CommitmentPub com_pub_51(com_e, input.com_data, com_z);
     groth09::Sec51a::CommitmentSec com_sec_51(com_e_r, input.com_data_r,
                                               com_z_r);
@@ -479,7 +481,7 @@ struct Mnist {
     }
 
     hyrax::A2::CommitmentPub com_pub_hy(proof.com, proof.com_z);
-    hyrax::A2::VerifyInput input_hy(x, com_pub_hy, pc::kGetRefG, pc::PcG(0));
+    hyrax::A2::VerifyInput input_hy(x, com_pub_hy, pc::kGetRefG1, pc::PcG(0));
     if (!hyrax::A2::Verify(proof.proof_hy, seed, input_hy)) {
       assert(false);
       return false;
@@ -491,8 +493,8 @@ struct Mnist {
     // std::cout << "verify, com_z: " << proof.com_z << "\n";
     groth09::Sec51a::CommitmentPub com_pub_51(com_e, input.com_data,
                                               proof.com_z);
-    groth09::Sec51a::VerifyInput input_51(com_pub_51, pc::kGetRefG,
-                                          pc::kGetRefG, pc::PcG(0));
+    groth09::Sec51a::VerifyInput input_51(com_pub_51, pc::kGetRefG1,
+                                          pc::kGetRefG1, pc::PcG(0));
     if (!groth09::Sec51a::Verify(proof.proof_51, seed, input_51)) {
       assert(false);
       return false;
@@ -502,7 +504,7 @@ struct Mnist {
   }
 
   // the dense output is FixedPoint<D, 2N>
-  template<size_t N>
+  template <size_t N>
   struct ProveRelu2Input {
     typedef circuit::fixed_point::Relu2Gadget<6, 24 * 2, 24> Relu2Gadget;
     ProveRelu2Input(ProveOutput&& last_output)
@@ -523,7 +525,7 @@ struct Mnist {
       for (auto& i : w) i.resize(N);
 
 #ifdef _DEBUG
-      assert(com == pc::PcComputeCommitmentG(data, com_r));
+      assert(com == pc::ComputeCom(data, com_r));
 #endif
 
       for (int64_t j = 0; j < (int64_t)N; ++j) {
@@ -566,10 +568,9 @@ struct Mnist {
     }
   };
 
-  template<size_t N>
-  static void ProveRelu2(Relu2Proof& proof,
-                             ProveOutput& output, h256_t seed,
-                             ProveRelu2Input<N> const& input) {    
+  template <size_t N>
+  static void ProveRelu2(Relu2Proof& proof, ProveOutput& output, h256_t seed,
+                         ProveRelu2Input<N> const& input) {
     Tick tick(__FN__);
     namespace fp = circuit::fp;
     std::vector<G1> com_w(input.s);
@@ -582,7 +583,7 @@ struct Mnist {
         com_w[i] = input.com;
       } else {
         com_w_r[i] = FrRand();
-        com_w[i] = pc::PcComputeCommitmentG(input.w[i], com_w_r[i], true);
+        com_w[i] = pc::ComputeCom(input.w[i], com_w_r[i], true);
       }
     };
     parallel::For<int64_t>(input.s, parallel_f);
@@ -602,8 +603,9 @@ struct Mnist {
 #endif
 
     // prove
-    typename R1cs::ProveInput r1cs_input(*input.r1cs_info, "mnist", std::move(input.w),
-                                         com_w, com_w_r, pc::kGetRefG);
+    typename R1cs::ProveInput r1cs_input(*input.r1cs_info, "mnist",
+                                         std::move(input.w), com_w, com_w_r,
+                                         pc::kGetRefG1);
     R1cs::Prove(proof.r1cs_proof, seed, std::move(r1cs_input));
     proof.com_w = std::move(com_w);
   }
@@ -631,7 +633,7 @@ struct Mnist {
   };
 
   static bool VerifyRelu2(Relu2Proof const& proof, h256_t seed,
-                              VerifyRelu2Input const& input) {
+                          VerifyRelu2Input const& input) {
     Tick tick(__FN__);
     if ((int64_t)proof.com_w.size() != input.s) {
       assert(false);
@@ -644,8 +646,9 @@ struct Mnist {
       return false;
     }
 
-    typename R1cs::VerifyInput pr_input(input.n, *input.r1cs_info, "mnist",proof.com_w,
-                                        input.public_w, pc::kGetRefG);
+    typename R1cs::VerifyInput pr_input(input.n, *input.r1cs_info, "mnist",
+                                        proof.com_w, input.public_w,
+                                        pc::kGetRefG1);
     return R1cs::Verify(proof.r1cs_proof, seed, pr_input);
   }
 
@@ -662,10 +665,10 @@ struct Mnist {
   }
 
   struct Proof {
-    ConvProof conv;           // conv,relu,flatten
-    DenseProof dense1;        // dense1
-    Relu2Proof dense1_relu;   // relu2 for dense1
-    DenseProof dense2;        // dense2
+    ConvProof conv;          // conv,relu,flatten
+    DenseProof dense1;       // dense1
+    Relu2Proof dense1_relu;  // relu2 for dense1
+    DenseProof dense2;       // dense2
 
     bool operator==(Proof const& b) const {
       return conv == b.conv && dense1 == b.dense1 &&
@@ -762,13 +765,12 @@ struct Mnist {
     // now we need to pod the data which commit by proof.dense2.com
     return true;
   }
-  
+
   static void LoadPara(mnist::dbl::Para const& dbl_para, Para& para) {
-    namespace fp = circuit::fp;    
+    namespace fp = circuit::fp;
     for (size_t k = 0; k < dbl_para.conv.size(); ++k) {
       for (size_t i = 0; i < 9; ++i) {
-        para.conv[k][i] =
-            fp::DoubleToRational<6, 24>(dbl_para.conv[k].coef[i]);
+        para.conv[k][i] = fp::DoubleToRational<6, 24>(dbl_para.conv[k].coef[i]);
       }
       para.conv[k].back() = fp::DoubleToRational<6, 24>(dbl_para.conv[k].bias);
     }
@@ -792,8 +794,8 @@ struct Mnist {
 
   // convert double to fr
   static void LoadImage(mnist::dbl::UniData const& dbl_uni_data,
-                        std::array<Fr, 28 * 28>& data) {    
-    namespace fp = circuit::fp;   
+                        std::array<Fr, 28 * 28>& data) {
+    namespace fp = circuit::fp;
     for (size_t i = 0; i < 28 * 28; ++i) {
       data[i] = fp::DoubleToRational<6, 24>(dbl_uni_data[i]);
     }
@@ -822,7 +824,8 @@ bool Mnist<Policy>::TestSerialize(Proof const& proof) {
     yas::mem_ostream os;
     yas::binary_oarchive<yas::mem_ostream, YasBinF()> oa(os);
     oa.serialize(proof.dense1_relu);
-    std::cout << "proof dense1_relu size: " << os.get_shared_buffer().size << "\n";
+    std::cout << "proof dense1_relu size: " << os.get_shared_buffer().size
+              << "\n";
   }
   {
     yas::mem_ostream os;
@@ -869,7 +872,7 @@ bool Mnist<Policy>::Test() {
   Proof proof;
   Prove(seed, proof, data, *para, *para_com_pub, *para_com_sec);
 
-  bool success = Verify(seed, proof, data, *para_com_pub);  
+  bool success = Verify(seed, proof, data, *para_com_pub);
 
 #ifndef DISABLE_SERIALIZE_CHECK
   success = success && TestSerialize(proof);

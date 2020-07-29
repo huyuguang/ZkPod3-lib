@@ -8,7 +8,6 @@
 
 namespace clink {
 struct Equality2 {
-
   static void UpdateSeed(h256_t& seed, std::vector<G1> const& cv,
                          std::vector<G1> const& cu,
                          std::vector<size_t> const& v_size) {
@@ -23,14 +22,14 @@ struct Equality2 {
   static void Prove(hyrax::A3::Proof& proof, h256_t seed,
                     std::vector<std::vector<Fr>> const& v,
                     std::vector<G1> const& cv, std::vector<Fr> const& rv,
-                    pc::GetRefG const& get_gv, std::vector<G1> const& cu,
-                    std::vector<Fr> const& ru, pc::GetRefG const& get_gu) {
+                    GetRefG1 const& get_gv, std::vector<G1> const& cu,
+                    std::vector<Fr> const& ru, GetRefG1 const& get_gu) {
     if (v.size() != cv.size() || v.size() != cu.size() ||
         v.size() != rv.size() || v.size() != ru.size()) {
       throw std::runtime_error("oops");
-    }    
+    }
 
-    auto m = v.size();        
+    auto m = v.size();
     size_t n = 0;
     std::vector<size_t> v_size(v.size());
     for (size_t i = 0; i < v.size(); ++i) {
@@ -41,14 +40,14 @@ struct Equality2 {
     UpdateSeed(seed, cv, cu, v_size);
 
     std::vector<Fr> r(m);
-    std::vector<Fr> s(n);    
+    std::vector<Fr> s(n);
     ComputeFst(seed, "equality2 r", r);
     ComputeFst(seed, "equality2 r", s);
-    
+
     std::vector<Fr> V(n, FrZero());
     for (size_t i = 0; i < v.size(); ++i) {
       auto vi = v[i];
-      vi.resize(n, FrZero());      
+      vi.resize(n, FrZero());
       V += vi * r[i];
     }
 
@@ -81,8 +80,8 @@ struct Equality2 {
 
   static bool Verify(hyrax::A3::Proof const& proof, h256_t seed,
                      std::vector<size_t> const& v_size,
-                     std::vector<G1> const& cv, pc::GetRefG const& get_gv,
-                     std::vector<G1> const& cu, pc::GetRefG const& get_gu) {
+                     std::vector<G1> const& cv, GetRefG1 const& get_gv,
+                     std::vector<G1> const& cu, GetRefG1 const& get_gu) {
     if (cu.size() != cv.size() || v_size.size() != cv.size()) {
       throw std::runtime_error("oops");
     }
@@ -125,11 +124,11 @@ struct Equality2 {
     auto seed = misc::RandH256();
     std::vector<std::vector<Fr>> x(10);
     for (size_t i = 0; i < x.size(); ++i) {
-      x[i].resize(5+i);
+      x[i].resize(5 + i);
       FrRand(x[i]);
     }
 
-    std::vector<G1> gv(x.size()+5);
+    std::vector<G1> gv(x.size() + 5);
     G1Rand(gv);
 
     std::vector<G1> gu(x.size() + 5);
@@ -141,7 +140,7 @@ struct Equality2 {
 
     auto get_gv = [&gv](int64_t i) -> G1 const& { return gv[i]; };
     for (size_t i = 0; i < x.size(); ++i) {
-      cv[i] = pc::PcComputeCommitmentG(get_gv, x[i], rv[i]);
+      cv[i] = pc::ComputeCom(get_gv, x[i], rv[i]);
     }
 
     std::vector<G1> cu(x.size());
@@ -150,24 +149,23 @@ struct Equality2 {
 
     auto get_gu = [&gu](int64_t i) -> G1 const& { return gu[i]; };
     for (size_t i = 0; i < x.size(); ++i) {
-      cu[i] = pc::PcComputeCommitmentG(get_gu, x[i], ru[i]);
+      cu[i] = pc::ComputeCom(get_gu, x[i], ru[i]);
     }
 
     hyrax::A3::Proof proof;
     Prove(proof, seed, x, cv, rv, get_gv, cu, ru, get_gu);
 
-    //size_t m = x.size();
-    //size_t n = 0;
+    // size_t m = x.size();
+    // size_t n = 0;
     std::vector<size_t> v_size(x.size());
     for (size_t i = 0; i < x.size(); ++i) {
       v_size[i] = x[i].size();
-      //n = std::max<size_t>(n, v_size[i]);
+      // n = std::max<size_t>(n, v_size[i]);
     }
     bool success = Verify(proof, seed, v_size, cv, get_gv, cu, get_gu);
     std::cout << __FILE__ << " " << __FN__ << ": " << success << "\n\n\n\n\n\n";
     return success;
   }
 };
-
 
 }  // namespace clink

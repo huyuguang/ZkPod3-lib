@@ -4,9 +4,10 @@
 
 namespace clink::vgg16 {
 
-inline bool ReluBnInOutVerifyPreprocess(
-    h256_t seed, VerifyContext const& context, ReluBnProof const& proof,
-    AdaptVerifyItemMan& item_man) {
+inline bool ReluBnInOutVerifyPreprocess(h256_t seed,
+                                        VerifyContext const& context,
+                                        ReluBnProof const& proof,
+                                        AdaptVerifyItemMan& item_man) {
   auto const& io_pub = proof.io_pub;
 
   if (io_pub.cx.size() != kReluBnLayers.size() * 2 + 2) {
@@ -20,8 +21,7 @@ inline bool ReluBnInOutVerifyPreprocess(
       std::cout << __FN__ << ": " << __LINE__ << ": proof invalid\n";
       return false;
     }
-    if (context.image_com_pub().c[layer + 1] !=
-        io_pub.cx[2 + order * 2 + 1]) {
+    if (context.image_com_pub().c[layer + 1] != io_pub.cx[2 + order * 2 + 1]) {
       std::cout << __FN__ << ": " << __LINE__ << ": proof invalid\n";
       return false;
     }
@@ -74,9 +74,10 @@ inline bool ReluBnInOutVerifyPreprocess(
   return true;
 }
 
-inline bool ReluBnR1csVerifyPreprocess(
-    h256_t seed, VerifyContext const& context, ReluBnProof const& proof,
-    R1csVerifyItemMan& r1cs_man) {
+inline bool ReluBnR1csVerifyPreprocess(h256_t seed,
+                                       VerifyContext const& context,
+                                       ReluBnProof const& proof,
+                                       R1csVerifyItemMan& r1cs_man) {
   Tick tick(__FN__);
   (void)seed;
   if (proof.r1cs_pub.com_w[0] != proof.io_pub.cx[0]) {  // in
@@ -114,8 +115,8 @@ inline bool ReluBnR1csVerifyPreprocess(
   item.public_w.reset(new std::vector<std::vector<Fr>>);
   item.r1cs_info.reset(new R1csInfo(pb));
   item.r1cs_input.reset(new R1cs::VerifyInput(
-      n, *item.r1cs_info, ReluBnR1csTag(),
-      proof.r1cs_pub.com_w, *item.public_w, pc::kGetRefG));
+      n, *item.r1cs_info, ReluBnR1csTag(), proof.r1cs_pub.com_w, *item.public_w,
+      pc::kGetRefG1));
 
   r1cs_man.emplace(std::move(item));
   return true;

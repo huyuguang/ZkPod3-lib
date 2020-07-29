@@ -290,8 +290,7 @@ inline bool Test(int64_t n) {
   VerifyInput verify_input(std::move(g1_copy), std::move(g2_copy), h, u,
                            com_pub);
   bool success = Verify(proof, seed, std::move(verify_input));
-  std::cout << __FILE__ << " " << __FN__ << ": " << success
-            << "\n\n\n\n\n\n";
+  std::cout << __FILE__ << " " << __FN__ << ": " << success << "\n\n\n\n\n\n";
   return success;
 }
 }  // namespace bp::p31

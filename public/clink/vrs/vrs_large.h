@@ -75,7 +75,7 @@ struct VrsLarge {
 
     Fr vw = parallel::Accumulate(vws.begin(), vws.end(), FrZero());
 
-    assert(pc::PcComputeCommitmentG(input.gvw, vw, input.vw_com_r) ==
+    assert(pc::ComputeCom(input.gvw, vw, input.vw_com_r) ==
            SumProofsComVw(proofs));
 
     assert(output.h * input.k_com_r + output.g * input.k == output.key_com);
@@ -197,8 +197,7 @@ bool VrsLarge<Scheme, Policy>::Test(int64_t n) {
     success = VrsPub<Scheme>::VerifySecret(prove_output.h, prove_output.g,
                                            prove_output.key_com, k_com_r, k);
   }
-  std::cout << __FILE__ << " " << __FN__ << ": " << success
-            << "\n\n\n\n\n\n";
+  std::cout << __FILE__ << " " << __FN__ << ": " << success << "\n\n\n\n\n\n";
   return success;
 }
 }  // namespace clink

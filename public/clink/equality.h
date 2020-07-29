@@ -42,10 +42,10 @@ struct Equality {
 
   static void Prove(Proof& proof, h256_t seed, std::vector<Fr> const& x,
                     G1 const& com_x, Fr const& rx, G1 const& com_y,
-                    Fr const& ry, pc::GetRefG const& get_gx) {
+                    Fr const& ry, GetRefG1 const& get_gx) {
     (void)get_gx;
-    assert(com_x == pc::PcComputeCommitmentG(get_gx, x, rx));
-    assert(com_y == pc::PcComputeCommitmentG(get_gx, x, ry));
+    assert(com_x == pc::ComputeCom(get_gx, x, rx));
+    assert(com_y == pc::ComputeCom(get_gx, x, ry));
     Fr r = FrRand();
     proof.alpha = pc::PcH() * r;
     UpdateSeed(seed, com_x, com_y, proof.alpha, (int64_t)x.size());
@@ -68,15 +68,15 @@ struct Equality {
 bool Equality::Test() {
   auto seed = misc::RandH256();
   int64_t g_offset = 30;
-  pc::GetRefG get_gx = [g_offset](int64_t i) -> G1 const& {
+  GetRefG1 get_gx = [g_offset](int64_t i) -> G1 const& {
     return pc::PcG()[g_offset + i];
   };
 
   std::vector<Fr> x = {FrRand(), FrRand(), FrRand()};
   Fr rx = FrRand();
   Fr ry = FrRand();
-  G1 com_x = pc::PcComputeCommitmentG(get_gx, x, rx);
-  G1 com_y = pc::PcComputeCommitmentG(get_gx, x, ry);
+  G1 com_x = pc::ComputeCom(get_gx, x, rx);
+  G1 com_y = pc::ComputeCom(get_gx, x, ry);
 
   Proof proof;
   Prove(proof, seed, x, com_x, rx, com_y, ry, get_gx);

@@ -14,7 +14,7 @@ namespace hyrax {
 struct A2 {
   struct ProveInput {
     ProveInput(std::vector<Fr> const& x, std::vector<Fr> const& a, Fr const& y,
-               pc::GetRefG const& get_gx, G1 const& gy)
+               GetRefG1 const& get_gx, G1 const& gy)
         : x(x), a(a), y(y), get_gx(get_gx), gy(gy) {
       assert(x.size() == a.size() && !a.empty());
       assert(y == InnerProduct(x, a));
@@ -23,7 +23,7 @@ struct A2 {
     std::vector<Fr> const& x;  // x.size = n
     std::vector<Fr> const& a;  // a.size = n
     Fr const y;                // y = <x, a>
-    pc::GetRefG const get_gx;
+    GetRefG1 const get_gx;
     G1 const gy;
   };
 
@@ -94,11 +94,11 @@ struct A2 {
 
   struct VerifyInput {
     VerifyInput(std::vector<Fr> const& a, CommitmentPub const& com_pub,
-                pc::GetRefG const& get_gx, G1 const& gy)
+                GetRefG1 const& get_gx, G1 const& gy)
         : a(a), com_pub(com_pub), get_gx(get_gx), gy(gy) {}
     std::vector<Fr> const& a;  // a.size = n
     CommitmentPub const& com_pub;
-    pc::GetRefG const get_gx;
+    GetRefG1 const get_gx;
     G1 const gy;
   };
 
@@ -116,8 +116,7 @@ struct A2 {
       auto const& xi = com_pub.xi;
       auto const& delta = com_ext_pub.delta;
       G1 left = xi * challenge + delta;
-      G1 right = pc::PcComputeCommitmentG(input.get_gx, sub_proof.z,
-                                          sub_proof.z_delta);
+      G1 right = pc::ComputeCom(input.get_gx, sub_proof.z, sub_proof.z_delta);
       ret1 = left == right;
     };
 
@@ -128,7 +127,7 @@ struct A2 {
       auto const& beta = com_ext_pub.beta;
       G1 left = tau * challenge + beta;
       auto ip_za = InnerProduct(sub_proof.z, input.a);
-      G1 right = pc::PcComputeCommitmentG(input.gy, ip_za, sub_proof.z_beta);
+      G1 right = pc::ComputeCom(input.gy, ip_za, sub_proof.z_beta);
       ret2 = left == right;
     };
     parallel::Invoke(tasks, true);
@@ -142,11 +141,10 @@ struct A2 {
     // Tick tick(__FN__);
     std::array<parallel::VoidTask, 2> tasks;
     tasks[0] = [&com_pub, &input, &com_sec]() {
-      com_pub.xi =
-          pc::PcComputeCommitmentG(input.get_gx, input.x, com_sec.r_xi);
+      com_pub.xi = pc::ComputeCom(input.get_gx, input.x, com_sec.r_xi);
     };
     tasks[1] = [&com_pub, &input, &com_sec]() {
-      com_pub.tau = pc::PcComputeCommitmentG(input.gy, input.y, com_sec.r_tau);
+      com_pub.tau = pc::ComputeCom(input.gy, input.y, com_sec.r_tau);
     };
     parallel::Invoke(tasks, true);
   }
@@ -164,11 +162,11 @@ struct A2 {
 
     std::array<parallel::VoidTask, 2> tasks;
     tasks[0] = [&com_ext_pub, &com_ext_sec, &input]() {
-      com_ext_pub.delta = pc::PcComputeCommitmentG(input.get_gx, com_ext_sec.d,
-                                                   com_ext_sec.r_delta);
+      com_ext_pub.delta =
+          pc::ComputeCom(input.get_gx, com_ext_sec.d, com_ext_sec.r_delta);
     };
     tasks[1] = [&com_ext_pub, &input, &com_ext_sec]() {
-      com_ext_pub.beta = pc::PcComputeCommitmentG(
+      com_ext_pub.beta = pc::ComputeCom(
           input.gy, InnerProduct(input.a, com_ext_sec.d), com_ext_sec.r_beta);
     };
     parallel::Invoke(tasks, true);
@@ -288,7 +286,7 @@ bool A2::Test(int64_t n) {
   h256_t UpdateSeed = misc::RandH256();
 
   int64_t x_g_offset = 30;
-  pc::GetRefG get_gx = [x_g_offset](int64_t i) -> G1 const& {
+  GetRefG1 get_gx = [x_g_offset](int64_t i) -> G1 const& {
     return pc::PcG()[x_g_offset + i];
   };
   auto z = InnerProduct(x, a);
