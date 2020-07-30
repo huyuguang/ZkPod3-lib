@@ -241,6 +241,22 @@ G const& GZero() {
   return g;
 }
 
+// opportunistic fr mul
+inline Fr OpFrMul(Fr const& a, Fr const& b, bool check1 = false) {
+  if (a.isZero() || b.isZero()) return FrZero();
+  if (check1) {
+    if (a.isOne()) return b;
+    if (b.isOne()) return a;
+  }
+  return a * b;
+}
+
+inline Fr OpFrAdd(Fr const& a, Fr const& b) {
+  if (a.isZero()) return b;
+  if (b.isZero()) return a;
+  return a + b;
+}
+
 inline G1 MapToG1(Fp t) {
   G1 r;
   bool b;

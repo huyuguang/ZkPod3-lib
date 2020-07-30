@@ -103,10 +103,6 @@ inline void Prove(Proof& proof, h256_t seed, G1 p, G1 const& u,
     g2.resize(align_n, G1Zero());
     a.resize(align_n, FrZero());
     b.resize(align_n, FrZero());
-    //std::fill(g1.begin() + n, g1.end(), G1Zero());
-    //std::fill(g2.begin() + n, g2.end(), G1Zero());
-    //std::fill(a.begin() + n, a.end(), FrZero());
-    //std::fill(b.begin() + n, b.end(), FrZero());
   }
 
   auto rounds = misc::Log2UB(align_n);
@@ -187,8 +183,6 @@ bool Verify(h256_t seed, G1 p, G1 const& u, std::vector<G1>&& g1,
   if (align_n > n) {
     g1.resize(align_n, G1Zero());
     g2.resize(align_n, G1Zero());
-    //std::fill(g1.begin() + n, g1.end(), G1Zero());
-    //std::fill(g2.begin() + n, g2.end(), G1Zero());
   }
   auto rounds = misc::Log2UB(align_n);
   if (proof.left.size() != rounds || proof.right.size() != rounds) {

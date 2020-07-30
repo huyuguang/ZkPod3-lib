@@ -60,10 +60,10 @@ using AdaptVerifyItemMan = SafeVec<AdaptVerifyItem>;
 using ParallelVoidTaskMan = SafeVec<parallel::VoidTask>;
 using ParallelBoolTaskMan = SafeVec<parallel::BoolTask>;
 
-inline void AdaptUpdateSeed(h256_t& seed, std::vector<G1> const& cx,
-                            std::vector<std::vector<Fr>> const& a) {
+inline h256_t AdaptItemDigest(std::vector<G1> const& cx,
+                              std::vector<std::vector<Fr>> const& a) {
+  h256_t digest;
   CryptoPP::Keccak_256 hash;
-  HashUpdate(hash, seed);
   for (auto const& i : cx) {
     HashUpdate(hash, i);
   }
@@ -71,6 +71,23 @@ inline void AdaptUpdateSeed(h256_t& seed, std::vector<G1> const& cx,
     for (auto const& j : i) {
       HashUpdate(hash, j);
     }
+  }
+  hash.Final(digest.data());
+  return digest;
+}
+
+template<typename Item>
+void AdaptUpdateSeed(h256_t& seed, std::vector<Item> const& items) {
+  std::vector<h256_t> digests(items.size());
+  auto parallel_f = [&digests,&items](int64_t i) {
+    digests[i] = AdaptItemDigest(items[i].cx, items[i].a);
+  };
+  parallel::For(items.size(), parallel_f);
+
+  CryptoPP::Keccak_256 hash;
+  HashUpdate(hash, seed);
+  for (auto const& i : digests) {
+    HashUpdate(hash, i);
   }
   hash.Final(seed.data());
 }
@@ -92,9 +109,10 @@ inline void AdaptProve(h256_t seed, AdaptProveItemMan& item_man,
               return a.order_tag < b.order_tag;
             });
 
-  for (auto const& i : items) {
-    std::cout << i.order_tag << "\n";
 #ifdef _DEBUG_CHECK
+  for (auto const& i : items) {
+    //std::cout << i.order_tag << "\n";
+
     if (!i.CheckFormat()) {
       std::string errmsg = i.order_tag + " oops";
       std::cout << errmsg << "\n";
@@ -105,19 +123,26 @@ inline void AdaptProve(h256_t seed, AdaptProveItemMan& item_man,
       std::cout << errmsg << "\n";
       throw std::runtime_error(errmsg);
     }
-#endif
-    AdaptUpdateSeed(seed, i.cx, i.a);
   }
+#endif    
+  
+  for (auto const& i : items) {
+    std::cout << __FN__ << " " << i.order_tag << "," << i.a.size() << "*"
+              << i.a[0].size() << "\n";
+  }
+
+  AdaptUpdateSeed(seed, items);
 
   std::vector<Fr> e(items.size());
   AdaptComputeFst(seed, e);
   std::cout << __FN__ << "  " << e[0] << "\n";
 
-  for (size_t i = 0; i < items.size(); ++i) {
+  auto pf = [&items,&e](int64_t i) {
     for (auto& j : items[i].a) {
       j *= e[i];
     }
-  }
+  };
+  parallel::For(items.size(), pf);
 
   // combine
   size_t vector_count = 0;
@@ -148,10 +173,15 @@ inline void AdaptProve(h256_t seed, AdaptProveItemMan& item_man,
   }
 
   // align
+  size_t pad_len = 0;
   for (size_t i = 0; i < combined_x.size(); ++i) {
+    std::cout << __FN__ << " " << combined_x[i].size() << "->" << vector_maxlen
+              << "\n";
+    pad_len += vector_maxlen - combined_x[i].size();
     combined_x[i].resize(vector_maxlen, FrZero());
     combined_a[i].resize(vector_maxlen, FrZero());
   }
+  std::cout << __FN__ << " pad_len:" << pad_len << "\n";
 
   hyrax::A4::ProveInput input(std::move(combined_x), std::move(combined_a),
                               FrZero(), pc::kGetRefG1, pc::PcU());
@@ -165,7 +195,8 @@ inline void AdaptProve(h256_t seed, AdaptProveItemMan& item_man,
 
   hyrax::A4::AlignData(input, com_pub, com_sec);
 
-  hyrax::A4::Prove(proof, seed, input, com_pub, com_sec);
+  hyrax::A4::Prove(proof, seed, std::move(input), std::move(com_pub), 
+                   std::move(com_sec));
 }
 
 inline bool AdaptVerify(h256_t seed, AdaptVerifyItemMan& item_man,
@@ -181,21 +212,25 @@ inline bool AdaptVerify(h256_t seed, AdaptVerifyItemMan& item_man,
               return a.order_tag < b.order_tag;
             });
 
-  for (auto const& i : items) {
-    std::cout << i.order_tag << "\n";
-    if (!i.CheckFormat()) throw std::runtime_error("oops");
-    AdaptUpdateSeed(seed, i.cx, i.a);
+  for (auto const& i : items) {    
+    if (!i.CheckFormat()) {
+      std::cout << i.order_tag << " format error\n";
+      throw std::runtime_error("oops");
+    }
   }
+
+  AdaptUpdateSeed(seed, items);
 
   std::vector<Fr> e(items.size());
   AdaptComputeFst(seed, e);
   std::cout << __FN__ << " " << e[0] << "\n";
 
-  for (size_t i = 0; i < items.size(); ++i) {
+  auto pf = [&items,&e](int64_t i) {
     for (auto& j : items[i].a) {
       j *= e[i];
     }
-  }
+  };
+  parallel::For(items.size(), pf);
 
   // combine
   size_t vector_count = 0;

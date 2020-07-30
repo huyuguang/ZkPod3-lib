@@ -112,7 +112,10 @@ inline bool TestSerialize(std::string const& working_path) {
     std::cout << "\n";
 
     std::cout << "proof adapt: " << YasGetBinLen(proof.adapt_proof) << "\n";
-    std::cout << "proof r1cs: " << YasGetBinLen(proof.r1cs_proof) << "\n";
+    std::cout << "proof r1cs conv: " << YasGetBinLen(proof.r1cs_proof_conv)
+              << "\n";
+    std::cout << "proof r1cs misc: " << YasGetBinLen(proof.r1cs_proof_misc)
+              << "\n";
     std::cout << "\n";
     return true;
   } catch (std::exception& e) {

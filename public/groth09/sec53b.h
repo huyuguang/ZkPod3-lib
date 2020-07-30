@@ -36,11 +36,8 @@ struct Sec53b {
       int64_t old_m = a.size();
       int64_t new_m = (int64_t)misc::Pow2UB(old_m);
       if (new_m > old_m) {
-        // static const G1 g0 = G1Zero();
         a.resize(new_m, G1Zero());
-        // std::fill(a.begin() + old_m, a.end(), g0);
         b.resize(new_m, G1Zero());
-        // std::fill(b.begin() + old_m, b.end(), g0);
       }
     }
   };
@@ -53,11 +50,8 @@ struct Sec53b {
       int64_t old_m = r.size();
       int64_t new_m = (int64_t)misc::Pow2UB(old_m);
       if (new_m > old_m) {
-        // static const Fr f0 = FrZero();
         r.resize(new_m, FrZero());
-        // std::fill(r.begin() + old_m, r.end(), f0);
         s.resize(new_m, FrZero());
-        // std::fill(s.begin() + old_m, s.end(), f0);
       }
     }
   };
@@ -126,8 +120,6 @@ struct Sec53b {
       int64_t new_m = (int64_t)misc::Pow2UB(old_m);
       if (old_m == new_m) return;
 
-      // auto const& f0 = FrZero();
-
       x.resize(new_m);
       y.resize(new_m);
       yt.resize(new_m);
@@ -135,34 +127,39 @@ struct Sec53b {
       for (int64_t i = old_m; i < new_m; ++i) {
         auto& x_i = x[i];
         x_i.resize(n(), FrZero());
-        // std::fill(x_i.begin(), x_i.end(), f0);
         auto& y_i = y[i];
         y_i.resize(n(), FrZero());
-        // std::fill(y_i.begin(), y_i.end(), f0);
         auto& yt_i = yt[i];
         yt_i.resize(n(), FrZero());
-        // std::fill(yt_i.begin(), yt_i.end(), f0);
       }
     }
 
     void Update(Fr const& sigma_xy1, Fr const& sigma_xy2, Fr const& e,
                 Fr const& ee) {
-      // Tick tick(__FN__);
+      Tick tick(__FN__, std::to_string(m()) + "," + std::to_string(n()));
       auto m2 = m() / 2;
-      for (int64_t i = 0; i < m2; ++i) {
-        x[i] = x[2 * i + 1] * e + x[2 * i];
+
+      {
+        std::vector<std::vector<Fr>> x2(m2);
+        std::vector<std::vector<Fr>> y2(m2);
+
+        auto pf1 = [this, &x2, &y2, &e](int64_t i) {
+          x2[i] = x[2 * i + 1] * e + x[2 * i];
+          y2[i] = y[2 * i] * e + y[2 * i + 1];
+        };
+        parallel::For(m2, pf1, n() < 1024);
+        x2.swap(x);
+        y2.swap(y);
       }
-      x.resize(m2);
 
-      for (int64_t i = 0; i < m2; ++i) {
-        y[i] = y[2 * i] * e + y[2 * i + 1];
+      {
+        std::vector<std::vector<Fr>> yt2(m2);
+        auto parallel_f = [this, &yt2](int64_t i) {
+          yt2[i] = HadamardProduct(y[i], t);
+        };
+        parallel::For(m2, parallel_f, n() < 1024);
+        yt2.swap(yt);
       }
-      y.resize(m2);
-
-      auto parallel_f = [this](int64_t i) { yt[i] = HadamardProduct(y[i], t); };
-      parallel::For(m2, parallel_f, m2 < 1024);
-
-      yt.resize(m2);
 
       z = sigma_xy1 * ee + z * e + sigma_xy2;
     }
@@ -227,8 +224,10 @@ struct Sec53b {
     com_pub->b.resize(m);
 
     auto parallel_f = [&input, &com_pub, &com_sec](int64_t i) mutable {
-      com_pub->a[i] = pc::ComputeCom(input.get_gx, input.x[i], com_sec.r[i]);
-      com_pub->b[i] = pc::ComputeCom(input.get_gy, input.y[i], com_sec.s[i]);
+      com_pub->a[i] =
+          pc::ComputeCom(input.get_gx, input.x[i], com_sec.r[i], true);
+      com_pub->b[i] =
+          pc::ComputeCom(input.get_gy, input.y[i], com_sec.s[i], true);
     };
     parallel::For(m, parallel_f, n < 16 * 1024);
 

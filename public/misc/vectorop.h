@@ -8,7 +8,7 @@
 template <typename T>
 void VectorMul(std::vector<T>& c, std::vector<T> const& a, T const& b) {
   c.resize(a.size());
-  auto parallel_f = [&c, &a, &b](size_t i) { c[i] = a[i] * b; };
+  auto parallel_f = [&c, &a, &b](size_t i) { c[i] = OpFrMul(a[i], b); };
   parallel::For(a.size(), parallel_f, a.size() < 16 * 1024);
 }
 
@@ -16,7 +16,7 @@ template <typename T>
 void VectorMul(std::vector<T>& c, int64_t n,
                std::function<T const&(int64_t)>& get_a, T const& b) {
   c.resize(n);
-  auto parallel_f = [&c, &get_a, &b](size_t i) { c[i] = get_a(i) * b; };
+  auto parallel_f = [&c, &get_a, &b](size_t i) { c[i] = OpFrMul(get_a(i), b); };
   parallel::For(n, parallel_f, n < 16 * 1024);
 }
 
@@ -24,7 +24,7 @@ template <typename T>
 void VectorAdd(std::vector<T>& c, std::vector<T> const& a, T const& b) {
   c.resize(a.size());
   for (size_t i = 0; i < a.size(); ++i) {
-    c[i] = a[i] + b;
+    c[i] = OpFrAdd(a[i], b);
   }
 }
 
@@ -33,17 +33,23 @@ void VectorAdd(std::vector<T>& c, int64_t n,
                std::function<T const&(int64_t)>& get_a, T const& b) {
   c.resize(n);
   for (int64_t i = 0; i < n; ++i) {
-    c[i] = get_a(i) + b;
+    c[i] = OpFrAdd(get_a(i), b);
   }
 }
 
 template <typename T>
 void VectorAdd(std::vector<T>& c, std::vector<T> const& a,
                std::vector<T> const& b) {
-  assert(a.size() == b.size());
-  c.resize(a.size());
-  for (size_t i = 0; i < a.size(); ++i) {
-    c[i] = a[i] + b[i];
+  auto const& aa = a.size() >= b.size() ? a : b;
+  auto const& bb = a.size() >= b.size() ? b : a;
+
+  c.resize(aa.size());
+  for (size_t i = 0; i < aa.size(); ++i) {
+    if (i < bb.size()) {
+      c[i] = OpFrAdd(a[i], b[i]);
+    } else {
+      c[i] = aa[i];
+    }
   }
 }
 
@@ -53,7 +59,7 @@ void VectorAdd(std::vector<T>& c, int64_t n,
                std::function<T const&(int64_t)>& get_b) {
   c.resize(n);
   for (int64_t i = 0; i < n; ++i) {
-    c[i] = get_a(i) + get_b(i);
+    c[i] = OpFrAdd(get_a(i), get_b(i));
   }
 }
 

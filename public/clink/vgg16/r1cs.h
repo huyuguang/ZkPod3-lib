@@ -30,7 +30,7 @@ inline void R1csProve(h256_t seed, R1csProveItemMan& item_man,
                       clink::ParallelR1cs<R1cs>::Proof& proof) {
   Tick tick(__FN__);
   std::vector<R1csProveItem> items;
-  item_man.take(items);  // TODO: move out
+  item_man.take(items);
 
   std::vector<BatchR1cs<Policy>::ProveInput*> inputs(items.size());
   for (size_t i = 0; i < inputs.size(); ++i) {

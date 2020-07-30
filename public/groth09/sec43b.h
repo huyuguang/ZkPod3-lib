@@ -28,13 +28,9 @@ struct Sec43b {
       int64_t old_m = a.size();
       int64_t new_m = (int64_t)misc::Pow2UB(old_m);
       if (new_m > old_m) {
-        // G1 const& g0 = G1Zero();
         a.resize(new_m, G1Zero());
-        // std::fill(a.begin() + old_m, a.end(), g0);
         b.resize(new_m, G1Zero());
-        // std::fill(b.begin() + old_m, b.end(), g0);
         c.resize(new_m, G1Zero());
-        // std::fill(c.begin() + old_m, c.end(), g0);
       }
     }
   };
@@ -47,13 +43,9 @@ struct Sec43b {
       int64_t old_m = r.size();
       int64_t new_m = (int64_t)misc::Pow2UB(old_m);
       if (new_m > old_m) {
-        // Fr const& f0 = FrZero();
         r.resize(new_m, FrZero());
-        // std::fill(r.begin() + old_m, r.end(), f0);
         s.resize(new_m, FrZero());
-        // std::fill(s.begin() + old_m, s.end(), f0);
         t.resize(new_m, FrZero());
-        // std::fill(t.begin() + old_m, t.end(), f0);
       }
     }
   };
@@ -140,15 +132,6 @@ struct Sec43b {
         x[i] = vf0;
         y[i] = vf0;
         z[i] = vf0;
-        // auto& xi = x[i];
-        // xi.resize(n());
-        // std::fill(xi.begin(), xi.end(), f0);
-        // auto& yi = y[i];
-        // yi.resize(n());
-        // std::fill(yi.begin(), yi.end(), f0);
-        // auto& zi = z[i];
-        // zi.resize(n());
-        // std::fill(zi.begin(), zi.end(), f0);
       }
     }
   };
@@ -171,9 +154,12 @@ struct Sec43b {
     com_pub.c.resize(m);
 
     auto parallel_f = [&com_sec, &com_pub, &input](int64_t i) {
-      com_pub.a[i] = pc::ComputeCom(input.get_gx, input.x[i], com_sec.r[i]);
-      com_pub.b[i] = pc::ComputeCom(input.get_gy, input.y[i], com_sec.s[i]);
-      com_pub.c[i] = pc::ComputeCom(input.get_gz, input.z[i], com_sec.t[i]);
+      com_pub.a[i] =
+          pc::ComputeCom(input.get_gx, input.x[i], com_sec.r[i], true);
+      com_pub.b[i] =
+          pc::ComputeCom(input.get_gy, input.y[i], com_sec.s[i], true);
+      com_pub.c[i] =
+          pc::ComputeCom(input.get_gz, input.z[i], com_sec.t[i], true);
     };
     parallel::For(m, parallel_f);
   }

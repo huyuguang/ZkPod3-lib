@@ -77,10 +77,12 @@ struct A4 {
 
     void Update(Fr const& e) {
       auto m2 = m() / 2;
-      for (int64_t i = 0; i < m2; ++i) {
-        a[i] = a[2 * i] * e + a[2 * i + 1];
-      }
-      a.resize(m2);
+      std::vector<std::vector<Fr>> a2(m2);
+      auto pf = [this, &a2, &e](int64_t i) {
+        a2[i] = a[2 * i] * e + a[2 * i + 1];
+      };
+      parallel::For(m2, pf, n() < 1024);
+      a2.swap(a);
     }
   };
 
@@ -114,38 +116,47 @@ struct A4 {
       for (auto const& i : a) {
         if (max_len < i.size()) max_len = i.size();
       }
+
+      size_t pad_len = 0;
+
       for (auto& i : a) {
+        pad_len += max_len - i.size();
         i.resize(max_len, FrZero());
       }
+
       for (auto& i : x) {
+        pad_len += max_len - i.size();
         i.resize(max_len, FrZero());
       }
 
       int64_t old_m = m();
       int64_t new_m = (int64_t)misc::Pow2UB(old_m);
-      if (old_m == new_m) return;
+      std::cout << __FN__ << " max_len: " << max_len << ", pad_len: " << pad_len
+                << ", m: " << old_m << "->" << new_m << "\n";
 
-      x.resize(new_m);
-      a.resize(new_m);
+      if (old_m < new_m) {
+        x.resize(new_m);
+        a.resize(new_m);
 
-      for (int64_t i = old_m; i < new_m; ++i) {
-        x[i].resize(max_len, FrZero());
-        a[i].resize(max_len, FrZero());
+        for (int64_t i = old_m; i < new_m; ++i) {
+          x[i].resize(max_len, FrZero());
+          a[i].resize(max_len, FrZero());
+        }
       }
     }
 
     void Update(Fr const& alpha, Fr const& beta, Fr const& e, Fr const& ee) {
-      // Tick tick(__FN__);
+      Tick tick(__FN__, std::to_string(m()) + "," + std::to_string(n()));
       auto m2 = m() / 2;
-      for (int64_t i = 0; i < m2; ++i) {
-        x[i] = x[2 * i + 1] * e + x[2 * i];
-      }
-      x.resize(m2);
-
-      for (int64_t i = 0; i < m2; ++i) {
-        a[i] = a[2 * i] * e + a[2 * i + 1];
-      }
-      a.resize(m2);
+      std::vector<std::vector<Fr>> x2(m2);
+      std::vector<std::vector<Fr>> a2(m2);
+      auto pf = [this, &x2, &a2, &e](int64_t i) {
+        x2[i] = x[2 * i + 1] * e + x[2 * i];
+        a2[i] = a[2 * i] * e + a[2 * i + 1];
+      };
+      parallel::For(m2, pf, n() < 1024);
+      x2.swap(x);
+      a2.swap(a);
 
       z = alpha * ee + z * e + beta;
     }
@@ -206,14 +217,15 @@ struct A4 {
 
   static void ComputeCom(ProveInput const& input, CommitmentPub* com_pub,
                          CommitmentSec const& com_sec) {
-    // Tick tick(__FN__);
+    Tick tick(__FN__);
     auto const m = input.m();
     // auto const n = input.n();
 
     com_pub->cx.resize(m);
 
     auto parallel_f = [&input, &com_pub, &com_sec](int64_t i) {
-      com_pub->cx[i] = pc::ComputeCom(input.get_gx, input.x[i], com_sec.r[i]);
+      com_pub->cx[i] =
+          pc::ComputeCom(input.get_gx, input.x[i], com_sec.r[i], true);
     };
     parallel::For(m, parallel_f);
 
@@ -235,7 +247,7 @@ struct A4 {
   static void ProveFinal(Proof& proof, h256_t const& seed,
                          ProveInput const& input, CommitmentPub const& com_pub,
                          CommitmentSec const& com_sec) {
-    // Tick tick(__FN__);
+    Tick tick(__FN__);
     assert(input.m() == 1);
 
     A3::ProveInput input_a3(input.x[0], input.a[0], input.z, input.get_gx,
@@ -246,7 +258,7 @@ struct A4 {
   }
 
   static void ComputeSigmaXA(ProveInput const& input, Fr* alpha, Fr* beta) {
-    // Tick tick(__FN__);
+    Tick tick(__FN__);
     int64_t m = input.m();
     auto m2 = m / 2;
     std::vector<Fr> xa1(m2, FrZero());
@@ -269,7 +281,7 @@ struct A4 {
   static void UpdateCom(CommitmentPub& com_pub, CommitmentSec& com_sec,
                         Fr const& tl, Fr const& tu, G1 const& cl, G1 const& cu,
                         Fr const& e, Fr const& ee) {
-    // Tick tick(__FN__);
+    Tick tick(__FN__);
     CommitmentPub com_pub2;
     CommitmentSec com_sec2;
     auto m2 = com_pub.cx.size() / 2;
@@ -311,7 +323,7 @@ struct A4 {
   // pad some trivial value
   static void AlignData(ProveInput& input, CommitmentPub& com_pub,
                         CommitmentSec& com_sec) {
-    // Tick tick(__FN__);
+    Tick tick(__FN__);
     input.Align();
     com_sec.Align();
     com_pub.Align();
@@ -319,7 +331,7 @@ struct A4 {
 
   static void ProveRecursive(Proof& proof, h256_t& seed, ProveInput& input,
                              CommitmentPub& com_pub, CommitmentSec& com_sec) {
-    // Tick tick(__FN__);
+    Tick tick(__FN__);
     assert(input.m() > 1);
 
     Fr alpha, beta;
@@ -350,8 +362,8 @@ struct A4 {
 #endif
   }
 
-  static void Prove(Proof& proof, h256_t seed, ProveInput input,
-                    CommitmentPub com_pub, CommitmentSec com_sec) {
+  static void Prove(Proof& proof, h256_t seed, ProveInput&& input,
+                    CommitmentPub&& com_pub, CommitmentSec&& com_sec) {
     // Tick tick(__FN__);
     while (input.m() > 1) {
       ProveRecursive(proof, seed, input, com_pub, com_sec);
@@ -441,7 +453,9 @@ struct A4 {
     AlignData(prove_input, com_pub, com_sec);
 
     Proof proof;
-    Prove(proof, seed, prove_input, com_pub, com_sec);
+    auto com_pub_copy = com_pub;
+    Prove(proof, seed, std::move(prove_input), std::move(com_pub),
+          std::move(com_sec));
 
 #ifndef DISABLE_SERIALIZE_CHECK
     // serialize to buffer
@@ -461,7 +475,7 @@ struct A4 {
     }
 #endif
 
-    VerifyInput verify_input(com_pub, get_gx, std::move(a), pc::PcU());
+    VerifyInput verify_input(com_pub_copy, get_gx, std::move(a), pc::PcU());
     bool success = Verify(proof, seed, verify_input);
     std::cout << __FILE__ << " " << __FN__ << ": " << success << "\n\n\n\n\n\n";
     return success;

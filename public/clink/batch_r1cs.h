@@ -60,14 +60,23 @@ struct BatchR1cs {
 
     std::vector<typename Sec43::CommitmentPub> com_pubs(inputs.size());
     std::vector<typename Sec43::CommitmentSec> com_secs(inputs.size());
-    // TODO: parallel
-    for (size_t i = 0; i < inputs.size(); ++i) {
+
+    auto pf = [&inputs, &com_pubs, &com_secs](int64_t i) {
       auto const& input = *inputs[i];
       auto& com_pub = com_pubs[i];
       auto& com_sec = com_secs[i];
       BaseR1cs::BuildHpCom(input.m, input.n, input.com_w, input.com_w_r,
                            input.constraints(), input.get_g, com_pub, com_sec);
-    }
+    };
+    parallel::For(inputs.size(), pf);
+
+    //for (size_t i = 0; i < inputs.size(); ++i) {
+    //  auto const& input = *inputs[i];
+    //  auto& com_pub = com_pubs[i];
+    //  auto& com_sec = com_secs[i];
+    //  BaseR1cs::BuildHpCom(input.m, input.n, input.com_w, input.com_w_r,
+    //                       input.constraints(), input.get_g, com_pub, com_sec);
+    //}
 
     size_t combined_m = 0;
     size_t combined_n = 0;
@@ -150,13 +159,21 @@ struct BatchR1cs {
     UpdateSeed(seed, inputs);
     std::cout << __FN__ << " " << misc::HexToStr(seed) << "\n";
     std::vector<typename Sec43::CommitmentPub> com_pubs(inputs.size());
-    // TODO: parallel
-    for (size_t i = 0; i < inputs.size(); ++i) {
+
+    auto pf = [&inputs, &com_pubs](int64_t i) {
       auto const& input = *inputs[i];
       auto& com_pub = com_pubs[i];
       BaseR1cs::BuildHpCom(input.m, input.n, input.com_w, input.constraints(),
                            input.get_g, com_pub);
-    }
+    };
+    parallel::For(inputs.size(), pf);
+
+    //for (size_t i = 0; i < inputs.size(); ++i) {
+    //  auto const& input = *inputs[i];
+    //  auto& com_pub = com_pubs[i];
+    //  BaseR1cs::BuildHpCom(input.m, input.n, input.com_w, input.constraints(),
+    //                       input.get_g, com_pub);
+    //}
 
     size_t combined_m = 0;
     size_t combined_n = 0;
