@@ -97,6 +97,39 @@ inline void AdaptComputeFst(h256_t const& seed, std::vector<Fr>& e) {
   ComputeFst(seed, salt, e);
 }
 
+
+inline std::vector<size_t> AdaptGetCombinedItemOrder(
+    std::vector<std::vector<Fr>> const& combined_a) {
+  std::vector<size_t> order(combined_a.size());
+  for (size_t i = 0; i < order.size(); ++i) {
+    order[i] = i;
+  }
+
+  std::sort(order.begin(), order.end(), [&combined_a](size_t a, size_t b) {
+    auto len_a = combined_a[a].size();
+    auto len_b = combined_a[b].size();
+    if (len_a == len_b) return a > b;
+    return len_a > len_b;
+  });
+
+  return order;
+}
+
+template<typename T>
+void AdaptPermuteCombinedItems(std::vector<size_t> const& order,
+                               std::vector<T>& combined_v) {
+  if (order.size() != combined_v.size()) {
+    std::cerr << __FN__ << " oops";
+    throw std::runtime_error("oops");
+  }
+
+  std::vector<T> v2(combined_v.size());
+  for (size_t i = 0; i < order.size();++i) {
+    v2[i] = std::move(combined_v[order[i]]);
+  }
+  combined_v.swap(v2);
+}
+
 inline void AdaptProve(h256_t seed, AdaptProveItemMan& item_man,
                        hyrax::A4::Proof& proof) {
   Tick tick(__FN__);
@@ -146,14 +179,8 @@ inline void AdaptProve(h256_t seed, AdaptProveItemMan& item_man,
 
   // combine
   size_t vector_count = 0;
-  size_t vector_maxlen = 0;
   for (auto const& i : items) {
     vector_count += i.x.size();
-    for (auto const& j : i.x) {
-      if (vector_maxlen < j.size()) {
-        vector_maxlen = j.size();
-      }
-    }
   }
 
   std::vector<std::vector<Fr>> combined_x(vector_count);
@@ -172,16 +199,11 @@ inline void AdaptProve(h256_t seed, AdaptProveItemMan& item_man,
     }
   }
 
-  // align
-  size_t pad_len = 0;
-  for (size_t i = 0; i < combined_x.size(); ++i) {
-    std::cout << __FN__ << " " << combined_x[i].size() << "->" << vector_maxlen
-              << "\n";
-    pad_len += vector_maxlen - combined_x[i].size();
-    combined_x[i].resize(vector_maxlen, FrZero());
-    combined_a[i].resize(vector_maxlen, FrZero());
-  }
-  std::cout << __FN__ << " pad_len:" << pad_len << "\n";
+  auto order = AdaptGetCombinedItemOrder(combined_a);
+  AdaptPermuteCombinedItems(order, combined_a);
+  AdaptPermuteCombinedItems(order, combined_x);
+  AdaptPermuteCombinedItems(order, combined_cx);
+  AdaptPermuteCombinedItems(order, combined_rx);
 
   hyrax::A4::ProveInput input(std::move(combined_x), std::move(combined_a),
                               FrZero(), pc::kGetRefG1, pc::PcU());
@@ -234,14 +256,8 @@ inline bool AdaptVerify(h256_t seed, AdaptVerifyItemMan& item_man,
 
   // combine
   size_t vector_count = 0;
-  size_t vector_maxlen = 0;
   for (auto const& i : items) {
     vector_count += i.a.size();
-    for (auto const& j : i.a) {
-      if (vector_maxlen < j.size()) {
-        vector_maxlen = j.size();
-      }
-    }
   }
 
   std::vector<std::vector<Fr>> combined_a(vector_count);
@@ -256,11 +272,10 @@ inline bool AdaptVerify(h256_t seed, AdaptVerifyItemMan& item_man,
     }
   }
 
-  // align
-  for (size_t i = 0; i < combined_a.size(); ++i) {
-    combined_a[i].resize(vector_maxlen, FrZero());
-  }
-
+  auto order = AdaptGetCombinedItemOrder(combined_a);
+  AdaptPermuteCombinedItems(order, combined_a);
+  AdaptPermuteCombinedItems(order, combined_cx);
+  
   hyrax::A4::CommitmentPub com_pub;
   com_pub.cx = std::move(combined_cx);
   com_pub.cz = G1Zero();

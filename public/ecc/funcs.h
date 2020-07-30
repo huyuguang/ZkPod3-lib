@@ -376,8 +376,9 @@ inline Fr InnerProduct(Fr const* a, Fr const* b, size_t n) {
 }
 
 inline Fr InnerProduct(std::vector<Fr> const& a, std::vector<Fr> const& b) {
-  assert(a.size() == b.size());
-  return InnerProduct(a.data(), b.data(), a.size());
+  // assert(a.size() == b.size());
+  size_t n = std::min(a.size(), b.size());
+  return InnerProduct(a.data(), b.data(), n);
 }
 
 inline Fr InnerProduct(std::function<Fr(size_t)> const& get_a,

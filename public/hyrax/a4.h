@@ -45,23 +45,10 @@ struct A4 {
 
   struct VerifyInput {
     VerifyInput(CommitmentPub const& com_pub, GetRefG1 const& get_gx,
-                std::vector<std::vector<Fr>> ia, G1 const& gz)
+                std::vector<std::vector<Fr>>&& ia, G1 const& gz)
         : com_pub(com_pub), get_gx(get_gx), a(std::move(ia)), gz(gz) {
-      // align
-      size_t max_len = 0;
-      for (auto const& i : a) {
-        if (max_len < i.size()) max_len = i.size();
-      }
-      for (auto& i : a) {
-        i.resize(max_len, FrZero());
-      }
-
       if (m() > (int64_t)a.size()) {
-        auto old_size = a.size();
         a.resize(m());
-        for (int64_t i = old_size; i < m(); ++i) {
-          a[i].resize(max_len, FrZero());
-        }
       }
     }
     CommitmentPub com_pub;
@@ -96,8 +83,9 @@ struct A4 {
     int64_t m() const { return x.size(); }
     int64_t n() const { return x[0].size(); }
 
-    ProveInput(std::vector<std::vector<Fr>> ix, std::vector<std::vector<Fr>> ia,
-               Fr const& z, GetRefG1 const& get_gx, G1 const& gz)
+    ProveInput(std::vector<std::vector<Fr>>&& ix,
+               std::vector<std::vector<Fr>>&& ia, Fr const& z,
+               GetRefG1 const& get_gx, G1 const& gz)
         : x(std::move(ix)), a(std::move(ia)), z(z), get_gx(get_gx), gz(gz) {
 #ifdef _DEBUG_CHECK
       assert(!x.empty() && x.size() == a.size());
@@ -110,38 +98,13 @@ struct A4 {
 #endif
     }
 
-    // pad some trivial values
     void Align() {
-      size_t max_len = 0;
-      for (auto const& i : a) {
-        if (max_len < i.size()) max_len = i.size();
-      }
-
-      size_t pad_len = 0;
-
-      for (auto& i : a) {
-        pad_len += max_len - i.size();
-        i.resize(max_len, FrZero());
-      }
-
-      for (auto& i : x) {
-        pad_len += max_len - i.size();
-        i.resize(max_len, FrZero());
-      }
-
       int64_t old_m = m();
       int64_t new_m = (int64_t)misc::Pow2UB(old_m);
-      std::cout << __FN__ << " max_len: " << max_len << ", pad_len: " << pad_len
-                << ", m: " << old_m << "->" << new_m << "\n";
-
+      std::cout << __FN__ << ", m: " << old_m << "->" << new_m << "\n";
       if (old_m < new_m) {
         x.resize(new_m);
         a.resize(new_m);
-
-        for (int64_t i = old_m; i < new_m; ++i) {
-          x[i].resize(max_len, FrZero());
-          a[i].resize(max_len, FrZero());
-        }
       }
     }
 
@@ -224,8 +187,7 @@ struct A4 {
     com_pub->cx.resize(m);
 
     auto parallel_f = [&input, &com_pub, &com_sec](int64_t i) {
-      com_pub->cx[i] =
-          pc::ComputeCom(input.get_gx, input.x[i], com_sec.r[i], true);
+      com_pub->cx[i] = pc::ComputeCom(input.get_gx, input.x[i], com_sec.r[i]);
     };
     parallel::For(m, parallel_f);
 
@@ -445,7 +407,8 @@ struct A4 {
       return pc::PcG()[x_g_offset + i];
     };
 
-    ProveInput prove_input(std::move(x), a, z, get_gx, pc::PcU());
+    auto a_copy = a;
+    ProveInput prove_input(std::move(x), std::move(a), z, get_gx, pc::PcU());
     CommitmentPub com_pub;
     CommitmentSec com_sec;
     ComputeCom(prove_input, &com_pub, &com_sec);
@@ -475,7 +438,8 @@ struct A4 {
     }
 #endif
 
-    VerifyInput verify_input(com_pub_copy, get_gx, std::move(a), pc::PcU());
+    VerifyInput verify_input(com_pub_copy, get_gx, std::move(a_copy),
+                             pc::PcU());
     bool success = Verify(proof, seed, verify_input);
     std::cout << __FILE__ << " " << __FN__ << ": " << success << "\n\n\n\n\n\n";
     return success;
