@@ -80,10 +80,8 @@ struct BatchR1cs {
     //}
 
     size_t combined_m = 0;
-    size_t combined_n = 0;
     for (auto const& input : inputs) {
       combined_m += input->m;
-      combined_n = std::max<size_t>(combined_n, input->n);
     }
     std::vector<std::vector<Fr>> combined_x(combined_m);
     std::vector<std::vector<Fr>> combined_y(combined_m);
@@ -104,9 +102,6 @@ struct BatchR1cs {
         combined_x[cursor] = std::move(input.x[j]);
         combined_y[cursor] = std::move(input.y[j]);
         combined_z[cursor] = std::move(input.z[j]);
-        combined_x[cursor].resize(combined_n, FrZero());
-        combined_y[cursor].resize(combined_n, FrZero());
-        combined_z[cursor].resize(combined_n, FrZero());
         combined_a[cursor] = com_pub.a[j];
         combined_b[cursor] = com_pub.b[j];
         combined_c[cursor] = com_pub.c[j];
