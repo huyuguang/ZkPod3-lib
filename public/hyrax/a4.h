@@ -18,49 +18,34 @@ struct A4 {
     std::vector<G1> cx;
     G1 cz;
     int64_t m() const { return cx.size(); }
-    bool CheckFormat() const {
-      if (cx.empty()) return false;
-      return misc::Pow2UB(m()) == (uint64_t)m();
-    }
-    void Align() {
-      int64_t old_m = cx.size();
-      int64_t new_m = (int64_t)misc::Pow2UB(old_m);
-      if (new_m > old_m) {
-        cx.resize(new_m, G1Zero());
-      }
-    }
   };
 
   struct CommitmentSec {
     std::vector<Fr> r;  // r.size = m
     Fr t;
-    void Align() {
-      int64_t old_m = r.size();
-      int64_t new_m = (int64_t)misc::Pow2UB(old_m);
-      if (new_m > old_m) {
-        r.resize(new_m, FrZero());
-      }
-    }
   };
 
   struct VerifyInput {
-    VerifyInput(CommitmentPub const& com_pub, GetRefG1 const& get_gx,
-                std::vector<std::vector<Fr>>&& ia, G1 const& gz)
-        : com_pub(com_pub), get_gx(get_gx), a(std::move(ia)), gz(gz) {
-      if (m() > (int64_t)a.size()) {
-        a.resize(m());
-      }
+    VerifyInput(CommitmentPub&& com_pub, GetRefG1 const& get_gx,
+                std::vector<std::vector<Fr>>&& a, G1 const& gz)
+        : com_pub(std::move(com_pub)), get_gx(get_gx), a(std::move(a)), gz(gz) {
+      Check();
     }
     CommitmentPub com_pub;
     GetRefG1 const& get_gx;
     std::vector<std::vector<Fr>> a;
     G1 gz;
+    size_t max_n = 0;
 
     int64_t m() const { return com_pub.m(); }
 
-    int64_t n() const { return a[0].size(); }
+    int64_t n() const { return max_n; }
 
-    bool CheckFormat() const { return com_pub.CheckFormat(); }
+    void SortAndAlign() {
+      auto order = GetSortOrder(a);
+      PermuteAndAlign(order, com_pub);
+      PermuteAndAlign(order, a);
+    }
 
     void Update(Fr const& e) {
       auto m2 = m() / 2;
@@ -68,8 +53,19 @@ struct A4 {
       auto pf = [this, &a2, &e](int64_t i) {
         a2[i] = a[2 * i] * e + a[2 * i + 1];
       };
-      parallel::For(m2, pf, n() < 1024);
+      parallel::For(m2, pf);
       a2.swap(a);
+    }
+
+   private:
+    void Check() {
+      if (com_pub.m() != (int64_t)a.size()) {
+        std::cerr << __FN__ << ":" << __LINE__ << " oops\n";
+        throw std::runtime_error("oops");
+      }
+      for (auto const& i : a) {
+        max_n = std::max(max_n, i.size());
+      }
     }
   };
 
@@ -79,33 +75,24 @@ struct A4 {
     Fr z;
     GetRefG1 const& get_gx;
     G1 const& gz;
+    size_t max_n = 0;
 
-    int64_t m() const { return x.size(); }
-    int64_t n() const { return x[0].size(); }
+    int64_t m() const { return (int64_t)x.size(); }
+    int64_t n() const { return (int64_t)max_n; }
 
-    ProveInput(std::vector<std::vector<Fr>>&& ix,
-               std::vector<std::vector<Fr>>&& ia, Fr const& z,
+    ProveInput(std::vector<std::vector<Fr>>&& x,
+               std::vector<std::vector<Fr>>&& a, Fr const& z,
                GetRefG1 const& get_gx, G1 const& gz)
-        : x(std::move(ix)), a(std::move(ia)), z(z), get_gx(get_gx), gz(gz) {
-#ifdef _DEBUG_CHECK
-      assert(!x.empty() && x.size() == a.size());
-      Fr check_z = FrZero();
-      for (int64_t i = 0; i < m(); ++i) {
-        assert(x[i].size() == a[i].size());
-        check_z += InnerProduct(x[i], a[i]);
-      }
-      assert(z == check_z);
-#endif
+        : x(std::move(x)), a(std::move(a)), z(z), get_gx(get_gx), gz(gz) {
+      Check();
     }
 
-    void Align() {
-      int64_t old_m = m();
-      int64_t new_m = (int64_t)misc::Pow2UB(old_m);
-      std::cout << __FN__ << ", m: " << old_m << "->" << new_m << "\n";
-      if (old_m < new_m) {
-        x.resize(new_m);
-        a.resize(new_m);
-      }
+    void SortAndAlign(CommitmentPub& com_pub, CommitmentSec& com_sec) {
+      auto order = GetSortOrder(a);
+      PermuteAndAlign(order, com_pub);
+      PermuteAndAlign(order, com_sec);
+      PermuteAndAlign(order, x);
+      PermuteAndAlign(order, a);
     }
 
     void Update(Fr const& alpha, Fr const& beta, Fr const& e, Fr const& ee) {
@@ -122,6 +109,29 @@ struct A4 {
       a2.swap(a);
 
       z = alpha * ee + z * e + beta;
+    }
+
+   private:
+    void Check() {
+      if (x.empty() || x.size() != a.size()) {
+        std::cerr << __FN__ << ":" << __LINE__ << " oops\n";
+        throw std::runtime_error("oops");
+      }
+      for (size_t i = 0; i < x.size(); ++i) {
+        if (x[i].size() != a[i].size()) {
+          std::cerr << __FN__ << ":" << __LINE__ << " oops\n";
+          throw std::runtime_error("oops");
+        }
+        max_n = std::max(max_n, x[i].size());
+      }
+
+#ifdef _DEBUG_CHECK
+      Fr check_z = FrZero();
+      for (int64_t i = 0; i < m(); ++i) {
+        check_z += InnerProduct(x[i], a[i]);
+      }
+      assert(z == check_z);
+#endif
     }
   };
 
@@ -282,15 +292,6 @@ struct A4 {
     return H256ToFr(digest);
   }
 
-  // pad some trivial value
-  static void AlignData(ProveInput& input, CommitmentPub& com_pub,
-                        CommitmentSec& com_sec) {
-    Tick tick(__FN__);
-    input.Align();
-    com_sec.Align();
-    com_pub.Align();
-  }
-
   static void ProveRecursive(Proof& proof, h256_t& seed, ProveInput& input,
                              CommitmentPub& com_pub, CommitmentSec& com_sec) {
     Tick tick(__FN__);
@@ -326,7 +327,10 @@ struct A4 {
 
   static void Prove(Proof& proof, h256_t seed, ProveInput&& input,
                     CommitmentPub&& com_pub, CommitmentSec&& com_sec) {
-    // Tick tick(__FN__);
+    Tick tick(__FN__);
+    
+    input.SortAndAlign(com_pub, com_sec);
+
     while (input.m() > 1) {
       ProveRecursive(proof, seed, input, com_pub, com_sec);
     }
@@ -334,7 +338,10 @@ struct A4 {
   }
 
   static bool Verify(Proof const& proof, h256_t seed, VerifyInput input) {
-    // Tick tick(__FN__);
+    Tick tick(__FN__);
+
+    input.SortAndAlign();
+
     if (!proof.CheckFormat(input.m())) {
       assert(false);
       return false;
@@ -377,6 +384,74 @@ struct A4 {
     return A3::Verify(proof.proof_a3, seed, verifier_input_a3);
   }
 
+ private:
+  static std::vector<size_t> GetSortOrder(std::vector<size_t> const& mn) {
+    std::vector<size_t> order(mn.size());
+    for (size_t i = 0; i < order.size(); ++i) {
+      order[i] = i;
+    }
+
+    std::stable_sort(order.begin(), order.end(), [&mn](size_t a, size_t b) {
+      return mn[a] > mn[b];
+    });
+
+    return order;
+  }
+
+  static std::vector<size_t> GetSortOrder(
+      std::vector<std::vector<Fr>> const& data) {
+    std::vector<size_t> mn(data.size());
+    for (size_t i = 0; i < mn.size(); ++i) {
+      mn[i] = data[i].size();
+    }
+    return GetSortOrder(mn);
+  }
+
+  template <typename T>
+  static void Permute(std::vector<size_t> const& order, std::vector<T>& v) {
+    if (order.size() != v.size()) {
+      std::cerr << __FN__ << " oops";
+      throw std::runtime_error("oops");
+    }
+
+    std::vector<T> v2(v.size());
+    for (size_t i = 0; i < order.size(); ++i) {
+      v2[i] = std::move(v[order[i]]);
+    }
+    v.swap(v2);
+  }
+
+  static void PermuteAndAlign(std::vector<size_t> const& order,
+                              CommitmentPub& v) {
+    Permute(order, v.cx);
+    int64_t old_m = v.cx.size();
+    int64_t new_m = (int64_t)misc::Pow2UB(old_m);
+    if (new_m > old_m) {
+      v.cx.resize(new_m, G1Zero());
+    }
+  }
+
+  static void PermuteAndAlign(std::vector<size_t> const& order,
+                              CommitmentSec& v) {
+    Permute(order, v.r);
+    int64_t old_m = v.r.size();
+    int64_t new_m = (int64_t)misc::Pow2UB(old_m);
+    if (new_m > old_m) {
+      v.r.resize(new_m, FrZero());
+    }
+  }
+
+  static void PermuteAndAlign(std::vector<size_t> const& order,
+                              std::vector<std::vector<Fr>>& v) {
+    Permute(order, v);
+    int64_t old_m = v.size();
+    int64_t new_m = (int64_t)misc::Pow2UB(old_m);
+    if (new_m > old_m) {
+      v.resize(new_m);
+    }
+  }
+
+ public:
   static bool Test(int64_t m, int64_t n) {
     Tick tick(__FN__);
     std::cout << "m=" << m << ", n=" << n << "\n";
@@ -413,10 +488,8 @@ struct A4 {
     CommitmentSec com_sec;
     ComputeCom(prove_input, &com_pub, &com_sec);
 
-    AlignData(prove_input, com_pub, com_sec);
-
     Proof proof;
-    auto com_pub_copy = com_pub;
+    auto copy_com_pub = com_pub;
     Prove(proof, seed, std::move(prove_input), std::move(com_pub),
           std::move(com_sec));
 
@@ -438,7 +511,7 @@ struct A4 {
     }
 #endif
 
-    VerifyInput verify_input(com_pub_copy, get_gx, std::move(a_copy),
+    VerifyInput verify_input(std::move(copy_com_pub), get_gx, std::move(a_copy),
                              pc::PcU());
     bool success = Verify(proof, seed, verify_input);
     std::cout << __FILE__ << " " << __FN__ << ": " << success << "\n\n\n\n\n\n";

@@ -25,47 +25,6 @@ inline bool TestInfer(std::string const& test_image_path,
 
   return InferAndCommit(test_image, working_path);
 }
-//
-//inline bool TestConv(std::string const& working_path) {
-//  Tick tick(__FN__);
-//  h256_t seed = misc::RandH256();
-//  ProveContext prove_context(working_path);
-//  VerifyContext verify_context(working_path + "/pub");
-//
-//  bool all_success = false;
-//  auto parallel_f = [&prove_context, &verify_context, &seed](int64_t i) {
-//    auto layer = kConvLayers[i];
-//    OneConvProof proof;
-//    OneConvProve(seed, prove_context, layer, proof);
-//    return OneConvVerify(seed, verify_context, layer, proof);
-//  };
-//  //parallel::For(&all_success, kConvLayers.size(), parallel_f);
-//  all_success = parallel_f(0); // TODO
-//
-//  return all_success;
-//}
-//
-//inline bool TestReluBn(std::string const& working_path) {
-//  Tick tick(__FN__);
-//  h256_t seed = misc::RandH256();
-//  ProveContext prove_context(working_path);
-//  VerifyContext verify_context(working_path + "/pub");
-//
-//  ReluBnProof proof;
-//  ReluBnProve(seed, prove_context, proof);
-//  return ReluBnVerify(seed, verify_context, proof);
-//}
-//
-//inline bool TestPooling(std::string const& working_path) {
-//  Tick tick(__FN__);
-//  h256_t seed = misc::RandH256();
-//  ProveContext prove_context(working_path);
-//  VerifyContext verify_context(working_path + "/pub");
-//
-//  PoolingProof proof;
-//  PoolingProve(seed, prove_context, proof);
-//  return PoolingVerify(seed, verify_context, proof);
-//}
 
 inline bool TestDense(std::string const& working_path) {
   Tick tick(__FN__);

@@ -45,7 +45,6 @@ struct BatchR1cs {
                     std::vector<ProveInput*>&& inputs) {
     Tick tick(__FN__);
     if (inputs.empty()) return;
-    // TODO: sort the inputs
 
     auto const& get_g = inputs[0]->get_g;
     for (auto const& i : inputs) {
@@ -70,14 +69,6 @@ struct BatchR1cs {
                            input.constraints(), input.get_g, com_pub, com_sec);
     };
     parallel::For(inputs.size(), pf);
-
-    //for (size_t i = 0; i < inputs.size(); ++i) {
-    //  auto const& input = *inputs[i];
-    //  auto& com_pub = com_pubs[i];
-    //  auto& com_sec = com_secs[i];
-    //  BaseR1cs::BuildHpCom(input.m, input.n, input.com_w, input.com_w_r,
-    //                       input.constraints(), input.get_g, com_pub, com_sec);
-    //}
 
     size_t combined_m = 0;
     for (auto const& input : inputs) {
@@ -113,7 +104,7 @@ struct BatchR1cs {
     }
 
     typename Sec43::ProveInput input_43(
-        combined_m, std::move(combined_x), std::move(combined_y),
+        std::move(combined_x), std::move(combined_y),
         std::move(combined_z), get_g, get_g, get_g);
 
     typename Sec43::CommitmentPub com_pub_43;
@@ -126,7 +117,6 @@ struct BatchR1cs {
     com_sec_43.t = std::move(combined_t);
     BaseR1cs::DebugCheckHpCom(combined_m, input_43, com_pub_43, com_sec_43);
 
-    Sec43::AlignData(input_43, com_pub_43, com_sec_43);
     Sec43::Prove(proof, seed, std::move(input_43), std::move(com_pub_43),
                  std::move(com_sec_43));
   }
@@ -164,22 +154,13 @@ struct BatchR1cs {
     };
     parallel::For(inputs.size(), pf);
 
-    //for (size_t i = 0; i < inputs.size(); ++i) {
-    //  auto const& input = *inputs[i];
-    //  auto& com_pub = com_pubs[i];
-    //  BaseR1cs::BuildHpCom(input.m, input.n, input.com_w, input.constraints(),
-    //                       input.get_g, com_pub);
-    //}
-
-    size_t combined_m = 0;
-    size_t combined_n = 0;
+    std::vector<size_t> mn;
     for (auto const& i : inputs) {
-      combined_m += i->m;
-      combined_n = std::max<size_t>(combined_n, i->n);
+      mn.resize(mn.size() + i->m, i->n);
     }
-    std::vector<G1> combined_a(combined_m);
-    std::vector<G1> combined_b(combined_m);
-    std::vector<G1> combined_c(combined_m);
+    std::vector<G1> combined_a(mn.size());
+    std::vector<G1> combined_b(mn.size());
+    std::vector<G1> combined_c(mn.size());
 
     size_t cursor = 0;
     for (size_t i = 0; i < inputs.size(); ++i) {
@@ -196,10 +177,9 @@ struct BatchR1cs {
     typename Sec43::CommitmentPub com_pub_43;
     com_pub_43.a = std::move(combined_a);
     com_pub_43.b = std::move(combined_b);
-    com_pub_43.c = std::move(combined_c);
-    com_pub_43.Align();
+    com_pub_43.c = std::move(combined_c);    
 
-    typename Sec43::VerifyInput input_43(combined_m, combined_n, com_pub_43,
+    typename Sec43::VerifyInput input_43(mn, com_pub_43,
                                          get_g, get_g, get_g);
     return Sec43::Verify(proof, seed, input_43);
   }

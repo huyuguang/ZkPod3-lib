@@ -15,6 +15,9 @@
 // prove cost: 2*log(m)*mulexp(n)
 // verify cost: mulexp(n)
 // base on Sec51a
+
+// TODO: sort
+
 namespace groth09 {
 
 struct Sec53a {

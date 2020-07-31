@@ -116,7 +116,7 @@ struct ParallelR1cs {
     UpdateSeed(seed, input.com_w);
 
     // prove hadamard product
-    typename Sec43::ProveInput input_43(m, std::move(input.x),
+    typename Sec43::ProveInput input_43(std::move(input.x),
                                         std::move(input.y), std::move(input.z),
                                         input.get_g, input.get_g, input.get_g);
 
@@ -126,7 +126,6 @@ struct ParallelR1cs {
                input.get_g, com_pub, com_sec);
     DebugCheckHpCom(m, input_43, com_pub, com_sec);
 
-    Sec43::AlignData(input_43, com_pub, com_sec);
     Sec43::Prove(proof, seed, std::move(input_43), std::move(com_pub),
                  std::move(com_sec));
   }
@@ -213,8 +212,9 @@ struct ParallelR1cs {
     typename Sec43::CommitmentPub com_pub;
     BuildHpCom(input.m, input.n, input.com_w, input.constraints(), input.get_g,
                com_pub);
-    com_pub.Align();
-    typename Sec43::VerifyInput input_43(input.m, input.n, com_pub, input.get_g,
+
+    std::vector<size_t> mn(input.m, input.n);
+    typename Sec43::VerifyInput input_43(mn, com_pub, input.get_g,
                                          input.get_g, input.get_g);
     return Sec43::Verify(proof, seed, input_43);
   }

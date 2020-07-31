@@ -35,6 +35,7 @@ inline bool Verify(h256_t seed, std::string const& pub_path,
                                      proof.conv[i], adapt_man, r1cs_man_conv);
     });
   }
+
 #if 1
   // relubn
   tasks.emplace_back([&context, &seed, &proof, &adapt_man, &r1cs_man_misc]() {
@@ -57,7 +58,7 @@ inline bool Verify(h256_t seed, std::string const& pub_path,
   tasks.emplace_back([&context, &seed, &proof]() {
     return DenseVerify<1>(seed, context, proof.dense1);
   });
-#endif  // if 0
+#endif
 
   bool all_success = false;
   auto f1 = [&tasks](int64_t i) { return tasks[i](); };
@@ -69,16 +70,14 @@ inline bool Verify(h256_t seed, std::string const& pub_path,
 
   std::vector<parallel::BoolTask> bool_tasks;
   bool_tasks.emplace_back([&seed, &adapt_man, &proof]() {
-    return true;
-    // TODO: for debug return AdaptVerify(seed, adapt_man, proof.adapt_proof);
+    return AdaptVerify(seed, adapt_man, proof.adapt_proof);
   });
 
   bool_tasks.emplace_back([&seed, &r1cs_man_conv, &proof]() {
-    return true;
-    // TODO: for debug R1csVerify(seed, r1cs_man_conv, proof.r1cs_proof_conv);
+    return R1csVerify(seed, r1cs_man_conv, proof.r1cs_proof_conv);
   });
 
-  bool_tasks.emplace_back([&seed, &r1cs_man_misc, &proof]() {
+  bool_tasks.emplace_back([&seed, &r1cs_man_misc, &proof]() {    
     return R1csVerify(seed, r1cs_man_misc, proof.r1cs_proof_misc);
   });
 

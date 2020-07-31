@@ -24,30 +24,12 @@ struct Sec43b {
     std::vector<G1> a;  // a.size = m
     std::vector<G1> b;  // b.size = m
     std::vector<G1> c;  // c.size = m
-    void Align() {
-      int64_t old_m = a.size();
-      int64_t new_m = (int64_t)misc::Pow2UB(old_m);
-      if (new_m > old_m) {
-        a.resize(new_m, G1Zero());
-        b.resize(new_m, G1Zero());
-        c.resize(new_m, G1Zero());
-      }
-    }
   };
 
   struct CommitmentSec {
     std::vector<Fr> r;  // r.size = m
     std::vector<Fr> s;  // s.size = m
     std::vector<Fr> t;  // t.size = m
-    void Align() {
-      int64_t old_m = r.size();
-      int64_t new_m = (int64_t)misc::Pow2UB(old_m);
-      if (new_m > old_m) {
-        r.resize(new_m, FrZero());
-        s.resize(new_m, FrZero());
-        t.resize(new_m, FrZero());
-      }
-    }
   };
 
   struct Proof {
@@ -74,7 +56,6 @@ struct Sec43b {
   };
 
   struct ProveInput {
-    int64_t const original_m;
     std::vector<std::vector<Fr>> x;  // m*n
     std::vector<std::vector<Fr>> y;
     std::vector<std::vector<Fr>> z;
@@ -93,18 +74,21 @@ struct Sec43b {
       oz = std::move(z);
     }
 
-    ProveInput(int64_t original_m, std::vector<std::vector<Fr>>&& ix,
-               std::vector<std::vector<Fr>>&& iy,
-               std::vector<std::vector<Fr>>&& iz, GetRefG1 const& get_gx,
+    ProveInput(std::vector<std::vector<Fr>>&& x,
+               std::vector<std::vector<Fr>>&& y,
+               std::vector<std::vector<Fr>>&& z, GetRefG1 const& get_gx,
                GetRefG1 const& get_gy, GetRefG1 const& get_gz)
-        : original_m(original_m),
-          x(std::move(ix)),
-          y(std::move(iy)),
-          z(std::move(iz)),
+        : x(std::move(x)),
+          y(std::move(y)),
+          z(std::move(z)),
           get_gx(get_gx),
           get_gy(get_gy),
           get_gz(get_gz) {
-      // Tick tick(__FN__);
+      Check();
+    }
+
+   private:
+    void Check() {
       if (x.empty()) {
         std::cout << __FN__ << ":" << __LINE__ << "oops\n";
         throw std::runtime_error("oops");
@@ -120,20 +104,8 @@ struct Sec43b {
           std::cout << __FN__ << ":" << __LINE__ << "oops\n";
           throw std::runtime_error("oops");
         }
-        
-        if (x[i].size() > n_) n_ = x[i].size();
-      }
-    }
 
-    void Align() {
-      // Tick tick(__FN__);
-      int64_t old_m = m();
-      int64_t new_m = (int64_t)misc::Pow2UB(old_m);
-      std::cout << __FN__ << ", m: " << old_m << "->" << new_m << "\n";
-      if (old_m < new_m) {
-        x.resize(new_m);
-        y.resize(new_m);
-        z.resize(new_m);
+        n_ = std::max(n_, x[i].size());
       }
     }
   };
@@ -156,19 +128,15 @@ struct Sec43b {
     com_pub.c.resize(m);
 
     auto parallel_f = [&com_sec, &com_pub, &input](int64_t i) {
-      com_pub.a[i] =
-          pc::ComputeCom(input.get_gx, input.x[i], com_sec.r[i]);
-      com_pub.b[i] =
-          pc::ComputeCom(input.get_gy, input.y[i], com_sec.s[i]);
-      com_pub.c[i] =
-          pc::ComputeCom(input.get_gz, input.z[i], com_sec.t[i]);
+      com_pub.a[i] = pc::ComputeCom(input.get_gx, input.x[i], com_sec.r[i]);
+      com_pub.b[i] = pc::ComputeCom(input.get_gy, input.y[i], com_sec.s[i]);
+      com_pub.c[i] = pc::ComputeCom(input.get_gz, input.z[i], com_sec.t[i]);
     };
     parallel::For(m, parallel_f);
   }
 
   static void UpdateSeed(h256_t& seed, CommitmentPub const& com_pub, int64_t m,
                          int64_t n) {
-    // Tick tick(__FN__);
     CryptoPP::Keccak_256 hash;
     HashUpdate(hash, seed);
     HashUpdate(hash, com_pub.a);
@@ -185,21 +153,12 @@ struct Sec43b {
     ComputeFst(seed, "gro09::sec43b::t", t);
   }
 
-  // pad some trivial value
-  static void AlignData(ProveInput& input, CommitmentPub& com_pub,
-                        CommitmentSec& com_sec) {
-    // Tick tick(__FN__);
-    input.Align();
-    com_pub.Align();
-    com_sec.Align();
-  }
-
   static void Prove(Proof& proof, h256_t seed, ProveInput&& input,
-                    CommitmentPub com_pub, CommitmentSec com_sec) {
+                    CommitmentPub const& com_pub,
+                    CommitmentSec const& com_sec) {
     Tick tick(__FN__);
     auto m = input.m();
     auto n = input.n();
-    auto original_m = input.original_m;
 
     std::cout << "m: " << m << ", n:" << n << "\n";
 
@@ -232,7 +191,7 @@ struct Sec43b {
       auto& com_pub_53 = para53.com_pub_53;
 
       auto parallel_f = [&input_x, &k](int64_t i) { input_x[i] *= k[i]; };
-      parallel::For(original_m, parallel_f, original_m < 1024);
+      parallel::For(m, parallel_f);
 
       auto& input_yt = para53.input_yt;
 
@@ -241,13 +200,10 @@ struct Sec43b {
       {
         // Tick tickz("Sec53 compute z");
         // 2*m*n fr mul
-        for (int64_t i = 0; i < original_m; ++i) {
+        for (int64_t i = 0; i < m; ++i) {
           input_yt[i] = HadamardProduct(input_y[i], t);
           z += InnerProduct(input_x[i], input_yt[i]);
         }
-        //for (int64_t i = original_m; i < m; ++i) {
-        //  input_yt[i].resize(n, FrZero());
-        //}
       }
 
       para53.input_53.reset(new typename Sec53::ProveInput(
@@ -259,14 +215,14 @@ struct Sec43b {
       {
         // Tick tickz("Sec53 compute com_sec_53 com_pub_53");
         input_53_z = input_53.z;
-        com_sec_53.r.resize(m, FrZero());
-        com_pub_53.a.resize(m, G1Zero());
+        com_sec_53.r.resize(m);
+        com_pub_53.a.resize(m);
         auto parallel_f2 = [&com_sec, &com_pub, &com_sec_53, &com_pub_53,
                             &k](int64_t i) {
           com_sec_53.r[i] = com_sec.r[i] * k[i];
           com_pub_53.a[i] = com_pub.a[i] * k[i];
         };
-        parallel::For(original_m, parallel_f2, original_m < 16 * 1024);
+        parallel::For(m, parallel_f2);
 
         com_sec_53.s = com_sec.s;
         com_sec_53.t = FrRand();
@@ -339,28 +295,29 @@ struct Sec43b {
   }
 
   struct VerifyInput {
-    VerifyInput(int64_t m, int64_t n, CommitmentPub const& com_pub,
+    VerifyInput(std::vector<size_t> const& mn, CommitmentPub const& com_pub,
                 GetRefG1 const& get_gx, GetRefG1 const& get_gy,
                 GetRefG1 const& get_gz)
-        : m(misc::Pow2UB(m)),
-          n(n),
+        : mn(std::move(mn)),
           com_pub(com_pub),
           get_gx(get_gx),
           get_gy(get_gy),
-          get_gz(get_gz) {}
-    int64_t const m;
-    int64_t const n;
+          get_gz(get_gz) {
+    }
+    std::vector<size_t> const& mn;
     CommitmentPub const& com_pub;
     GetRefG1 const& get_gx;
     GetRefG1 const& get_gy;
     GetRefG1 const& get_gz;
+    size_t m() const { return mn.size(); }
+    size_t n() const { return *std::max_element(mn.begin(), mn.end()); }
   };
 
   static bool Verify(Proof const& proof, h256_t seed,
                      VerifyInput const& input) {
     // Tick tick(__FN__);
-    auto m = input.m;
-    auto n = input.n;
+    auto m = input.m();
+    auto n = input.n();
 
     auto const& com_pub = input.com_pub;
     UpdateSeed(seed, com_pub, m, n);
@@ -380,9 +337,10 @@ struct Sec43b {
       };
       parallel::For(m, parallel_f, m < 1024);
 
-      typename Sec53::VerifyInput input_53(t, com_pub_53, input.get_gx,
-                                           input.get_gy, SelectSec53Gz());
-      ret_53 = Sec53::Verify(proof.proof_53, seed, input_53);
+      typename Sec53::VerifyInput input_53(input.mn, t, std::move(com_pub_53),
+                                           input.get_gx, input.get_gy,
+                                           SelectSec53Gz());
+      ret_53 = Sec53::Verify(proof.proof_53, seed, std::move(input_53));
       assert(ret_53);
     };
 
@@ -425,6 +383,9 @@ bool Sec43b<Sec53, HyraxA>::Test(int64_t m, int64_t n) {
     FrRand(i);
   }
 
+  x.front().resize(n / 3);
+  y.front().resize(n / 3);
+
   x.resize(x.size() + 1);
   x.back().resize(n / 2);
   FrRand(x.back());
@@ -433,6 +394,11 @@ bool Sec43b<Sec53, HyraxA>::Test(int64_t m, int64_t n) {
   y.back().resize(n / 2);
   FrRand(y.back());
   ++m;
+
+  std::vector<size_t> mn(m);
+  for (int64_t i = 0; i < m; ++i) {
+    mn[i] = x[i].size();
+  }
 
   std::vector<std::vector<Fr>> z(m);
   for (int64_t i = 0; i < m; ++i) {
@@ -454,13 +420,11 @@ bool Sec43b<Sec53, HyraxA>::Test(int64_t m, int64_t n) {
     return pc::PcG()[z_g_offset + i];
   };
 
-  ProveInput prove_input(m, std::move(x), std::move(y), std::move(z), get_gx,
+  ProveInput prove_input(std::move(x), std::move(y), std::move(z), get_gx,
                          get_gy, get_gz);
   CommitmentPub com_pub;
   CommitmentSec com_sec;
   ComputeCom(com_pub, com_sec, prove_input);
-
-  AlignData(prove_input, com_pub, com_sec);
 
   Proof proof;
   Prove(proof, seed, std::move(prove_input), com_pub, com_sec);
@@ -483,7 +447,7 @@ bool Sec43b<Sec53, HyraxA>::Test(int64_t m, int64_t n) {
   }
 #endif
 
-  VerifyInput verify_input(m, n, com_pub, get_gx, get_gy, get_gz);
+  VerifyInput verify_input(mn, com_pub, get_gx, get_gy, get_gz);
   bool success = Verify(proof, seed, verify_input);
   std::cout << __FILE__ << " " << __FN__ << ": " << success << "\n\n\n\n\n\n";
   return success;
