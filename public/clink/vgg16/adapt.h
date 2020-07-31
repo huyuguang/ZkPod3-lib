@@ -199,6 +199,7 @@ inline void AdaptProve(h256_t seed, AdaptProveItemMan& item_man,
     }
   }
 
+  // TODO: move to hyrax::A4
   auto order = AdaptGetCombinedItemOrder(combined_a);
   AdaptPermuteCombinedItems(order, combined_a);
   AdaptPermuteCombinedItems(order, combined_x);

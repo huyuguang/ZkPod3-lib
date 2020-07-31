@@ -81,9 +81,10 @@ struct Sec43b {
     GetRefG1 const& get_gx;
     GetRefG1 const& get_gy;
     GetRefG1 const& get_gz;
+    size_t n_ = 0;
 
     int64_t m() const { return x.size(); }
-    int64_t n() const { return x[0].size(); }
+    int64_t n() const { return n_; }
     void Take(std::vector<std::vector<Fr>>& ox,
               std::vector<std::vector<Fr>>& oy,
               std::vector<std::vector<Fr>>& oz) {
@@ -104,34 +105,35 @@ struct Sec43b {
           get_gy(get_gy),
           get_gz(get_gz) {
       // Tick tick(__FN__);
-      assert(!x.empty());
-      assert(x.size() == y.size());
-      assert(x.size() == z.size());
+      if (x.empty()) {
+        std::cout << __FN__ << ":" << __LINE__ << "oops\n";
+        throw std::runtime_error("oops");
+      }
+
+      if (x.size() != y.size() || x.size() != z.size()) {
+        std::cout << __FN__ << ":" << __LINE__ << "oops\n";
+        throw std::runtime_error("oops");
+      }
+
       for (auto i = 0LL; i < m(); ++i) {
-        assert(x[i].size() == (size_t)n());
-        assert(y[i].size() == (size_t)n());
-        assert(z[i].size() == (size_t)n());
+        if (x[i].size() != y[i].size() || x[i].size() != z[i].size()) {
+          std::cout << __FN__ << ":" << __LINE__ << "oops\n";
+          throw std::runtime_error("oops");
+        }
+        
+        if (x[i].size() > n_) n_ = x[i].size();
       }
     }
 
-    // pad some trivial value
     void Align() {
       // Tick tick(__FN__);
       int64_t old_m = m();
       int64_t new_m = (int64_t)misc::Pow2UB(old_m);
-      if (old_m == new_m) return;
-
-      auto const& f0 = FrZero();
-      x.resize(new_m);
-      y.resize(new_m);
-      z.resize(new_m);
-
-      std::vector<Fr> vf0(n(), f0);
-
-      for (int64_t i = old_m; i < new_m; ++i) {
-        x[i] = vf0;
-        y[i] = vf0;
-        z[i] = vf0;
+      std::cout << __FN__ << ", m: " << old_m << "->" << new_m << "\n";
+      if (old_m < new_m) {
+        x.resize(new_m);
+        y.resize(new_m);
+        z.resize(new_m);
       }
     }
   };
@@ -155,11 +157,11 @@ struct Sec43b {
 
     auto parallel_f = [&com_sec, &com_pub, &input](int64_t i) {
       com_pub.a[i] =
-          pc::ComputeCom(input.get_gx, input.x[i], com_sec.r[i], true);
+          pc::ComputeCom(input.get_gx, input.x[i], com_sec.r[i]);
       com_pub.b[i] =
-          pc::ComputeCom(input.get_gy, input.y[i], com_sec.s[i], true);
+          pc::ComputeCom(input.get_gy, input.y[i], com_sec.s[i]);
       com_pub.c[i] =
-          pc::ComputeCom(input.get_gz, input.z[i], com_sec.t[i], true);
+          pc::ComputeCom(input.get_gz, input.z[i], com_sec.t[i]);
     };
     parallel::For(m, parallel_f);
   }
@@ -243,10 +245,9 @@ struct Sec43b {
           input_yt[i] = HadamardProduct(input_y[i], t);
           z += InnerProduct(input_x[i], input_yt[i]);
         }
-        for (int64_t i = original_m; i < m; ++i) {
-          input_yt[i].resize(n, FrZero());
-          // std::fill(input_yt[i].begin(), input_yt[i].end(), FrZero());
-        }
+        //for (int64_t i = original_m; i < m; ++i) {
+        //  input_yt[i].resize(n, FrZero());
+        //}
       }
 
       para53.input_53.reset(new typename Sec53::ProveInput(
@@ -266,10 +267,6 @@ struct Sec43b {
           com_pub_53.a[i] = com_pub.a[i] * k[i];
         };
         parallel::For(original_m, parallel_f2, original_m < 16 * 1024);
-        // std::fill(com_sec_53.r.begin() + original_m, com_sec_53.r.end(),
-        //          FrZero());
-        // std::fill(com_pub_53.a.begin() + original_m, com_pub_53.a.end(),
-        //          G1Zero());
 
         com_sec_53.s = com_sec.s;
         com_sec_53.t = FrRand();
@@ -298,7 +295,10 @@ struct Sec43b {
 
       auto parallel_f = [&input_z, &zk, &k, m](int64_t j) {
         for (int64_t i = 0; i < m; ++i) {
-          zk[j] += input_z[i][j] * k[i];
+          auto const& input_zi = input_z[i];
+          if (j < (int64_t)input_zi.size()) {
+            zk[j] += input_zi[j] * k[i];
+          }
         }
       };
       parallel::For(n, parallel_f, n < 16 * 1024);
@@ -416,14 +416,23 @@ bool Sec43b<Sec53, HyraxA>::Test(int64_t m, int64_t n) {
   std::vector<std::vector<Fr>> x(m);
   for (auto& i : x) {
     i.resize(n);
-    FrRand(i.data(), n);
+    FrRand(i);
   }
 
   std::vector<std::vector<Fr>> y(m);
   for (auto& i : y) {
     i.resize(n);
-    FrRand(i.data(), n);
+    FrRand(i);
   }
+
+  x.resize(x.size() + 1);
+  x.back().resize(n / 2);
+  FrRand(x.back());
+
+  y.resize(y.size() + 1);
+  y.back().resize(n / 2);
+  FrRand(y.back());
+  ++m;
 
   std::vector<std::vector<Fr>> z(m);
   for (int64_t i = 0; i < m; ++i) {

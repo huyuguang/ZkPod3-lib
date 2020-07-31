@@ -138,12 +138,12 @@ inline bool Prove(h256_t seed, dbl::Image const& test_image,
 
   std::vector<parallel::VoidTask> void_tasks;
   void_tasks.emplace_back([&seed, &adapt_man, &padapt_man, &proof]() {
-    AdaptProve(seed, adapt_man, proof.adapt_proof);
+    // TODO: for debug AdaptProve(seed, adapt_man, proof.adapt_proof);
     padapt_man.reset();
   });
 
   void_tasks.emplace_back([&seed, &r1cs_man_conv, &proof]() {
-    R1csProve(seed, r1cs_man_conv, proof.r1cs_proof_conv);
+    // TODO: for debug R1csProve(seed, r1cs_man_conv, proof.r1cs_proof_conv);
   });
 
   void_tasks.emplace_back([&seed, &r1cs_man_misc, &proof]() {

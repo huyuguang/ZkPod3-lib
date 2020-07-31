@@ -70,9 +70,10 @@ struct Sec53a {
     GetRefG1 const& get_gx;
     GetRefG1 const& get_gy;
     G1 const& gz;
+    size_t n_;
 
     int64_t m() const { return x.size(); }
-    int64_t n() const { return x[0].size(); }
+    int64_t n() const { return n_; }
 
     ProveInput(std::vector<std::vector<Fr>> ix, std::vector<std::vector<Fr>> iy,
                Fr const& z, GetRefG1 const& get_gx, GetRefG1 const& get_gy,
@@ -83,12 +84,27 @@ struct Sec53a {
           get_gx(get_gx),
           get_gy(get_gy),
           gz(gz) {
+      if (x.empty()) {
+        std::cout << __FN__ << ":" << __LINE__ << "oops\n";
+        throw std::runtime_error("oops");
+      }
+
+      if (x.size() != y.size()) {
+        std::cout << __FN__ << ":" << __LINE__ << "oops\n";
+        throw std::runtime_error("oops");
+      }
+
+      for (int64_t i = 0; i < m(); ++i) {
+        if (x[i].size() != y[i].size()) {
+          std::cout << __FN__ << ":" << __LINE__ << "oops\n";
+          throw std::runtime_error("oops");
+        }
+        if (x[i].size() > n_) n_ = x[i].size();
+      }
+
 #ifdef _DEBUG
-      assert(!x.empty() && x.size() == y.size());
       Fr check_z = FrZero();
       for (int64_t i = 0; i < m(); ++i) {
-        assert(x[i].size() == (size_t)n());
-        assert(y[i].size() == (size_t)n());
         check_z += InnerProduct(x[i], y[i]);
       }
       assert(z == check_z);
@@ -99,16 +115,9 @@ struct Sec53a {
     void Align() {
       int64_t old_m = m();
       int64_t new_m = (int64_t)misc::Pow2UB(old_m);
-      if (old_m == new_m) return;
-
-      x.resize(new_m);
-      y.resize(new_m);
-
-      for (int64_t i = old_m; i < new_m; ++i) {
-        auto& x_i = x[i];
-        x_i.resize(n(), FrZero());
-        auto& y_i = y[i];
-        y_i.resize(n(), FrZero());
+      if (old_m < new_m) {
+        x.resize(new_m);
+        y.resize(new_m);
       }
     }
 
@@ -169,16 +178,16 @@ struct Sec53a {
                          CommitmentSec const& com_sec) {
     // Tick tick(__FN__);
     auto const m = input.m();
-    // auto const n = input.n();
+    auto const n = input.n();
 
     com_pub->a.resize(m);
     com_pub->b.resize(m);
 
     auto parallel_f = [&input, &com_pub, &com_sec](int64_t i) {
-      com_pub->a[i] = pc::ComputeCom(input.get_gx, input.x[i], com_sec.r[i], true);
-      com_pub->b[i] = pc::ComputeCom(input.get_gy, input.y[i], com_sec.s[i], true);
+      com_pub->a[i] = pc::ComputeCom(input.get_gx, input.x[i], com_sec.r[i]);
+      com_pub->b[i] = pc::ComputeCom(input.get_gy, input.y[i], com_sec.s[i]);
     };
-    parallel::For(m, parallel_f);
+    parallel::For(m, parallel_f, n < 16 * 1024);
 
     com_pub->c = pc::ComputeCom(input.gz, input.z, com_sec.t);
   }

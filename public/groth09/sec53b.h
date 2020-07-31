@@ -81,9 +81,10 @@ struct Sec53b {
     GetRefG1 const& get_gx;
     GetRefG1 const& get_gy;
     G1 const& gz;
+    size_t n_ = 0;
 
     int64_t m() const { return x.size(); }
-    int64_t n() const { return x[0].size(); }
+    int64_t n() const { return n_; }
 
     ProveInput(std::vector<std::vector<Fr>>&& ix,
                std::vector<std::vector<Fr>>&& iy, std::vector<Fr> const& it,
@@ -97,15 +98,32 @@ struct Sec53b {
           get_gx(get_gx),
           get_gy(get_gy),
           gz(gz) {
+      if (x.empty()) {
+        std::cout << __FN__ << ":" << __LINE__ << "oops\n";
+        throw std::runtime_error("oops");
+      }
+
+      if (x.size() != y.size() || x.size() != yt.size()) {
+        std::cout << __FN__ << ":" << __LINE__ << "oops\n";
+        throw std::runtime_error("oops");
+      }
+
+      for (int64_t i = 0; i < m(); ++i) {
+        if (x[i].size() != y[i].size() || x[i].size() != yt[i].size()) {
+          std::cout << __FN__ << ":" << __LINE__ << "oops\n";
+          throw std::runtime_error("oops");
+        }
+        if (x[i].size() > n_) n_ = x[i].size();
+      }
+
+      if (t.size() != n_) {
+        std::cout << __FN__ << ":" << __LINE__ << "oops\n";
+        throw std::runtime_error("oops");
+      }
+
 #ifdef _DEBUG
-      assert(m() && n());
-      assert(x.size() == y.size());
-      assert(x.size() == yt.size());
-      assert(t.size() == (size_t)n());
       Fr check_z = FrZero();
       for (int64_t i = 0; i < m(); ++i) {
-        assert(x[i].size() == y[i].size());
-        assert(x[i].size() == yt[i].size());
         assert(yt[i] == HadamardProduct(y[i], t));
         check_z += InnerProduct(x[i], yt[i]);
       }
@@ -113,24 +131,14 @@ struct Sec53b {
 #endif
     }
 
-    // pad some trivial values
     void Align() {
       // Tick tick(__FN__);
       int64_t old_m = m();
       int64_t new_m = (int64_t)misc::Pow2UB(old_m);
-      if (old_m == new_m) return;
-
-      x.resize(new_m);
-      y.resize(new_m);
-      yt.resize(new_m);
-
-      for (int64_t i = old_m; i < new_m; ++i) {
-        auto& x_i = x[i];
-        x_i.resize(n(), FrZero());
-        auto& y_i = y[i];
-        y_i.resize(n(), FrZero());
-        auto& yt_i = yt[i];
-        yt_i.resize(n(), FrZero());
+      if (old_m < new_m) {
+        x.resize(new_m);
+        y.resize(new_m);
+        yt.resize(new_m);
       }
     }
 
@@ -216,27 +224,25 @@ struct Sec53b {
 
   static void ComputeCom(ProveInput const& input, CommitmentPub* com_pub,
                          CommitmentSec const& com_sec) {
-    // Tick tick(__FN__);
+    Tick tick(__FN__);
     auto const m = input.m();
     auto const n = input.n();
 
     com_pub->a.resize(m);
     com_pub->b.resize(m);
 
-    auto parallel_f = [&input, &com_pub, &com_sec](int64_t i) mutable {
-      com_pub->a[i] =
-          pc::ComputeCom(input.get_gx, input.x[i], com_sec.r[i], true);
-      com_pub->b[i] =
-          pc::ComputeCom(input.get_gy, input.y[i], com_sec.s[i], true);
+    auto parallel_f = [&input, &com_pub, &com_sec](int64_t i) {
+      com_pub->a[i] = pc::ComputeCom(input.get_gx, input.x[i], com_sec.r[i]);
+      com_pub->b[i] = pc::ComputeCom(input.get_gy, input.y[i], com_sec.s[i]);
     };
-    parallel::For(m, parallel_f, n < 16 * 1024);
+    parallel::For(m, parallel_f, m * n < 16 * 1024);
 
     com_pub->c = pc::ComputeCom(input.gz, input.z, com_sec.t);
   }
 
   static void ComputeCom(ProveInput const& input, CommitmentPub* com_pub,
                          CommitmentSec* com_sec) {
-    // Tick tick(__FN__);
+    Tick tick(__FN__);
     auto const m = input.m();
     com_sec->r.resize(m);
     FrRand(com_sec->r.data(), m);
@@ -252,7 +258,7 @@ struct Sec53b {
   static void ProveFinal(Proof& proof, h256_t const& seed,
                          ProveInput const& input, CommitmentPub const& com_pub,
                          CommitmentSec const& com_sec) {
-    // Tick tick(__FN__);
+    Tick tick(__FN__);
     assert(input.m() == 1);
 
     typename Sec51::ProveInput input_51(input.x[0], input.y[0], input.t,
@@ -268,8 +274,9 @@ struct Sec53b {
 
   static void ComputeSigmaXY(ProveInput const& input, Fr* sigma_xy1,
                              Fr* sigma_xy2) {
-    // Tick tick(__FN__);
+    Tick tick(__FN__);
     int64_t m = input.m();
+    int64_t n = input.n();
     auto m2 = m / 2;
     std::vector<Fr> xy1(m2, FrZero());
     std::vector<Fr> xy2(m2, FrZero());
@@ -282,7 +289,7 @@ struct Sec53b {
       auto const& yt2 = input.yt[2 * i + 1];
       xy2[i] = InnerProduct(x2, yt2);
     };
-    parallel::For(m2, parallel_f, m2 < 1024);
+    parallel::For(m2, parallel_f, m * n < 16 * 1024);
 
     *sigma_xy1 = parallel::Accumulate(xy1.begin(), xy1.end(), FrZero());
     *sigma_xy2 = parallel::Accumulate(xy2.begin(), xy2.end(), FrZero());
@@ -318,7 +325,7 @@ struct Sec53b {
       auto const& s = com_sec.s;
       s2[i] = s[2 * i] * e + s[2 * i + 1];
     };
-    parallel::For((int64_t)m2, parallel_f, m2 < 1024);
+    parallel::For((int64_t)m2, parallel_f);
 
     com_pub2.c = cl * ee + com_pub.c * e + cu;
     com_sec2.t = tl * ee + com_sec.t * e + tu;
@@ -352,7 +359,7 @@ struct Sec53b {
 
   static void ProveRecursive(Proof& proof, h256_t& seed, ProveInput& input,
                              CommitmentPub& com_pub, CommitmentSec& com_sec) {
-    // Tick tick(__FN__);
+    Tick tick(__FN__);
     assert(input.m() > 1);
 
     Fr sigma_xy1, sigma_xy2;
@@ -397,7 +404,7 @@ struct Sec53b {
 
   static bool Verify(Proof const& proof, h256_t seed,
                      VerifyInput const& input) {
-    // Tick tick(__FN__);
+    Tick tick(__FN__);
     if (!proof.CheckFormat(input.m())) {
       assert(false);
       return false;
@@ -462,6 +469,15 @@ bool Sec53b<Sec51>::Test(int64_t m, int64_t n) {
     i.resize(n);
     FrRand(i.data(), n);
   }
+
+  x.resize(x.size() + 1);
+  x.back().resize(n / 2);
+  FrRand(x.back());
+
+  y.resize(y.size() + 1);
+  y.back().resize(n / 2);
+  FrRand(y.back());
+  ++m;
 
   std::vector<Fr> t(n);
   FrRand(t.data(), t.size());

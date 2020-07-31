@@ -393,16 +393,15 @@ inline Fr InnerProduct(std::function<Fr(size_t)> const& get_a,
 
 inline void HadamardProduct(std::vector<Fr>& c, std::vector<Fr> const& a,
                             std::vector<Fr> const& b) {
-  assert(a.size() == b.size());
-  c.resize(a.size());
+  size_t n = std::min(a.size(), b.size());
+  c.resize(n);
   auto parallel_f = [&c, &a, &b](size_t i) { c[i] = a[i] * b[i]; };
-  parallel::For(a.size(), parallel_f, true);  // a.size() < 16 * 1024);
+  parallel::For(n, parallel_f, true);  // n < 16 * 1024);
 }
 
 inline std::vector<Fr> HadamardProduct(std::vector<Fr> const& a,
-                                       std::vector<Fr> const& b) {
-  assert(a.size() == b.size());
-  std::vector<Fr> c(a.size());
+                                       std::vector<Fr> const& b) {  
+  std::vector<Fr> c;
   HadamardProduct(c, a, b);
   return c;
 }

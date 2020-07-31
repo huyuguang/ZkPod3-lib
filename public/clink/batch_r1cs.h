@@ -45,6 +45,7 @@ struct BatchR1cs {
                     std::vector<ProveInput*>&& inputs) {
     Tick tick(__FN__);
     if (inputs.empty()) return;
+    // TODO: sort the inputs
 
     auto const& get_g = inputs[0]->get_g;
     for (auto const& i : inputs) {
