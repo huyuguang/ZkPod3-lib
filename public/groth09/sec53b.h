@@ -28,10 +28,6 @@ struct Sec53b {
     std::vector<G1> b;  // b.size = m
     G1 c;
     int64_t m() const { return a.size(); }
-    //bool CheckFormat() const {
-    //  if (a.empty() || a.size() != b.size()) return false;
-    //  return misc::Pow2UB(m()) == (uint64_t)m();
-    //}
   };
 
   struct CommitmentSec {
@@ -55,11 +51,12 @@ struct Sec53b {
     void SortAndAlign() {
       PermuteAndAlign(GetSortOrder(mn), com_pub);
     }
+    int64_t m() const { return com_pub.m(); }
+    int64_t n() const { return t.size(); }
+
     std::vector<size_t> const& mn;
     std::vector<Fr> const& t;  // size = n
     CommitmentPub com_pub;
-    int64_t m() const { return com_pub.m(); }
-    int64_t n() const { return t.size(); }
     GetRefG1 const& get_gx;
     GetRefG1 const& get_gy;
     G1 const& gz;
