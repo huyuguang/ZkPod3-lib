@@ -15,8 +15,7 @@ inline bool Verify(h256_t seed, std::string const& pub_path,
   Tick tick(__FN__);
   VerifyContext context(pub_path);
   AdaptVerifyItemMan adapt_man;
-  R1csVerifyItemMan r1cs_man_conv;
-  R1csVerifyItemMan r1cs_man_misc;
+  R1csVerifyItemMan r1cs_man;
 
   std::vector<parallel::BoolTask> tasks;
 
@@ -30,23 +29,23 @@ inline bool Verify(h256_t seed, std::string const& pub_path,
   // conv
   size_t conv_count = kConvLayers.size();
   for (size_t i = 0; i < conv_count; ++i) {
-    tasks.emplace_back([&context, &seed, &proof, i, &adapt_man, &r1cs_man_conv]() {
+    tasks.emplace_back([&context, &seed, &proof, i, &adapt_man, &r1cs_man]() {
       return OneConvVerifyPreprocess(seed, context, kConvLayers[i],
-                                     proof.conv[i], adapt_man, r1cs_man_conv);
+                                     proof.conv[i], adapt_man, r1cs_man);
     });
   }
 
 #if 1
   // relubn
-  tasks.emplace_back([&context, &seed, &proof, &adapt_man, &r1cs_man_misc]() {
+  tasks.emplace_back([&context, &seed, &proof, &adapt_man, &r1cs_man]() {
     return ReluBnVerifyPreprocess(seed, context, proof.relubn, adapt_man,
-                                  r1cs_man_misc);
+                                  r1cs_man);
   });
 
   // pooling
-  tasks.emplace_back([&context, &seed, &proof, &adapt_man, &r1cs_man_misc]() {
+  tasks.emplace_back([&context, &seed, &proof, &adapt_man, &r1cs_man]() {
     return PoolingVerifyPreprocess(seed, context, proof.pooling, adapt_man,
-                                   r1cs_man_misc);
+                                   r1cs_man);
   });
 
   // dense0
@@ -73,12 +72,8 @@ inline bool Verify(h256_t seed, std::string const& pub_path,
     return AdaptVerify(seed, adapt_man, proof.adapt_proof);
   });
 
-  bool_tasks.emplace_back([&seed, &r1cs_man_conv, &proof]() {
-    return R1csVerify(seed, r1cs_man_conv, proof.r1cs_proof_conv);
-  });
-
-  bool_tasks.emplace_back([&seed, &r1cs_man_misc, &proof]() {    
-    return R1csVerify(seed, r1cs_man_misc, proof.r1cs_proof_misc);
+  bool_tasks.emplace_back([&seed, &r1cs_man, &proof]() {
+    return R1csVerify(seed, r1cs_man, proof.r1cs_proof);
   });
 
   auto f2 = [&bool_tasks](int64_t i) { return bool_tasks[i](); };

@@ -46,8 +46,7 @@ struct Proof {
   DenseProof dense0;
   DenseProof dense1;
   hyrax::A4::Proof adapt_proof;
-  clink::ParallelR1cs<R1cs>::Proof r1cs_proof_conv;
-  clink::ParallelR1cs<R1cs>::Proof r1cs_proof_misc;
+  clink::ParallelR1cs<R1cs>::Proof r1cs_proof;
 
   Proof(std::string const& file) {
     Tick tick(__FN__);
@@ -60,8 +59,7 @@ struct Proof {
   bool operator==(Proof const& b) const {
     return conv == b.conv && relubn == b.relubn && pooling == b.pooling &&
            dense0 == b.dense0 && dense1 == b.dense1 &&
-           r1cs_proof_conv == b.r1cs_proof_conv &&
-           r1cs_proof_misc == b.r1cs_proof_misc;
+           adapt_proof == b.adapt_proof && r1cs_proof == b.r1cs_proof;
   }
 
   bool operator!=(Proof const& b) const { return !(*this == b); }
@@ -70,13 +68,13 @@ struct Proof {
   void serialize(Ar& ar) const {
     ar& YAS_OBJECT_NVP("vgg16.Proof", ("c", conv), ("r", relubn),
                        ("p", pooling), ("d0", dense0), ("d1", dense1),
-                       ("a1", r1cs_proof_conv),("a2", r1cs_proof_misc));
+                       ("ap", adapt_proof), ("rp", r1cs_proof));
   }
   template <typename Ar>
   void serialize(Ar& ar) {
     ar& YAS_OBJECT_NVP("vgg16.Proof", ("c", conv), ("r", relubn),
                        ("p", pooling), ("d0", dense0), ("d1", dense1),
-                       ("a1", r1cs_proof_conv),("a2", r1cs_proof_misc));
+                       ("ap", adapt_proof), ("rp", r1cs_proof));
   }
 };
 
@@ -90,11 +88,8 @@ inline bool Prove(h256_t seed, dbl::Image const& test_image,
   std::unique_ptr<AdaptProveItemMan> padapt_man(new AdaptProveItemMan);
   auto& adapt_man = *padapt_man;
 
-  std::unique_ptr<R1csProveItemMan> pr1cs_man_conv(new R1csProveItemMan);
-  auto& r1cs_man_conv = *pr1cs_man_conv;
-
-  std::unique_ptr<R1csProveItemMan> pr1cs_man_misc(new R1csProveItemMan);
-  auto& r1cs_man_misc = *pr1cs_man_misc;
+  std::unique_ptr<R1csProveItemMan> pr1cs_man(new R1csProveItemMan);
+  auto& r1cs_man = *pr1cs_man;
 
   //ParallelVoidTaskMan task_man;
 
@@ -103,20 +98,20 @@ inline bool Prove(h256_t seed, dbl::Image const& test_image,
   // conv
   size_t conv_count = kConvLayers.size();
   for (size_t i = 0; i < conv_count; ++i) {
-    tasks.emplace_back([&context, &seed, &proof, i, &adapt_man, &r1cs_man_conv]() {
+    tasks.emplace_back([&context, &seed, &proof, i, &adapt_man, &r1cs_man]() {
       OneConvProvePreprocess(seed, context, kConvLayers[i], proof.conv[i],
-                             adapt_man, r1cs_man_conv);
+                             adapt_man, r1cs_man);
     });
   }
 #if 1
   // relubn
-  tasks.emplace_back([&context, &seed, &proof, &adapt_man, &r1cs_man_misc]() {
-    ReluBnProvePreprocess(seed, context, proof.relubn, adapt_man, r1cs_man_misc);
+  tasks.emplace_back([&context, &seed, &proof, &adapt_man, &r1cs_man]() {
+    ReluBnProvePreprocess(seed, context, proof.relubn, adapt_man, r1cs_man);
   });
 
   // pooling
-  tasks.emplace_back([&context, &seed, &proof, &adapt_man, &r1cs_man_misc]() {
-    PoolingProvePreprocess(seed, context, proof.pooling, adapt_man, r1cs_man_misc);
+  tasks.emplace_back([&context, &seed, &proof, &adapt_man, &r1cs_man]() {
+    PoolingProvePreprocess(seed, context, proof.pooling, adapt_man, r1cs_man);
   });
 
   // dense0
@@ -137,17 +132,14 @@ inline bool Prove(h256_t seed, dbl::Image const& test_image,
   }  
 
   std::vector<parallel::VoidTask> void_tasks;
-  void_tasks.emplace_back([&seed, &adapt_man, &padapt_man, &proof]() {
-    AdaptProve(seed, adapt_man, proof.adapt_proof);
+  void_tasks.emplace_back([&seed, &padapt_man, &proof]() {
+    AdaptProve(seed, *padapt_man, proof.adapt_proof);
     padapt_man.reset();
   });
 
-  void_tasks.emplace_back([&seed, &r1cs_man_conv, &proof]() {
-    R1csProve(seed, r1cs_man_conv, proof.r1cs_proof_conv);
-  });
-
-  void_tasks.emplace_back([&seed, &r1cs_man_misc, &proof]() {
-    R1csProve(seed, r1cs_man_misc, proof.r1cs_proof_misc);
+  void_tasks.emplace_back([&seed, &pr1cs_man, &proof]() {
+    R1csProve(seed, *pr1cs_man, proof.r1cs_proof);
+    pr1cs_man.reset();
   });
 
   auto f2 = [&void_tasks](int64_t i) { void_tasks[i](); };
