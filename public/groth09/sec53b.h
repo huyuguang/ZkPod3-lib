@@ -28,10 +28,10 @@ struct Sec53b {
     std::vector<G1> b;  // b.size = m
     G1 c;
     int64_t m() const { return a.size(); }
-    bool CheckFormat() const {
-      if (a.empty() || a.size() != b.size()) return false;
-      return misc::Pow2UB(m()) == (uint64_t)m();
-    }
+    //bool CheckFormat() const {
+    //  if (a.empty() || a.size() != b.size()) return false;
+    //  return misc::Pow2UB(m()) == (uint64_t)m();
+    //}
   };
 
   struct CommitmentSec {
