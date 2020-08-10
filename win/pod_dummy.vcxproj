@@ -152,6 +152,7 @@
     <ClInclude Include="..\public\circuit\sha256c_gadget.h" />
     <ClInclude Include="..\public\circuit\substr_gadget.h" />
     <ClInclude Include="..\public\circuit\test_all.h" />
+    <ClInclude Include="..\public\circuit\test_gadget.h" />
     <ClInclude Include="..\public\circuit\vgg16\ip_gadget.h" />
     <ClInclude Include="..\public\circuit\vgg16\pooling_gadget.h" />
     <ClInclude Include="..\public\circuit\vgg16\relubn_gadget.h" />

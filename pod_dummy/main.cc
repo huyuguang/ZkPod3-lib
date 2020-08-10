@@ -169,6 +169,7 @@ int main(int argc, char** argv) {
   bool equality2 = false;
   bool vcp_mnist = false;
   bool iop = false;
+  ParamIntPair r1cs;
   int64_t pack_n = 0;
   ParamIntStr substrpack;
   ParamIntStr matchpack;
@@ -210,6 +211,7 @@ int main(int argc, char** argv) {
         "gro09_53a", po::value<ParamIntPair>(&gro09_53a), "m*n, ex: 10*20")(
         "gro09_53b", po::value<ParamIntPair>(&gro09_53b), "m*n, ex: 10*20")(
         "gro09_43b", po::value<ParamIntPair>(&gro09_43b), "m*n, ex: 10*20")(
+        "r1cs", po::value<ParamIntPair>(&r1cs), "m*n, ex: 10*20")(
         "vrs_basic", po::value<int64_t>(&vrs_basic_n), "")(
         "vrs_large", po::value<int64_t>(&vrs_large_n), "")(
         "pod", po::value<ParamIntPair>(&pod), "n*s, ex: 100*1023")(
@@ -419,6 +421,16 @@ int main(int argc, char** argv) {
       rets["groth09::sec43b(succinct)"] =
           groth09::Sec43b<groth09::Sec53b<groth09::Sec51c>, hyrax::A3>::Test(
               gro09_43b.x, gro09_43b.y);
+    }
+  }
+
+  if (r1cs.valid()) {
+    if (policy == PolicyType::kOrdinary) {
+      rets["clink::r1cs(ordinary)"] =
+          clink::ParallelR1cs<groth09::OrdinaryPolicy>::Test(r1cs.x, r1cs.y);
+    } else {
+      rets["clink::r1cs(succinct)"] =
+          clink::ParallelR1cs<groth09::SuccinctPolicy>::Test(r1cs.x, r1cs.y);
     }
   }
 

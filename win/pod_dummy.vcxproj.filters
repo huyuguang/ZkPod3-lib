@@ -502,5 +502,8 @@
     <ClInclude Include="..\public\clink\vgg16\safevec.h">
       <Filter>public\clink\vgg16</Filter>
     </ClInclude>
+    <ClInclude Include="..\public\circuit\test_gadget.h">
+      <Filter>public\circuit</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

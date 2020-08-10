@@ -3,6 +3,7 @@
 #include <libsnark/gadgetlib1/protoboard.hpp>
 
 #include "./details.h"
+#include "circuit/test_gadget.h"
 #include "groth09/groth09.h"
 
 // r1cs_info: r1cs of one circuit. m=r1cs_info.num_constraints()
@@ -116,9 +117,9 @@ struct ParallelR1cs {
     UpdateSeed(seed, input.com_w);
 
     // prove hadamard product
-    typename Sec43::ProveInput input_43(std::move(input.x),
-                                        std::move(input.y), std::move(input.z),
-                                        input.get_g, input.get_g, input.get_g);
+    typename Sec43::ProveInput input_43(std::move(input.x), std::move(input.y),
+                                        std::move(input.z), input.get_g,
+                                        input.get_g, input.get_g);
 
     typename Sec43::CommitmentPub com_pub;
     typename Sec43::CommitmentSec com_sec;
@@ -214,13 +215,10 @@ struct ParallelR1cs {
                com_pub);
 
     std::vector<size_t> mn(input.m, input.n);
-    typename Sec43::VerifyInput input_43(mn, com_pub, input.get_g,
-                                         input.get_g, input.get_g);
+    typename Sec43::VerifyInput input_43(mn, com_pub, input.get_g, input.get_g,
+                                         input.get_g);
     return Sec43::Verify(proof, seed, input_43);
   }
-
-  // see match.h
-  static bool Test() { return true; }
 
  public:
   // for prove
@@ -379,6 +377,56 @@ struct ParallelR1cs {
     HashUpdate(hash, seed);
     HashUpdate(hash, com_w);
     hash.Final(seed.data());
+  }
+
+ public:
+  static bool Test(int64_t m, int64_t n) {
+    libsnark::protoboard<Fr> pb;
+    circuit::TestGadget gadget(pb, "test", m + 1);
+    int64_t const primary_input_size = 0;
+    pb.set_input_sizes(primary_input_size);
+    R1csInfo r1cs_info(pb);
+    auto s = r1cs_info.num_variables;
+    std::vector<std::vector<Fr>> w(s);
+    for (auto &i : w) {
+      i.resize(n);
+    }
+
+    for (int64_t j = 0; j < n; ++j) {
+      gadget.Assign(FrRand());
+      auto v = pb.full_variable_assignment();
+      for (int64_t i = 0; i < s; ++i) {
+        w[i][j] = v[i];
+      }
+    }
+
+    Tick tick(__FN__);
+    std::vector<G1> com_w(s);
+    std::vector<Fr> com_w_r(s);
+    Proof proof;
+    h256_t seed = misc::RandH256();
+
+    {
+      Tick tick2("ComputeCom + Prove");
+      {
+        Tick tick3("##ComputeCom");
+        auto parallel_f = [&w, &com_w, &com_w_r](int64_t i) {
+          com_w_r[i] = FrRand();
+          com_w[i] = pc::ComputeCom(pc::kGetRefG1, w[i], com_w_r[i]);
+        };
+        parallel::For<int64_t>(s, parallel_f);
+      }
+
+      ProveInput prove_input(r1cs_info, "test", std::move(w), com_w, com_w_r,
+                             pc::kGetRefG1);
+
+      Prove(proof, seed, std::move(prove_input));
+    }
+
+    std::vector<std::vector<Fr>> public_w;
+    VerifyInput verify_input(n, r1cs_info, "test", com_w, public_w,
+                             pc::kGetRefG1);
+    return Verify(proof, seed, verify_input);
   }
 };
 
