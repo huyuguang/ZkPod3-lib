@@ -186,6 +186,7 @@ int main(int argc, char** argv) {
   Param2Str vgg16_infer;
   Param2Str vgg16_prove;
   bool vgg16_test = false;
+  bool sudoku_test = false;
 
   try {
     po::options_description options("command line options");
@@ -236,7 +237,7 @@ int main(int argc, char** argv) {
         "vgg16_infer", po::value<Param2Str>(&vgg16_infer),
         "\"test_image_path working_path\"")(
         "vgg16_prove", po::value<Param2Str>(&vgg16_prove),
-        "test_image_path working_path")("vgg16_test", "");
+        "test_image_path working_path")("vgg16_test", "")("sudoku_test", "");
 
     boost::program_options::variables_map vmap;
 
@@ -305,6 +306,10 @@ int main(int argc, char** argv) {
 
     if (vmap.count("vgg16_test")) {
       vgg16_test = true;
+    }
+
+    if (vmap.count("sudoku_test")) {
+      sudoku_test = true;
     }
   } catch (std::exception& e) {
     std::cout << "Unknown parameters.\n"
@@ -683,6 +688,10 @@ int main(int argc, char** argv) {
   if (iop) {
     std::cerr << "not support\n";
     //rets["iop"] = iop::Test();
+  }
+
+  if (sudoku_test) {
+    rets["sudoku_test"] = clink::Sudoku::Test();
   }
 
   if (vgg16_test) {

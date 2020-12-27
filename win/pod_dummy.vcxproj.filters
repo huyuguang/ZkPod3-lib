@@ -454,9 +454,6 @@
     <ClInclude Include="..\public\clink\affine.h">
       <Filter>public\clink</Filter>
     </ClInclude>
-    <ClInclude Include="..\public\clink\vgg16\adapt.h">
-      <Filter>public\clink\vgg16</Filter>
-    </ClInclude>
     <ClInclude Include="..\public\clink\equality2.h">
       <Filter>public\clink</Filter>
     </ClInclude>
@@ -499,10 +496,19 @@
     <ClInclude Include="..\public\clink\vgg16\relubn_verify.h">
       <Filter>public\clink\vgg16</Filter>
     </ClInclude>
-    <ClInclude Include="..\public\clink\vgg16\safevec.h">
-      <Filter>public\clink\vgg16</Filter>
-    </ClInclude>
     <ClInclude Include="..\public\circuit\test_gadget.h">
+      <Filter>public\circuit</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\circuit\permutation_gadget.h">
+      <Filter>public\circuit</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\clink\sudoku.h">
+      <Filter>public\clink</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\clink\adapt.h">
+      <Filter>public\clink</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\circuit\sudoku_gadget.h">
       <Filter>public\circuit</Filter>
     </ClInclude>
   </ItemGroup>

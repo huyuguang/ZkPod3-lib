@@ -17,6 +17,7 @@
 #include "./pod.h"
 #include "./substr.h"
 #include "./substrpack.h"
+#include "./sudoku.h"
 #include "./vgg16/vgg16.h"
 #include "./vrs/vrs_basic.h"
 #include "./vrs/vrs_large.h"

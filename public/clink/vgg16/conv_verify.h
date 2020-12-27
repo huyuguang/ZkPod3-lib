@@ -8,7 +8,7 @@ inline bool OneConvInputVerifyPreprocess(h256_t seed,
                                          VerifyContext const& context,
                                          size_t layer,
                                          OneConvProof const& proof,
-                                         AdaptVerifyItemMan& adapt_man) {
+                                         SafeVec<AdaptVerifyItem>& adapt_man) {
   Tick tick(__FN__);
 
   struct Ctx {
@@ -64,7 +64,7 @@ inline bool OneConvInputVerifyPreprocess(h256_t seed,
   }
 
   AdaptVerifyItem adapt_item;
-  adapt_item.Init(10, ConvAdaptTag(true, layer));
+  adapt_item.Init(10, ConvAdaptTag(true, layer), FrZero());
   for (size_t j = 0; j < 9; ++j) {
     adapt_item.a[j] = ctx.r[j];
     adapt_item.cx[j] = proof.input_pub.cb[j];
@@ -79,7 +79,7 @@ inline bool OneConvInputVerifyPreprocess(h256_t seed,
 inline bool OneConvR1csVerifyPreprocess(h256_t seed,
                                         VerifyContext const& context,
                                         size_t layer, OneConvProof const& proof,
-                                        R1csVerifyItemMan& r1cs_man) {
+                                        SafeVec<R1csVerifyItem>& r1cs_man) {
   Tick tick(__FN__);
   (void)seed;
   auto K = kImageInfos[layer + 1].C;
@@ -125,7 +125,7 @@ inline bool OneConvOutputVerifyPreprocess(h256_t seed,
                                           VerifyContext const& context,
                                           size_t layer,
                                           OneConvProof const& proof,
-                                          AdaptVerifyItemMan& adapt_man) {
+                                          SafeVec<AdaptVerifyItem>& adapt_man) {
   Tick tick(__FN__);
   namespace fp = circuit::fp;
   auto K = kImageInfos[layer + 1].C;
@@ -152,7 +152,7 @@ inline bool OneConvOutputVerifyPreprocess(h256_t seed,
   std::vector<Fr> s = OneConvOutputR2S(K, C, D, r);
 
   AdaptVerifyItem adapt_item;
-  adapt_item.Init(2, ConvAdaptTag(false, layer));
+  adapt_item.Init(2, ConvAdaptTag(false, layer), FrZero());
   adapt_item.a[0] = std::move(s);
   adapt_item.cx[0] = cx;
   adapt_item.a[1] = std::move(r);
@@ -176,8 +176,8 @@ inline bool OneConvOutputVerifyPreprocess(h256_t seed,
 
 inline bool OneConvVerifyPreprocess(h256_t seed, VerifyContext const& context,
                                     size_t layer, OneConvProof const& proof,
-                                    AdaptVerifyItemMan& adapt_man,
-                                    R1csVerifyItemMan& r1cs_man) {
+                                    SafeVec<AdaptVerifyItem>& adapt_man,
+                                    SafeVec<R1csVerifyItem>& r1cs_man) {
   Tick tick(__FN__);
 
   // can parallel but need to protect adapt_items and parallel_tasks

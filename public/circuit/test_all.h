@@ -8,11 +8,15 @@
 #include "./poseidon_gadget.h"
 #include "./sha256c_gadget.h"
 #include "./substr_gadget.h"
+#include "./permutation_gadget.h"
+#include "./sudoku_gadget.h"
 
 namespace circuit {
 inline bool Test() {
-  fixed_point::Test();
+  //fixed_point::Test(); 
   // cnn::Test();
+  test_as_waksman_routing_gadget(9);
+
   return true;
 }
 }  // namespace circuit

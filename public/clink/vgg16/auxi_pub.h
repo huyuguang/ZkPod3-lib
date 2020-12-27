@@ -232,4 +232,5 @@ class AuxiPub {
     }
   }
 };
+
 };  // namespace clink::vgg16

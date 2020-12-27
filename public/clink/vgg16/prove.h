@@ -1,6 +1,6 @@
 #pragma once
 
-#include "./adapt.h"
+#include "clink/adapt.h"
 #include "./image_com.h"
 #include "./infer.h"
 #include "./conv_prove.h"
@@ -85,13 +85,12 @@ inline bool Prove(h256_t seed, dbl::Image const& test_image,
 
   ProveContext context(working_path);
 
-  std::unique_ptr<AdaptProveItemMan> padapt_man(new AdaptProveItemMan);
+  std::unique_ptr<SafeVec<AdaptProveItem>> padapt_man(
+      new SafeVec<AdaptProveItem>);
   auto& adapt_man = *padapt_man;
 
-  std::unique_ptr<R1csProveItemMan> pr1cs_man(new R1csProveItemMan);
+  std::unique_ptr<SafeVec<R1csProveItem>> pr1cs_man(new SafeVec<R1csProveItem>);
   auto& r1cs_man = *pr1cs_man;
-
-  //ParallelVoidTaskMan task_man;
 
   std::vector<parallel::VoidTask> tasks;
 
@@ -133,12 +132,16 @@ inline bool Prove(h256_t seed, dbl::Image const& test_image,
 
   std::vector<parallel::VoidTask> void_tasks;
   void_tasks.emplace_back([&seed, &padapt_man, &proof]() {
-    AdaptProve(seed, *padapt_man, proof.adapt_proof);
+    std::vector<AdaptProveItem> items;
+    padapt_man->take(items);
+    AdaptProve(seed, std::move(items), proof.adapt_proof);
     padapt_man.reset();
   });
 
   void_tasks.emplace_back([&seed, &pr1cs_man, &proof]() {
-    R1csProve(seed, *pr1cs_man, proof.r1cs_proof);
+    std::vector<R1csProveItem> items;
+    pr1cs_man->take(items);
+    R1csProve(seed, std::move(items), proof.r1cs_proof);
     pr1cs_man.reset();
   });
 

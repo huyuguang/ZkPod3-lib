@@ -7,7 +7,7 @@ namespace clink::vgg16 {
 inline void ReluBnInOutProvePreprocess(h256_t seed, ProveContext const& context,
                                        ReluBnProof& proof,
                                        ReluBnInOutSec& io_sec,
-                                       AdaptProveItemMan& adapt_man) {
+                                       SafeVec<AdaptProveItem>& adapt_man) {
   Tick tick(__FN__);
   auto& io_pub = proof.io_pub;
   std::vector<ReluBnImage> images;
@@ -29,8 +29,8 @@ inline void ReluBnInOutProvePreprocess(h256_t seed, ProveContext const& context,
 
   AdaptProveItem adapt_item_in;
   AdaptProveItem adapt_item_out;
-  adapt_item_in.Init(images.size() / 2, ReluBnAdaptTag(true));
-  adapt_item_out.Init(images.size() / 2, ReluBnAdaptTag(false));
+  adapt_item_in.Init(images.size() / 2, ReluBnAdaptTag(true), FrZero());
+  adapt_item_out.Init(images.size() / 2, ReluBnAdaptTag(false), FrZero());
   for (size_t j = 0; j < images.size() / 2; ++j) {
     adapt_item_in.x[j] = std::move(images[j * 2].x);
     adapt_item_in.a[j] = std::move(images[j * 2].a);
@@ -73,7 +73,7 @@ inline void ReluBnR1csProvePreprocess(h256_t seed, ProveContext const& context,
                                       ReluBnInOutSec const& io_sec,
                                       ReluBnProof& proof,
                                       std::shared_ptr<ReluBnR1csSec> pr1cs_sec,
-                                      R1csProveItemMan& r1cs_man) {
+                                      SafeVec<R1csProveItem>& r1cs_man) {
   Tick tick(__FN__);
   (void)seed;
   auto const& io_pub = proof.io_pub;
@@ -175,8 +175,8 @@ inline void ReluBnR1csProvePreprocess(h256_t seed, ProveContext const& context,
 
 inline void ReluBnProvePreprocess(h256_t seed, ProveContext const& context,
                                   ReluBnProof& proof,
-                                  AdaptProveItemMan& adapt_man,
-                                  R1csProveItemMan& r1cs_man) {
+                                  SafeVec<AdaptProveItem>& adapt_man,
+                                  SafeVec<R1csProveItem>& r1cs_man) {
   ReluBnInOutSec io_sec;
   ReluBnInOutProvePreprocess(seed, context, proof, io_sec, adapt_man);
 

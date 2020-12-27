@@ -8,7 +8,7 @@ inline void OneConvInputProvePreprocess(h256_t seed,
                                         ProveContext const& context,
                                         size_t layer, OneConvProof& proof,
                                         OneConvInputSec& input_sec,
-                                        AdaptProveItemMan& adapt_man) {
+                                        SafeVec<AdaptProveItem>& adapt_man) {
   Tick tick(__FN__, std::to_string(layer));
 
 #ifdef _DEBUG_CHECK
@@ -114,7 +114,7 @@ inline void OneConvInputProvePreprocess(h256_t seed,
   }
 
   AdaptProveItem adapt_item;
-  adapt_item.Init(10, "conv_input_" + std::to_string(layer));
+  adapt_item.Init(10, "conv_input_" + std::to_string(layer), FrZero());
   for (size_t j = 0; j < 9; ++j) {
     adapt_item.x[j].resize(KCDD);
     for (size_t i = 0; i < KCDD; ++i) {
@@ -136,7 +136,8 @@ inline void OneConvInputProvePreprocess(h256_t seed,
 inline void OneConvR1csProvePreprocess(
     h256_t seed, ProveContext const& context, size_t layer,
     OneConvInputSec const& input_sec, OneConvProof& proof,
-    std::shared_ptr<OneConvR1csSec> pr1cs_sec, R1csProveItemMan& r1cs_man) {
+    std::shared_ptr<OneConvR1csSec> pr1cs_sec,
+    SafeVec<R1csProveItem>& r1cs_man) {
   Tick tick(__FN__, std::to_string(layer));
   (void)seed;
   auto K = kImageInfos[layer + 1].C;
@@ -227,7 +228,7 @@ inline void OneConvOutputProvePreprocess(h256_t seed,
                                          size_t layer,
                                          OneConvR1csSec const& r1cs_sec,
                                          OneConvProof& proof,
-                                         AdaptProveItemMan& item_man) {
+                                         SafeVec<AdaptProveItem>& item_man) {
   Tick tick(__FN__, std::to_string(layer));
   namespace fp = circuit::fp;
   size_t const order = kLayerTypeOrders[layer].second;
@@ -305,7 +306,7 @@ inline void OneConvOutputProvePreprocess(h256_t seed,
 #endif
 
   AdaptProveItem adapt_item;
-  adapt_item.Init(2, "conv_output_" + std::to_string(layer));
+  adapt_item.Init(2, "conv_output_" + std::to_string(layer), FrZero());
   adapt_item.x[0] = x;  // ref to r1cs_sec.y, so copy it
   adapt_item.a[0] = std::move(s);
   adapt_item.cx[0] = cx;
@@ -321,8 +322,8 @@ inline void OneConvOutputProvePreprocess(h256_t seed,
 
 inline void OneConvProvePreprocess(h256_t seed, ProveContext const& context,
                                    size_t layer, OneConvProof& proof,
-                                   AdaptProveItemMan& adapt_man,
-                                   R1csProveItemMan& r1cs_man) {
+                                   SafeVec<AdaptProveItem>& adapt_man,
+                                   SafeVec<R1csProveItem>& r1cs_man) {
   Tick tick(__FN__, std::to_string(layer));
   OneConvInputSec input_sec;
   OneConvInputProvePreprocess(seed, context, layer, proof, input_sec,

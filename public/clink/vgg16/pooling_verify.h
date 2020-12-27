@@ -6,7 +6,7 @@ namespace clink::vgg16 {
 inline bool PoolingInputVerifyPreprocess(h256_t seed,
                                          VerifyContext const& context,
                                          PoolingProof const& proof,
-                                         AdaptVerifyItemMan& adapt_man) {
+                                         SafeVec<AdaptVerifyItem>& adapt_man) {
   auto const& input_pub = proof.input_pub;
 
   for (size_t l = 0; l < kPoolingLayers.size(); ++l) {
@@ -24,7 +24,7 @@ inline bool PoolingInputVerifyPreprocess(h256_t seed,
   PoolingBuildInputQ(seed, q);
 
   AdaptVerifyItem adapt_item;
-  adapt_item.Init(9, PoolingAdaptTag(true));
+  adapt_item.Init(9, PoolingAdaptTag(true), FrZero());
   for (size_t j = 0; j < 9; ++j) {
     adapt_item.a[j] = std::move(q[j]);
     adapt_item.cx[j] = input_pub.cx[j];
@@ -37,7 +37,7 @@ inline bool PoolingInputVerifyPreprocess(h256_t seed,
 inline bool PoolingR1csVerifyPreprocess(h256_t seed,
                                         VerifyContext const& /*context*/,
                                         PoolingProof const& proof,
-                                        R1csVerifyItemMan& r1cs_man) {
+                                        SafeVec<R1csVerifyItem>& r1cs_man) {
   Tick tick(__FN__);
   (void)seed;
   if (proof.r1cs_pub.com_w[0] != proof.input_pub.cx[5]) {  // a
@@ -87,7 +87,7 @@ inline bool PoolingR1csVerifyPreprocess(h256_t seed,
 inline bool PoolingOutputVerifyPreprocess(h256_t seed,
                                           VerifyContext const& context,
                                           PoolingProof const& proof,
-                                          AdaptVerifyItemMan& adapt_man) {
+                                          SafeVec<AdaptVerifyItem>& adapt_man) {
   Tick tick(__FN__);
   auto const& output_pub = proof.output_pub;
 
@@ -110,7 +110,7 @@ inline bool PoolingOutputVerifyPreprocess(h256_t seed,
   PoolingBuildOutputQ(seed, q);
 
   AdaptVerifyItem adapt_item;
-  adapt_item.Init(6, PoolingAdaptTag(false));
+  adapt_item.Init(6, PoolingAdaptTag(false), FrZero());
   for (size_t i = 0; i < 6; ++i) {
     adapt_item.a[i] = std::move(q[i]);
     adapt_item.cx[i] = output_pub.cx[i];
@@ -124,8 +124,8 @@ inline bool PoolingOutputVerifyPreprocess(h256_t seed,
 
 inline bool PoolingVerifyPreprocess(h256_t seed, VerifyContext const& context,
                                     PoolingProof const& proof,
-                                    AdaptVerifyItemMan& adapt_man,
-                                    R1csVerifyItemMan& r1cs_man) {
+                                    SafeVec<AdaptVerifyItem>& adapt_man,
+                                    SafeVec<R1csVerifyItem>& r1cs_man) {
   Tick tick(__FN__);
 
   // can parallel but need to protect adapt_items and parallel_tasks

@@ -2,13 +2,13 @@
 
 #include <memory>
 
-#include "./adapt.h"
 #include "./r1cs.h"
 #include "./context.h"
 #include "./image_com.h"
 #include "./policy.h"
 #include "./r1cs_pub.h"
 #include "circuit/vgg16/vgg16.h"
+#include "clink/adapt.h"
 #include "clink/equal_ip.h"
 #include "clink/equality2.h"
 

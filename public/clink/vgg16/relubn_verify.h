@@ -7,7 +7,7 @@ namespace clink::vgg16 {
 inline bool ReluBnInOutVerifyPreprocess(h256_t seed,
                                         VerifyContext const& context,
                                         ReluBnProof const& proof,
-                                        AdaptVerifyItemMan& item_man) {
+                                        SafeVec<AdaptVerifyItem>& item_man) {
   auto const& io_pub = proof.io_pub;
 
   if (io_pub.cx.size() != kReluBnLayers.size() * 2 + 2) {
@@ -58,8 +58,8 @@ inline bool ReluBnInOutVerifyPreprocess(h256_t seed,
 
   AdaptVerifyItem adapt_item_in;
   AdaptVerifyItem adapt_item_out;
-  adapt_item_in.Init(io_pub.cx.size() / 2, ReluBnAdaptTag(true));
-  adapt_item_out.Init(io_pub.cx.size() / 2, ReluBnAdaptTag(false));
+  adapt_item_in.Init(io_pub.cx.size() / 2, ReluBnAdaptTag(true), FrZero());
+  adapt_item_out.Init(io_pub.cx.size() / 2, ReluBnAdaptTag(false), FrZero());
   for (size_t j = 0; j < io_pub.cx.size() / 2; ++j) {
     adapt_item_in.a[j] = std::move(a[j * 2]);
     adapt_item_in.cx[j] = io_pub.cx[j * 2];
@@ -77,7 +77,7 @@ inline bool ReluBnInOutVerifyPreprocess(h256_t seed,
 inline bool ReluBnR1csVerifyPreprocess(h256_t seed,
                                        VerifyContext const& context,
                                        ReluBnProof const& proof,
-                                       R1csVerifyItemMan& r1cs_man) {
+                                       SafeVec<R1csVerifyItem>& r1cs_man) {
   Tick tick(__FN__);
   (void)seed;
   if (proof.r1cs_pub.com_w[0] != proof.io_pub.cx[0]) {  // in
@@ -124,8 +124,8 @@ inline bool ReluBnR1csVerifyPreprocess(h256_t seed,
 
 inline bool ReluBnVerifyPreprocess(h256_t seed, VerifyContext const& context,
                                    ReluBnProof const& proof,
-                                   AdaptVerifyItemMan& item_man,
-                                   R1csVerifyItemMan& r1cs_man) {
+                                   SafeVec<AdaptVerifyItem>& item_man,
+                                   SafeVec<R1csVerifyItem>& r1cs_man) {
   Tick tick(__FN__);
 
   // can parallel but need to protect adapt_items and parallel_tasks

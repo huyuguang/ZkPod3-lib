@@ -146,17 +146,20 @@
     <ClInclude Include="..\public\circuit\mimc5_gadget.h" />
     <ClInclude Include="..\public\circuit\mnist\convolution.h" />
     <ClInclude Include="..\public\circuit\mnist\mnist.h" />
+    <ClInclude Include="..\public\circuit\permutation_gadget.h" />
     <ClInclude Include="..\public\circuit\poseidon.h" />
     <ClInclude Include="..\public\circuit\poseidon_gadget.h" />
     <ClInclude Include="..\public\circuit\sha256c.h" />
     <ClInclude Include="..\public\circuit\sha256c_gadget.h" />
     <ClInclude Include="..\public\circuit\substr_gadget.h" />
+    <ClInclude Include="..\public\circuit\sudoku_gadget.h" />
     <ClInclude Include="..\public\circuit\test_all.h" />
     <ClInclude Include="..\public\circuit\test_gadget.h" />
     <ClInclude Include="..\public\circuit\vgg16\ip_gadget.h" />
     <ClInclude Include="..\public\circuit\vgg16\pooling_gadget.h" />
     <ClInclude Include="..\public\circuit\vgg16\relubn_gadget.h" />
     <ClInclude Include="..\public\circuit\vgg16\vgg16.h" />
+    <ClInclude Include="..\public\clink\adapt.h" />
     <ClInclude Include="..\public\clink\affine.h" />
     <ClInclude Include="..\public\clink\details.h" />
     <ClInclude Include="..\public\clink\divide.h" />
@@ -177,6 +180,7 @@
     <ClInclude Include="..\public\clink\pod.h" />
     <ClInclude Include="..\public\clink\substr.h" />
     <ClInclude Include="..\public\clink\substrpack.h" />
+    <ClInclude Include="..\public\clink\sudoku.h" />
     <ClInclude Include="..\public\clink\vgg16\auxi_pub.h" />
     <ClInclude Include="..\public\clink\vgg16\context.h" />
     <ClInclude Include="..\public\clink\vgg16\conv_prove.h" />
@@ -186,7 +190,6 @@
     <ClInclude Include="..\public\clink\vgg16\dense_verify.h" />
     <ClInclude Include="..\public\clink\vgg16\image_com.h" />
     <ClInclude Include="..\public\clink\vgg16\infer.h" />
-    <ClInclude Include="..\public\clink\vgg16\adapt.h" />
     <ClInclude Include="..\public\clink\vgg16\para_com.h" />
     <ClInclude Include="..\public\clink\vgg16\para_dbl.h" />
     <ClInclude Include="..\public\clink\vgg16\para_fr.h" />
@@ -202,7 +205,6 @@
     <ClInclude Include="..\public\clink\vgg16\relubn_prove.h" />
     <ClInclude Include="..\public\clink\vgg16\relubn_pub.h" />
     <ClInclude Include="..\public\clink\vgg16\relubn_verify.h" />
-    <ClInclude Include="..\public\clink\vgg16\safevec.h" />
     <ClInclude Include="..\public\clink\vgg16\verify.h" />
     <ClInclude Include="..\public\clink\vgg16\vgg16.h" />
     <ClInclude Include="..\public\clink\vrs\vrs_basic.h" />

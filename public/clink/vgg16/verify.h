@@ -1,6 +1,6 @@
 #pragma once
 
-#include "./adapt.h"
+#include "clink/adapt.h"
 #include "./conv_verify.h"
 #include "./dense_verify.h"
 #include "./image_com.h"
@@ -14,8 +14,8 @@ inline bool Verify(h256_t seed, std::string const& pub_path,
                    dbl::Image const& test_image, Proof const& proof) {
   Tick tick(__FN__);
   VerifyContext context(pub_path);
-  AdaptVerifyItemMan adapt_man;
-  R1csVerifyItemMan r1cs_man;
+  SafeVec<AdaptVerifyItem> adapt_man;
+  SafeVec<R1csVerifyItem> r1cs_man;
 
   std::vector<parallel::BoolTask> tasks;
 
@@ -69,11 +69,15 @@ inline bool Verify(h256_t seed, std::string const& pub_path,
 
   std::vector<parallel::BoolTask> bool_tasks;
   bool_tasks.emplace_back([&seed, &adapt_man, &proof]() {
-    return AdaptVerify(seed, adapt_man, proof.adapt_proof);
+    std::vector<AdaptVerifyItem> items;
+    adapt_man.take(items);
+    return AdaptVerify(seed, std::move(items), proof.adapt_proof);
   });
 
   bool_tasks.emplace_back([&seed, &r1cs_man, &proof]() {
-    return R1csVerify(seed, r1cs_man, proof.r1cs_proof);
+    std::vector<R1csVerifyItem> items;
+    r1cs_man.take(items);
+    return R1csVerify(seed, std::move(items), proof.r1cs_proof);
   });
 
   auto f2 = [&bool_tasks](int64_t i) { return bool_tasks[i](); };

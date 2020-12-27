@@ -8,7 +8,7 @@ inline void PoolingInputProvePreprocess(h256_t seed,
                                         ProveContext const& context,
                                         PoolingProof& proof,
                                         PoolingInputSec& input_sec,
-                                        AdaptProveItemMan& adapt_man) {
+                                        SafeVec<AdaptProveItem>& adapt_man) {
   Tick tick(__FN__);
   PoolingInputPub& input_pub = proof.input_pub;
   std::array<std::vector<Fr>, 9> x;
@@ -68,7 +68,7 @@ inline void PoolingInputProvePreprocess(h256_t seed,
   input_sec.r_d = com_x_r[8];
 
   AdaptProveItem adapt_item;
-  adapt_item.Init(9, PoolingAdaptTag(true));
+  adapt_item.Init(9, PoolingAdaptTag(true), FrZero());
   for (size_t j = 0; j < 9; ++j) {
     adapt_item.x[j] = std::move(x[j]);
     adapt_item.a[j] = std::move(q[j]);
@@ -82,7 +82,7 @@ inline void PoolingInputProvePreprocess(h256_t seed,
 inline void PoolingR1csProvePreprocess(
     h256_t seed, ProveContext const& /*context*/,
     PoolingInputSec const& input_sec, PoolingProof& proof,
-    std::shared_ptr<PoolingR1csSec> pr1cs_sec, R1csProveItemMan& r1cs_man) {
+    std::shared_ptr<PoolingR1csSec> pr1cs_sec, SafeVec<R1csProveItem>& r1cs_man) {
   Tick tick(__FN__);
   (void)seed;
   auto const& input_pub = proof.input_pub;
@@ -161,7 +161,7 @@ inline void PoolingOutputProvePreprocess(h256_t seed,
                                          ProveContext const& context,
                                          PoolingR1csSec const& r1cs_sec,
                                          PoolingProof& proof,
-                                         AdaptProveItemMan& adapt_man) {
+                                         SafeVec<AdaptProveItem>& adapt_man) {
   Tick tick(__FN__);
   auto const& r1cs_pub = proof.r1cs_pub;
   auto& output_pub = proof.output_pub;
@@ -222,7 +222,7 @@ inline void PoolingOutputProvePreprocess(h256_t seed,
   // parallel::For(6, parallel_f2);
 
   AdaptProveItem adapt_item;
-  adapt_item.Init(6, PoolingAdaptTag(false));
+  adapt_item.Init(6, PoolingAdaptTag(false), FrZero());
   for (size_t i = 0; i < 6; ++i) {
     adapt_item.x[i] = std::move(x[i]);
     adapt_item.a[i] = std::move(q[i]);
@@ -237,8 +237,8 @@ inline void PoolingOutputProvePreprocess(h256_t seed,
 
 inline void PoolingProvePreprocess(h256_t seed, ProveContext const& context,
                                    PoolingProof& proof,
-                                   AdaptProveItemMan& adapt_man,
-                                   R1csProveItemMan& r1cs_man) {
+                                   SafeVec<AdaptProveItem>& adapt_man,
+                                   SafeVec<R1csProveItem>& r1cs_man) {
   Tick tick(__FN__);
   PoolingInputSec input_sec;
   PoolingInputProvePreprocess(seed, context, proof, input_sec, adapt_man);

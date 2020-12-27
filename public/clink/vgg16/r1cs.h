@@ -4,7 +4,6 @@
 
 #include "./policy.h"
 #include "./r1cs_pub.h"
-#include "./safevec.h"
 #include "clink/batch_r1cs.h"
 
 namespace clink::vgg16 {
@@ -23,15 +22,9 @@ struct R1csVerifyItem {
   std::shared_ptr<VerifyInput> r1cs_input;
 };
 
-using R1csProveItemMan = SafeVec<R1csProveItem>;
-using R1csVerifyItemMan = SafeVec<R1csVerifyItem>;
-
-inline void R1csProve(h256_t seed, R1csProveItemMan& item_man,
+inline void R1csProve(h256_t seed, std::vector<R1csProveItem>&& items,
                       clink::ParallelR1cs<R1cs>::Proof& proof) {
   Tick tick(__FN__);
-  std::vector<R1csProveItem> items;
-  item_man.take(items);
-
   std::vector<BatchR1cs<Policy>::ProveInput*> inputs(items.size());
   for (size_t i = 0; i < inputs.size(); ++i) {
     inputs[i] = items[i].r1cs_input.get();
@@ -39,12 +32,9 @@ inline void R1csProve(h256_t seed, R1csProveItemMan& item_man,
   BatchR1cs<Policy>::Prove(proof, seed, std::move(inputs));
 }
 
-inline bool R1csVerify(h256_t seed, R1csVerifyItemMan& item_man,
+inline bool R1csVerify(h256_t seed, std::vector<R1csVerifyItem>&& items,
                        clink::ParallelR1cs<R1cs>::Proof const& proof) {
   Tick tick(__FN__);
-  std::vector<R1csVerifyItem> items;
-  item_man.take(items);
-
   std::vector<BatchR1cs<Policy>::VerifyInput*> inputs(items.size());
   for (size_t i = 0; i < inputs.size(); ++i) {
     inputs[i] = items[i].r1cs_input.get();
