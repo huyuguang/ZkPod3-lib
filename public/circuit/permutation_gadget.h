@@ -105,7 +105,7 @@ class PermutationGadget : public libsnark::gadget<Fr> {
                         column_idx + 1, straight_edge));
           } else {
             ++saved_count;
-            printf("check1\n");
+            //printf("check1\n");
           }
 
           auto &next_cross = routed_packets[column_idx + 1][cross_edge];
@@ -115,7 +115,7 @@ class PermutationGadget : public libsnark::gadget<Fr> {
                         column_idx + 1, cross_edge));
           } else {
             ++saved_count;
-            printf("check2\n");
+            //printf("check2\n");
           }
 
           ++row_idx; /* skip the next idx, as it to refers to the same packets
