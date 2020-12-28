@@ -173,7 +173,7 @@ struct Sudoku {
     Tick tick(__FN__);
     proof.com_x = input.com_x;
 
-    std::vector<G1> com_w(input.s);
+    proof.com_w.resize(input.s);
     std::vector<Fr> com_w_r(input.s);
 
     // public input
@@ -184,23 +184,16 @@ struct Sudoku {
         assert(input.w[i][j] == i + 1);
       }
       com_w_r[i] = FrZero();
-      com_w[i] = sum_g * (i + 1);
+      proof.com_w[i] = sum_g * (i + 1);
     }
 
     {
-      auto parallel_f = [&com_w_r, &com_w, &input](int64_t i) {
+      auto parallel_f = [&com_w_r, &proof, &input](int64_t i) {
         com_w_r[i] = FrRand();
-        com_w[i] = pc::ComputeCom(input.get_g, input.w[i], com_w_r[i]);
+        proof.com_w[i] = pc::ComputeCom(input.get_g, input.w[i], com_w_r[i]);
       };
       parallel::For<int64_t>(input.D, input.s, parallel_f);
     }
-
-    // prove permutation
-    typename R1cs::ProveInput r1cs_input(*input.r1cs_info, "sudoku",
-                                         std::move(input.w), com_w, com_w_r,
-                                         input.get_g);
-    R1cs::Prove(proof.r1cs_proof, seed, std::move(r1cs_input));
-    proof.com_w = std::move(com_w);
 
     // prove adapt
     std::vector<AdaptProveItem> adapt_items(input.D + 1);
@@ -257,7 +250,21 @@ struct Sudoku {
       // assert(adapt_cell.CheckData());
     }
 
-    AdaptProve(seed, std::move(adapt_items), proof.adapt_proof);
+    std::array<parallel::VoidTask, 2> tasks;
+
+    tasks[0] = [&seed,&adapt_items, &proof]() {
+      AdaptProve(seed, std::move(adapt_items), proof.adapt_proof);
+    };
+
+    tasks[1] = [&seed, &proof, &input, &com_w_r]() {
+      // prove permutation
+      typename R1cs::ProveInput r1cs_input(*input.r1cs_info, "sudoku",
+                                           std::move(input.w), proof.com_w,
+                                           com_w_r, input.get_g);
+      R1cs::Prove(proof.r1cs_proof, seed, std::move(r1cs_input));
+    };
+
+    parallel::Invoke(tasks);
   }
 
   struct VerifyInput {
@@ -345,15 +352,8 @@ struct Sudoku {
       }
     }
 
-    typename ParallelR1cs<Policy>::VerifyInput pr_input(
-        input.D * 3, *input.r1cs_info, "sudoku", proof.com_w, input.public_w,
-        input.get_g);
-    if (!ParallelR1cs<Policy>::Verify(proof.r1cs_proof, seed, pr_input))
-      return false;
-
     AdaptUpdateSeed(seed, proof.com_x, proof.com_w);
-    // std::cout << "verify seed: " <<  misc::HexToStr(seed) << "\n";
-
+    
     // verify adapt
     std::vector<AdaptVerifyItem> adapt_items(input.D + 1);
     std::vector<std::vector<Fr>> e(input.D + 1);
@@ -394,7 +394,22 @@ struct Sudoku {
       adapt_cell.cx[1] = proof.com_w[input.D + i];
     }
 
-    if (!AdaptVerify(seed, std::move(adapt_items), proof.adapt_proof)) {
+    std::array<std::atomic<bool>, 2> rets;
+    std::array<parallel::VoidTask, 2> tasks;
+    tasks[0] = [&input, &proof, &seed, &rets]() {
+      typename ParallelR1cs<Policy>::VerifyInput pr_input(
+          input.D * 3, *input.r1cs_info, "sudoku", proof.com_w, input.public_w,
+          input.get_g);
+      rets[0] = ParallelR1cs<Policy>::Verify(proof.r1cs_proof, seed, pr_input);
+    };
+
+    tasks[1] = [&adapt_items, &seed, &proof,&rets]() {
+      rets[1] = AdaptVerify(seed, std::move(adapt_items), proof.adapt_proof);
+    };
+
+    parallel::Invoke(tasks);
+
+    if (!rets[0] || !rets[1]) {
       assert(false);
       return false;
     }
@@ -403,12 +418,16 @@ struct Sudoku {
 
   static std::vector<Fr> GeneratePuzzle(size_t d) {    
     size_t D = d * d;
-    std::vector<size_t> ret;
-    ret.reserve(D * D);
+    std::vector<std::vector<size_t>> matrix;
+    matrix.reserve(D);
 
     std::vector<size_t> base(D);
     for (size_t i = 0; i < D; ++i) {
       base[i] = i + 1;
+    }
+    std::vector<size_t> rnd(d);
+    for (size_t i = 0; i < d; ++i) {
+      rnd[i] = i;
     }
 
     std::random_device rng;
@@ -418,19 +437,44 @@ struct Sudoku {
 
     for (size_t i = 0; i < d; ++i) {
       std::rotate(buf.begin(), buf.begin() + 1, buf.end());
-      ret.insert(ret.end(), buf.begin(), buf.end());
+      matrix.push_back(buf);
       for (size_t j = 1; j < d; ++j) {
         std::rotate(buf.begin(), buf.begin() + d, buf.end());
-        ret.insert(ret.end(), buf.begin(), buf.end());
+        matrix.push_back(buf);
       }
     }
 
-    //std::vector<size_t> rnd(d);
-    //for (size_t i = 0; i < d;++i) {
-    //  rnd[i] = i;
-    //}
-    //std::shuffle(rnd.begin(), rnd.end(), urng);
-    
+    // shuffle
+    for (size_t k = 0; k < d; ++k) {
+      auto begin = matrix.begin() + k * d;
+      auto end = begin + d;
+      std::shuffle(begin, end, urng);
+    }
+
+    // rotate 90
+    std::vector<std::vector<size_t>> dup(D);
+    for (size_t i = 0; i < D; ++i) {
+      dup[i].resize(D);
+      for (size_t j = 0; j < D; ++j) {
+        dup[i][j] = matrix[j][i];
+      }
+    }
+    matrix = std::move(dup);
+
+    // shuffle
+    for (size_t k = 0; k < d; ++k) {
+      auto begin = matrix.begin() + k * d;
+      auto end = begin + d;
+      std::shuffle(begin, end, urng);
+    }
+
+    // matrix to vector
+    std::vector<size_t> ret(D * D);
+    for (size_t i = 0; i < D; ++i) {
+      for (size_t j = 0; j < D; ++j) {
+        ret[i * D + j] = matrix[i][j];
+      }
+    }
 
     // check row
     for (size_t i = 0; i < D; ++i) {
@@ -481,25 +525,20 @@ struct Sudoku {
   }
 
   static bool Test(size_t d) {
-
-    //std::vector<Fr> x{
-    //  7, 5, 2, 8, 3, 9, 6, 1, 4,
-    //  3, 9, 1, 4, 5, 6, 2, 8, 7,
-    //  6, 8, 4, 1, 7, 2, 9, 5, 3,
-    //  2, 1, 7, 9, 6, 4, 5, 3, 8,
-    //  5, 4, 9, 3, 8, 7, 1, 6, 2,
-    //  8, 3, 6, 5, 2, 1, 4, 7, 9,
-    //  4, 7, 3, 2, 1, 5, 8, 9, 6,
-    //  9, 6, 5, 7, 4, 8, 3, 2, 1,
-    //  1, 2, 8, 6, 9, 3, 7, 4, 5};
-    //assert(x.size() == d * d * d * d);
-
+    size_t D = d * d;
     auto x = GeneratePuzzle(d);
-    assert(x.size() == d * d * d * d);
+    assert(x.size() == D * D);
 
     Fr com_x_r = FrRand();
     G1 com_x = pc::ComputeCom(x, com_x_r);
-    std::vector<size_t> open_positions{0, 3, 21};
+
+    std::vector<size_t> open_positions(D * D / 3);
+    for (auto& i : open_positions) i = rand() % (D * D);
+    std::sort(open_positions.begin(), open_positions.end());
+    open_positions.erase(
+        std::unique(open_positions.begin(), open_positions.end()),
+        open_positions.end());
+
     std::vector<Fr> open_values(open_positions.size());
     for (size_t i = 0; i < open_positions.size(); ++i) {
       open_values[i] = x[open_positions[i]];
