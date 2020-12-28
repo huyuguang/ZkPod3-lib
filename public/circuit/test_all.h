@@ -15,7 +15,7 @@ namespace circuit {
 inline bool Test() {
   //fixed_point::Test(); 
   // cnn::Test();
-  test_as_waksman_routing_gadget(9);
+  PermutationGadget::Test(9);
 
   return true;
 }

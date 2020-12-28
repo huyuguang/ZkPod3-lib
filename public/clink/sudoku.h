@@ -412,6 +412,7 @@ struct Sudoku {
       4, 7, 3, 2, 1, 5, 8, 9, 6,
       9, 6, 5, 7, 4, 8, 3, 2, 1,
       1, 2, 8, 6, 9, 3, 7, 4, 5};
+    assert(x.size() == d * d * d * d);
 
     Fr com_x_r = FrRand();
     G1 com_x = pc::ComputeCom(x, com_x_r);

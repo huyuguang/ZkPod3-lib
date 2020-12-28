@@ -2,13 +2,13 @@
 
 #include <stdlib.h>
 
-#include <iostream>
 #include <algorithm>
-#include <random>
+#include <iostream>
 #include <libsnark/gadgetlib1/gadget.hpp>
 #include <libsnark/gadgetlib1/gadgets/basic_gadgets.hpp>
 #include <libsnark/gadgetlib1/gadgets/routing/as_waksman_routing_gadget.hpp>
 #include <libsnark/gadgetlib1/pb_variable.hpp>
+#include <random>
 
 namespace circuit {
 
@@ -25,6 +25,7 @@ class PermutationGadget : public libsnark::gadget<Fr> {
   bool IsVarValid(libsnark::pb_variable<Fr> const &var) {
     return var.index != (size_t)(-1);
   }
+
  public:
   const size_t num_packets;
   const size_t num_columns;
@@ -105,7 +106,7 @@ class PermutationGadget : public libsnark::gadget<Fr> {
                         column_idx + 1, straight_edge));
           } else {
             ++saved_count;
-            //printf("check1\n");
+            // printf("check1\n");
           }
 
           auto &next_cross = routed_packets[column_idx + 1][cross_edge];
@@ -115,7 +116,7 @@ class PermutationGadget : public libsnark::gadget<Fr> {
                         column_idx + 1, cross_edge));
           } else {
             ++saved_count;
-            //printf("check2\n");
+            // printf("check2\n");
           }
 
           ++row_idx; /* skip the next idx, as it to refers to the same packets
@@ -128,7 +129,6 @@ class PermutationGadget : public libsnark::gadget<Fr> {
   }
 
   void generate_r1cs_constraints() {
-
     /* actual routing constraints */
     for (size_t column_idx = 0; column_idx < num_columns; ++column_idx) {
       for (size_t row_idx = 0; row_idx < num_packets; ++row_idx) {
@@ -189,24 +189,24 @@ class PermutationGadget : public libsnark::gadget<Fr> {
     for (size_t packet_idx = 0; packet_idx < num_packets; ++packet_idx) {
       assert(output[permutation.get(packet_idx)] == input[packet_idx]);
     }
-   
-    std::cout << "input:\n";
-    for (size_t i = 0; i < num_packets; ++i) {
-      std::cout << input[i] << "\t";
-    }
-    std::cout << "\n\n";
 
-    std::cout << "output:\n";
-    for (size_t i = 0; i < num_packets; ++i) {
-      std::cout << output[i] << "\t";
-    }
-    std::cout << "\n\n";
+    // std::cout << "input:\n";
+    // for (size_t i = 0; i < num_packets; ++i) {
+    //  std::cout << input[i] << "\t";
+    //}
+    // std::cout << "\n\n";
 
-    std::cout << "permutation:\n";
-    for (size_t i = 0; i < num_packets; ++i) {
-      std::cout << permutation.get(i) << "\t";
-    }
-    std::cout << "\n\n";
+    // std::cout << "output:\n";
+    // for (size_t i = 0; i < num_packets; ++i) {
+    //  std::cout << output[i] << "\t";
+    //}
+    // std::cout << "\n\n";
+
+    // std::cout << "permutation:\n";
+    // for (size_t i = 0; i < num_packets; ++i) {
+    //  std::cout << permutation.get(i) << "\t";
+    //}
+    // std::cout << "\n\n";
 
     return permutation;
   }
@@ -221,9 +221,10 @@ class PermutationGadget : public libsnark::gadget<Fr> {
     }
 
     /* do the routing */
-    libsnark::as_waksman_routing routing = libsnark::get_as_waksman_routing(permutation);
+    libsnark::as_waksman_routing routing =
+        libsnark::get_as_waksman_routing(permutation);
 
-    for (size_t column_idx = 0; column_idx < num_columns-1; ++column_idx) {
+    for (size_t column_idx = 0; column_idx < num_columns - 1; ++column_idx) {
       for (size_t row_idx = 0; row_idx < num_packets; ++row_idx) {
         if (neighbors[column_idx][row_idx].first ==
             neighbors[column_idx][row_idx].second) {
@@ -245,10 +246,8 @@ class PermutationGadget : public libsnark::gadget<Fr> {
             const size_t switched_edge =
                 (switch_val ? cross_edge : straight_edge);
 
-            this->pb.val(
-                routed_packets[column_idx + 1][switched_edge]) =
-                this->pb.val(
-                    routed_packets[column_idx][switch_input]);
+            this->pb.val(routed_packets[column_idx + 1][switched_edge]) =
+                this->pb.val(routed_packets[column_idx][switch_input]);
           }
 
           /* we processed both switch inputs at once, so skip the next iteration
@@ -258,56 +257,53 @@ class PermutationGadget : public libsnark::gadget<Fr> {
       }
     }
 
-    printf("routed packets\n");
-    for (auto const &i : routed_packets) {
-      for (auto const &j : i) {
-        std::cout << pb.val(j) << "\t";
-      }
-      printf("\n");
+    // printf("routed packets\n");
+    // for (auto const &i : routed_packets) {
+    //  for (auto const &j : i) {
+    //    std::cout << pb.val(j) << "\t";
+    //  }
+    //  printf("\n");
+    //}
+    // printf("\n\n");
+  }
+
+  static void Test(const size_t num_packets) {
+    libsnark::protoboard<Fr> pb;
+
+    std::vector<libsnark::pb_variable<Fr>> input_packets(num_packets);
+    std::vector<libsnark::pb_variable<Fr>> output_packets(num_packets);
+    for (size_t packet_idx = 0; packet_idx < num_packets; ++packet_idx) {
+      input_packets[packet_idx].allocate(pb, FMT("", "input_%zu", packet_idx));
     }
-    printf("\n\n");
+    for (size_t packet_idx = 0; packet_idx < num_packets; ++packet_idx) {
+      output_packets[packet_idx].allocate(pb,
+                                          FMT("", "output_%zu", packet_idx));
+    }
+
+    PermutationGadget r(pb, input_packets, output_packets,
+                        "main_routing_gadget");
+    r.generate_r1cs_constraints();
+
+    std::vector<Fr> input(num_packets);
+    std::vector<Fr> output(num_packets);
+    for (size_t packet_idx = 0; packet_idx < num_packets; ++packet_idx) {
+      input[packet_idx] = packet_idx + 1;
+    }
+    srand((int)time(nullptr));
+    input[rand() % num_packets] = input[rand() % num_packets];
+    output = input;
+    std::random_device rng;
+    std::mt19937 urng(rng());
+    std::shuffle(input.begin(), input.end(), urng);
+
+    r.generate_r1cs_witness(input, output);
+
+    assert(pb.is_satisfied());
+
+    std::cout << "num_constraints = " << pb.num_constraints()
+              << ", num_variables = "
+              << pb.get_constraint_system().num_variables() << "\n";
   }
 };
 
-
-inline void test_as_waksman_routing_gadget(const size_t num_packets) {
-  libsnark::protoboard<Fr> pb;
-
-  std::vector<libsnark::pb_variable<Fr>> input_packets(num_packets);
-  std::vector<libsnark::pb_variable<Fr>> output_packets(num_packets);
-  for (size_t packet_idx = 0; packet_idx < num_packets; ++packet_idx) {
-    input_packets[packet_idx].allocate(pb, FMT("", "input_%zu", packet_idx));
-  }
-  for (size_t packet_idx = 0; packet_idx < num_packets; ++packet_idx) {
-    output_packets[packet_idx].allocate(pb, FMT("", "output_%zu", packet_idx));
-  }
-
-  PermutationGadget r(pb, input_packets, output_packets,
-                      "main_routing_gadget");
-  r.generate_r1cs_constraints();
-
-  std::vector<Fr> input(num_packets);
-  std::vector<Fr> output(num_packets);
-  for (size_t packet_idx = 0; packet_idx < num_packets; ++packet_idx) {
-    input[packet_idx] = packet_idx + 1;
-  }
-  srand((int)time(nullptr));
-  input[rand()%num_packets] = input[rand()%num_packets];
-  output = input;
-  std::random_device rng;
-  std::mt19937 urng(rng());
-  std::shuffle(input.begin(), input.end(), urng);
-
-  r.generate_r1cs_witness(input, output);
-
-  printf("positive test\n");
-  assert(pb.is_satisfied());
-
-  //printf("negative test\n");
-  //pb.val(libsnark::pb_variable<Fr>(10)) = Fr(12345);
-  //assert(!pb.is_satisfied());
-
-  printf("num_constraints = %zu, num_variables = %zu\n", pb.num_constraints(),
-         pb.get_constraint_system().num_variables());
-}
 }  // namespace circuit
