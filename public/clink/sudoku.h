@@ -1,5 +1,7 @@
 #pragma once
 
+#include <algorithm>
+
 #include "./adapt.h"
 #include "./details.h"
 #include "./parallel_r1cs.h"
@@ -399,19 +401,100 @@ struct Sudoku {
     return true;
   }
 
-  static bool Test() {
-    const static size_t d = 3;
-    //const static size_t D = d * d;
-    std::vector<Fr> x{
-      7, 5, 2, 8, 3, 9, 6, 1, 4,
-      3, 9, 1, 4, 5, 6, 2, 8, 7,
-      6, 8, 4, 1, 7, 2, 9, 5, 3,
-      2, 1, 7, 9, 6, 4, 5, 3, 8,
-      5, 4, 9, 3, 8, 7, 1, 6, 2,
-      8, 3, 6, 5, 2, 1, 4, 7, 9,
-      4, 7, 3, 2, 1, 5, 8, 9, 6,
-      9, 6, 5, 7, 4, 8, 3, 2, 1,
-      1, 2, 8, 6, 9, 3, 7, 4, 5};
+  static std::vector<Fr> GeneratePuzzle(size_t d) {    
+    size_t D = d * d;
+    std::vector<size_t> ret;
+    ret.reserve(D * D);
+
+    std::vector<size_t> base(D);
+    for (size_t i = 0; i < D; ++i) {
+      base[i] = i + 1;
+    }
+
+    std::random_device rng;
+    std::mt19937 urng(rng());
+    auto buf = base;
+    std::shuffle(buf.begin(), buf.end(), urng);
+
+    for (size_t i = 0; i < d; ++i) {
+      std::rotate(buf.begin(), buf.begin() + 1, buf.end());
+      ret.insert(ret.end(), buf.begin(), buf.end());
+      for (size_t j = 1; j < d; ++j) {
+        std::rotate(buf.begin(), buf.begin() + d, buf.end());
+        ret.insert(ret.end(), buf.begin(), buf.end());
+      }
+    }
+
+    //std::vector<size_t> rnd(d);
+    //for (size_t i = 0; i < d;++i) {
+    //  rnd[i] = i;
+    //}
+    //std::shuffle(rnd.begin(), rnd.end(), urng);
+    
+
+    // check row
+    for (size_t i = 0; i < D; ++i) {
+      buf.resize(0);
+      for (size_t j = 0; j < D; ++j) {
+        buf.push_back(ret[i * D + j]);
+      }
+      std::sort(buf.begin(), buf.end());
+      assert(buf == base);
+    }
+
+    // check col
+    for (size_t j = 0; j < D; ++j) {
+      buf.resize(0);
+      for (size_t i = 0; i < D; ++i) {
+        buf.push_back(ret[i * D + j]);
+      }
+      std::sort(buf.begin(), buf.end());
+      assert(buf == base);
+    }
+
+    // check cell
+    for (size_t i = 0; i < D; ++i) {
+      buf.resize(0);
+      for (size_t j = 0; j < D; ++j) {
+        size_t ii = (i / d) * d + j / d;
+        size_t jj = (i % d) * d + j % d;
+        buf.push_back(ret[ii * D + jj]);
+      }
+      std::sort(buf.begin(), buf.end());
+      assert(buf == base);
+    }
+
+    for (size_t i = 0; i < D; ++i) {
+      for (size_t j = 0; j < D; ++j) {
+        std::cout << std::right << std::setw(4) << std::setfill(' ')
+                  << ret[i * D + j];
+      }
+      std::cout << "\n";
+    }
+    std::cout << "\n";
+
+    std::vector<Fr> fr_ret(ret.size());
+    for (size_t i = 0; i < ret.size(); ++i) {
+      fr_ret[i] = ret[i];
+    }
+    return fr_ret;
+  }
+
+  static bool Test(size_t d) {
+
+    //std::vector<Fr> x{
+    //  7, 5, 2, 8, 3, 9, 6, 1, 4,
+    //  3, 9, 1, 4, 5, 6, 2, 8, 7,
+    //  6, 8, 4, 1, 7, 2, 9, 5, 3,
+    //  2, 1, 7, 9, 6, 4, 5, 3, 8,
+    //  5, 4, 9, 3, 8, 7, 1, 6, 2,
+    //  8, 3, 6, 5, 2, 1, 4, 7, 9,
+    //  4, 7, 3, 2, 1, 5, 8, 9, 6,
+    //  9, 6, 5, 7, 4, 8, 3, 2, 1,
+    //  1, 2, 8, 6, 9, 3, 7, 4, 5};
+    //assert(x.size() == d * d * d * d);
+
+    auto x = GeneratePuzzle(d);
     assert(x.size() == d * d * d * d);
 
     Fr com_x_r = FrRand();
