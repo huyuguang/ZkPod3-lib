@@ -23,7 +23,8 @@ struct Sudoku {
     G1 com_x;
     std::vector<G1> com_w;
     bool operator==(Proof const& b) const {
-      return r1cs_proof == b.r1cs_proof && com_x == b.com_x && com_w == b.com_w;
+      return r1cs_proof == b.r1cs_proof && adapt_proof == b.adapt_proof &&
+             com_x == b.com_x && com_w == b.com_w;
     }
 
     bool operator!=(Proof const& b) const { return !(*this == b); }
@@ -548,6 +549,24 @@ struct Sudoku {
     h256_t seed = misc::RandH256();
     Proof proof;
     Prove(proof, seed, prove_input);
+
+#ifndef DISABLE_SERIALIZE_CHECK
+    // serialize to buffer
+    yas::mem_ostream os;
+    yas::binary_oarchive<yas::mem_ostream, YasBinF()> oa(os);
+    oa.serialize(proof);
+    std::cout << "proof size: " << os.get_shared_buffer().size << "\n";
+    // serialize from buffer
+    yas::mem_istream is(os.get_intrusive_buffer());
+    yas::binary_iarchive<yas::mem_istream, YasBinF()> ia(is);
+    Proof proof2;
+    ia.serialize(proof2);
+    if (proof != proof2) {
+      assert(false);
+      std::cout << "oops, serialize check failed\n";
+      return false;
+    }
+#endif
 
     VerifyInput verify_input(d, open_positions, open_values, pc::kGetRefG1);
     bool success = Verify(proof, seed, verify_input);
