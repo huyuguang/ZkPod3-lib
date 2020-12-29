@@ -22,6 +22,19 @@
 typedef std::function<Fr const&(int64_t i)> GetRefFr;
 typedef std::function<G1 const&(int64_t i)> GetRefG1;
 
+
+// returns ceil(log2(n)), so ((size_t)1)<<log2(n) is the smallest power of
+// 2, that is not less than n.
+inline size_t CeilLog2(size_t n) {
+  size_t r = ((n & (n - 1)) == 0 ? 0 : 1);  // add 1 if n is not power of 2
+  while (n > 1) {
+    n >>= 1;
+    r++;
+  }
+  return r;
+}
+
+
 inline void InitEcc() {
   std::cout << "init mcl in main\n";
   mcl::bn::CurveParam cp = mcl::BN_SNARK1;
@@ -482,6 +495,30 @@ inline Fr PackStrToFr(char const* s) {
   auto check_s = UnPackStrFromFr(ret);
   assert(check_s == s);
 #endif
+  return ret;
+}
+
+// the p[i] must belongs to [0, 1<<bits)
+std::vector<Fr> PackUintToFr(size_t bits, std::vector<Fr> const& units) {
+  for (size_t i = 0; i < units.size(); ++i) {    
+    assert(units[i].getMpz() < (mpz_class(1) << bits));
+  }  
+
+  size_t count = 253 / bits;
+  std::vector<Fr> ret((units.size() + count - 1) / count);
+  
+  std::vector<Fr> pow_of_2(count);
+  for (size_t i = 0; i < count; ++i) {
+    pow_of_2[i].setMpz(mpz_class(1) << (i * bits));
+  }
+
+  for (size_t i = 0; i < ret.size(); ++i) {
+    ret[i] = FrZero();    
+    for (size_t j = 0; j < count; ++j) {
+      if (i * count + j == units.size()) break;
+      ret[i] += units[i * count + j] * pow_of_2[j];
+    }
+  }
   return ret;
 }
 

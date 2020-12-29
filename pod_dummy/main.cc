@@ -688,7 +688,7 @@ int main(int argc, char** argv) {
   }
 
   if (sudoku_d) {
-    rets["sudoku_d"] = clink::Sudoku::Test(sudoku_d);
+    rets["sudoku_test"] = clink::Sudoku::Test(sudoku_d);
   }
 
   if (vgg16_test) {
