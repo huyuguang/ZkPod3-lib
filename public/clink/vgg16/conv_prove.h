@@ -11,11 +11,7 @@ inline void OneConvInputProvePreprocess(h256_t seed,
                                         SafeVec<AdaptProveItem>& adapt_man) {
   Tick tick(__FN__, std::to_string(layer));
 
-#ifdef _DEBUG_CHECK
-  if (kLayerTypeOrders[layer].first != kConv) {
-    throw std::runtime_error("oops");
-  }
-#endif
+  CHECK(kLayerTypeOrders[layer].first == kConv, "");
 
   struct Ctx {
     std::array<std::vector<Fr>, 9> r;
@@ -64,7 +60,7 @@ inline void OneConvInputProvePreprocess(h256_t seed,
   // commit every col of input_sec.b
   auto get_col_b_u = [&context, order](int64_t i) -> G1 const& {
     auto range = context.auxi().data_u_conv(order);
-    if (i >= (range.second - range.first)) throw std::runtime_error("oops");
+    CHECK(i < (range.second - range.first), "");
     return range.first[i];
   };
 
@@ -83,18 +79,16 @@ inline void OneConvInputProvePreprocess(h256_t seed,
     ctx.B[i] = ctx.B[i % (CDD)];
   }
 
-#ifdef _DEBUG_CHECK
-  auto parallel_f3 = [&input_pub, &input_sec, KCDD](int64_t j) {
-    auto get_x = [&input_sec, j](int64_t i) -> Fr const& {
-      return *input_sec.b[i][j];
+  if (DEBUG_CHECK) {
+    auto parallel_f3 = [&input_pub, &input_sec, KCDD](int64_t j) {
+      auto get_x = [&input_sec, j](int64_t i) -> Fr const& {
+        return *input_sec.b[i][j];
+      };
+      CHECK(input_pub.cb[j] == pc::ComputeCom(KCDD, get_x, input_sec.rb[j]),
+            "");
     };
-    auto c = pc::ComputeCom(KCDD, get_x, input_sec.rb[j]);
-    if (input_pub.cb[j] != c) {
-      throw std::runtime_error("oops");
-    }
-  };
-  parallel::For(9, parallel_f3);
-#endif
+    parallel::For(9, parallel_f3);
+  }
 
   // update seed by input_pub.cb
   OneConvUpdateSeed(seed, input_pub.cb);
@@ -145,9 +139,7 @@ inline void OneConvR1csProvePreprocess(
   auto D = kImageInfos[layer].D;
   auto order = kLayerTypeOrders[layer].second;
 
-#ifdef _DEBUG_CHECK
-  if (input_sec.b.size() != K * C * D * D) throw std::runtime_error("oops");
-#endif
+  CHECK(input_sec.b.size() == K * C * D * D, "");
 
   auto const& input_pub = proof.input_pub;
   auto& r1cs_pub = proof.r1cs_pub;
@@ -163,7 +155,7 @@ inline void OneConvR1csProvePreprocess(
   r1cs_sec.w.resize(s);
   auto n = K * C * D * D;
   for (auto& i : r1cs_sec.w) i.resize(n);
-  std::cout << "OneConvR1csProvePreprocess: " << r1cs_sec.r1cs_info->to_string()
+  std::cout << Tick::GetIndentString() << r1cs_sec.r1cs_info->to_string()
             << ", repeat times: " << n << "\n";
 
   // convert para from K*C*3*3 to KCDD*9
@@ -242,9 +234,7 @@ inline void OneConvOutputProvePreprocess(h256_t seed,
   Fr const& rx = r1cs_sec.ry;
   std::vector<Fr> const& x = r1cs_sec.y;
 
-#ifdef _DEBUG_CHECK
-  if (x.size() != K * C * D * D) throw std::runtime_error("oops");
-#endif
+  CHECK(x.size() == K * C * D * D, "");
 
   std::vector<Fr> y(K * D * D, FrZero());
   Fr ry;
@@ -269,26 +259,22 @@ inline void OneConvOutputProvePreprocess(h256_t seed,
   ry = rz - rb;
   output_pub.cy = pc::ComputeCom(y, ry);
 
-  if (cz != output_pub.cy + cb) {
-    throw std::runtime_error("oops");
-  }
+  CHECK(cz == output_pub.cy + cb, "");
 
-#ifdef _DEBUG_CHECK
-  auto const& output_image = *context.const_images()[layer + 1];
-  Para::ConvLayer const& para_conv = context.para().conv_layer(order);
-  auto const& bias = para_conv.bias;  // vector<Fr>, size=K
-  for (size_t i = 0; i < K; ++i) {
-    for (size_t j = 0; j < D; ++j) {
-      for (size_t k = 0; k < D; ++k) {
-        auto offset = i * D * D + j * D + k;
-        auto b = bias[i] * fp::RationalConst<8, 24>().kFrN;
-        if (y[offset] + b != output_image.pixels[i][j][k]) {
-          throw std::runtime_error("oops");
+  if (DEBUG_CHECK) {
+    auto const& output_image = *context.const_images()[layer + 1];
+    Para::ConvLayer const& para_conv = context.para().conv_layer(order);
+    auto const& bias = para_conv.bias;  // vector<Fr>, size=K
+    for (size_t i = 0; i < K; ++i) {
+      for (size_t j = 0; j < D; ++j) {
+        for (size_t k = 0; k < D; ++k) {
+          auto offset = i * D * D + j * D + k;
+          auto b = bias[i] * fp::RationalConst<8, 24>().kFrN;
+          CHECK(y[offset] + b == output_image.pixels[i][j][k], "");
         }
       }
     }
   }
-#endif
 
   OneConvUpdateSeed(seed, output_pub.cy);
 
@@ -298,12 +284,7 @@ inline void OneConvOutputProvePreprocess(h256_t seed,
   // s.size = KCDD
   std::vector<Fr> s = OneConvOutputR2S(K, C, D, r);
 
-#ifdef _DEBUG_CHECK
-  Fr ip = InnerProduct(y, r);
-  if (InnerProduct(x, s) != ip) {
-    throw std::runtime_error("oops");
-  }
-#endif
+  DCHECK(InnerProduct(y, r) == InnerProduct(x, s), "");
 
   AdaptProveItem adapt_item;
   adapt_item.Init(2, "conv_output_" + std::to_string(layer), FrZero());

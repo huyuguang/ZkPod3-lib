@@ -50,7 +50,7 @@ struct Sec51c {
       assert(yt == HadamardProduct(y, t));
       assert(z == InnerProduct(x, yt));
       get_gyt = [this](int64_t i) -> G1 const& {
-        size_t offset = pc::GetPcBase().kGSize - this->n();
+        size_t offset = pc::Base::GSize() - this->n();
         return pc::PcG()[offset + i];
       };
     }
@@ -88,6 +88,7 @@ struct Sec51c {
   static void Prove(Proof& proof, h256_t seed, ProveInput const& input,
                     CommitmentPub const& com_pub,
                     CommitmentSec const& com_sec) {
+    Tick tick(__FN__, std::to_string(input.n()));
     UpdateSeed(seed, com_pub, input.t);
     Fr com_yt_r = FrRand();
     proof.com_yt = pc::ComputeCom(input.get_gyt, input.yt, com_yt_r);
@@ -126,7 +127,7 @@ struct Sec51c {
                 GetRefG1 const& get_gx, GetRefG1 const& get_gy, G1 const& gz)
         : t(t), com_pub(com_pub), get_gx(get_gx), get_gy(get_gy), gz(gz) {
       get_gyt = [this](int64_t i) -> G1 const& {
-        size_t offset = pc::GetPcBase().kGSize - this->n();
+        size_t offset = pc::Base::GSize() - this->n();
         return pc::PcG()[offset + i];
       };
     }
@@ -226,12 +227,13 @@ struct Sec51c {
   static void ProveYt(Proof& proof, h256_t seed, ProveInput const& input,
                       CommitmentPub const& com_pub,
                       CommitmentSec const& com_sec, Fr const& com_yt_r) {
+    Tick tick(__FN__, std::to_string(input.n()));
     std::vector<Fr> e(input.n());
     ComputeFst1(seed, "sec51c", e);
 
     Fr yte = InnerProduct(input.yt, e);
     auto et = HadamardProduct(e, input.t);
-    assert(yte == InnerProduct(input.y, et));
+    DCHECK(yte == InnerProduct(input.y, et), "");
 
     // prove <yt, e> == <y, et>
     using eip = clink::EqualIp<hyrax::A3>;

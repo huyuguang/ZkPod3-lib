@@ -180,6 +180,7 @@ void serialize(Ar& ar, Proof& t) {
 
 inline void Prove(Proof& proof, h256_t seed, ProveInput&& input,
                   CommitmentPub const& com_pub, CommitmentSec const& com_sec) {
+  Tick tick(__FN__, std::to_string(input.n));
   CommitmentExtSec com_ext_sec(input.n);
   ComputeComExt(proof.com_ext_pub, com_ext_sec, input);
   CommitmentExtPub& com_ext_pub = proof.com_ext_pub;
@@ -274,23 +275,20 @@ inline bool Test(int64_t n) {
   yas::mem_ostream os;
   yas::binary_oarchive<yas::mem_ostream, YasBinF()> oa(os);
   oa.serialize(proof);
-  std::cout << "proof size: " << os.get_shared_buffer().size << "\n";
+  std::cout << Tick::GetIndentString()
+            << "proof size: " << os.get_shared_buffer().size << "\n";
   // serialize from buffer
   yas::mem_istream is(os.get_intrusive_buffer());
   yas::binary_iarchive<yas::mem_istream, YasBinF()> ia(is);
   Proof proof2;
   ia.serialize(proof2);
-  if (proof != proof2) {
-    assert(false);
-    std::cout << "oops, serialize check failed\n";
-    return false;
-  }
+  CHECK(proof == proof2, "");
 #endif
 
   VerifyInput verify_input(std::move(g1_copy), std::move(g2_copy), h, u,
                            com_pub);
   bool success = Verify(proof, seed, std::move(verify_input));
-  std::cout << __FILE__ << " " << __FN__ << ": " << success << "\n\n\n\n\n\n";
+  std::cout << Tick::GetIndentString() << success << "\n\n\n\n\n\n";
   return success;
 }
 }  // namespace bp::p31

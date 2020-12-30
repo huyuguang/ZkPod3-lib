@@ -25,27 +25,24 @@ struct ProveDenseInput {
     this->x.push_back(fp::RationalConst<8, 24>().kFrN);
     this->com_x += pc::PcG(M) * this->x.back();
 
-#ifdef _DEBUG_CHECK
-    if (this->x.size() != M + 1) throw std::runtime_error("invalid x");
-    if (this->y.size() != N) throw std::runtime_error("invalid y");
-    if (weight.size() != N) throw std::runtime_error("invalid weight");
-    for (auto const& i : weight) {
-      if (i.size() != M + 1) throw std::runtime_error("invalid weight");
+    if (DEBUG_CHECK) {
+      CHECK(this->x.size() == M + 1, "");
+      CHECK(this->y.size() == N, "");
+      CHECK(weight.size() == N, "");
+      for (auto const& i : weight) {
+        CHECK(i.size() == M + 1, "");
+      }
+
+      bool all_success = false;
+      auto parallel_f = [this](int64_t i) {
+        auto check_y = InnerProduct(this->x, this->weight[i]);
+        return check_y == this->y[i];
+      };
+      parallel::For(&all_success, N, parallel_f);
+      CHECK(all_success, "");
+
+      CHECK(pc::ComputeCom(this->y, this->com_y_r) == this->com_y, "");
     }
-
-    bool all_success = false;
-    auto parallel_f = [this](int64_t i) {
-      auto check_y = InnerProduct(this->x, this->weight[i]);
-      return check_y == this->y[i];
-    };
-    parallel::For(&all_success, N, parallel_f);
-    if (!all_success) throw std::runtime_error("invalid y");
-
-    if (pc::ComputeCom(this->y, this->com_y_r) != this->com_y) {
-      std::runtime_error("invalid com_y");
-    }
-
-#endif
   }
   std::vector<std::vector<Fr>> const& weight;
   std::array<G1, N> const& com_weight;
@@ -98,7 +95,7 @@ static std::vector<Fr> ComputeDenseFst(h256_t const& seed) {
 template <size_t M, size_t N>
 static void ProveDense(h256_t seed, ProveDenseInput<M, N> const& input,
                        DenseProof& proof) {
-  Tick tick(__FN__);
+  Tick tick(__FN__, std::to_string(M) + "->" + std::to_string(N));
   namespace fp = circuit::fp;
 
   // prove
@@ -123,13 +120,11 @@ static void ProveDense(h256_t seed, ProveDenseInput<M, N> const& input,
   proof.com_z = pc::ComputeCom(z, com_z_r);
   proof.com_y = input.com_y;
 
-#ifdef _DEBUG_CHECK
-  assert(com_e == pc::ComputeCom(e, com_e_r));
-  assert(z == InnerProduct(e, input.x));
-#endif
+  DCHECK(com_e == pc::ComputeCom(e, com_e_r), "");
+  DCHECK(z == InnerProduct(e, input.x), "");
 
   // prove left
-  HyraxA::ProveInput input_hy(input.y, x, z, pc::kGetRefG1, pc::PcG(0));
+  HyraxA::ProveInput input_hy("dense", input.y, x, z, pc::kGetRefG1, pc::PcG(0));
   HyraxA::CommitmentPub com_pub_hy(input.com_y, proof.com_z);
   HyraxA::CommitmentSec com_sec_hy(input.com_y_r, com_z_r);
   HyraxA::Prove(proof.proof_hy, seed, input_hy, com_pub_hy, com_sec_hy);

@@ -10,9 +10,7 @@ struct ImageCommitmentPub {
   ImageCommitmentPub() {}
 
   ImageCommitmentPub(std::string const& file) {
-    if (!YasLoadBin(file, *this)) {
-      throw std::invalid_argument("invalid image commitment pub file: " + file);
-    }
+    CHECK(YasLoadBin(file, *this), file);
   }
 
   bool operator==(ImageCommitmentPub const& b) const { return c == b.c; }
@@ -35,9 +33,7 @@ struct ImageCommitmentSec {
   ImageCommitmentSec() {}
 
   ImageCommitmentSec(std::string const& file) {
-    if (!YasLoadBin(file, *this)) {
-      throw std::invalid_argument("invalid image commitment sec file: " + file);
-    }
+    CHECK(YasLoadBin(file, *this), file);
   }
 
   bool operator==(ImageCommitmentSec const& b) const { return r == b.r; }

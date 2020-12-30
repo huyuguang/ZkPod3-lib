@@ -433,7 +433,7 @@ struct Sudoku {
 
     // adapt: com_y consistent with com_x
     std::vector<Fr> xy_a, xy_b;
-    BuildPackPara(seed, CeilLog2(input.D + 1), input.D*input.D, xy_a, xy_b);
+    BuildPackPara(seed, CeilLog2(input.D + 1), input.D * input.D, xy_a, xy_b);
     AdaptVerifyItem adapt_xy;
     adapt_xy.Init(2, "xy", FrZero());
     adapt_xy.a[0] = std::move(xy_a);
@@ -442,6 +442,7 @@ struct Sudoku {
     adapt_xy.cx[1] = proof.com_y;
     adapt_items.emplace_back(std::move(adapt_xy));
 
+    // parallel prove
     std::array<std::atomic<bool>, 2> rets;
     std::array<parallel::VoidTask, 2> tasks;
     tasks[0] = [&input, &proof, &seed, &rets]() {

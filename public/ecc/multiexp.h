@@ -6,18 +6,20 @@
 #include "./types.h"
 #include "log/tick.h"
 
+extern bool DISABLE_TBB;
+
 template <typename G, typename GET_G, typename GET_F>
 G MultiExpBdlo12Inner(GET_G const& get_g, GET_F const& get_f, size_t n) {
   G result = GZero<G>();
   if (n == 0) return result;
   if (n == 1) return get_g(0) * get_f(0);
 
-  if (n < 32) {
-    for (size_t i = 0; i < n; ++i) {
-      result += get_g(i) * get_f(i);
-    }
-    return result;
-  }
+  //if (n < 32) {
+  //  for (size_t i = 0; i < n; ++i) {
+  //    result += get_g(i) * get_f(i);
+  //  }
+  //  return result;
+  //}
 
   auto local_log2 = [](size_t n) {
     // returns ceil(log2(n)), so ((size_t)1)<<log2(n) is the smallest power of
@@ -146,7 +148,7 @@ template <typename G, typename GET_G, typename GET_F>
 G ParallelMultiExpBdlo12Inner(GET_G const& get_g, GET_F const& get_f, size_t n,
                               bool check_01 = false) {
   auto thread_num = parallel::tbb_thread_num;
-  if (thread_num <= 1 || (int64_t)n < thread_num) {
+  if (DISABLE_TBB || thread_num <= 1 || (int64_t)n < thread_num) {
     return MultiExpBdlo12Inner<G, GET_G, GET_F>(get_g, get_f, n, check_01);
   }
 
@@ -192,7 +194,7 @@ G ParallelMultiExpBdlo12Inner(GET_G const& get_g, GET_F const& get_f, size_t n,
 template <typename G, typename GET_G, typename GET_F>
 G MultiExpBdlo12(GET_G const& get_g, GET_F const& get_f, size_t n,
                  bool check_01 = false) {
-  if (n > 2000000)
+  if (n > 2000000 && !DISABLE_TBB)
     return ParallelMultiExpBdlo12Inner<G>(get_g, get_f, n, check_01);
 
   return MultiExpBdlo12Inner<G>(get_g, get_f, n, check_01);
@@ -274,7 +276,20 @@ inline bool TestMultiexp(int64_t n) {
   FrRand(f);
   std::vector<G1> g(n);
   G1Rand(g);
-  Tick tick(__FN__);
-  MultiExpBdlo12<G1>(g, f);
+  auto start = std::chrono::steady_clock::now();
+  for (size_t i = 0; i < 10; ++i) {
+    Tick tick(__FN__, std::to_string(i));
+    MultiExpBdlo12<G1>(g, f);
+  }
+  auto end = std::chrono::steady_clock::now();
+  auto t = (end - start)/10;
+  auto s = std::chrono::duration_cast<std::chrono::seconds>(t);
+  auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(t);
+  std::cout << Tick::GetIndentString();
+  if (s.count() < 100) {
+    std::cout << "average: " << ms.count() << " ms\n";
+  } else {
+    std::cout << "average: " << s.count() << " seconds\n";
+  }
   return true;
 }

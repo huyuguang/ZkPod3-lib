@@ -38,9 +38,7 @@ class AuxiPub {
     Tick tick(__FN__);
     InitPtr();
 
-    if (!YasLoadBin(file, *this)) {
-      throw std::invalid_argument("invalid auxi file: " + file);
-    }
+    CHECK(YasLoadBin(file, *this), file);
   }
 
   bool operator==(AuxiPub const& b) const {

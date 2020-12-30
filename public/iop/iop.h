@@ -31,7 +31,7 @@ inline void _basic_serial_radix2_FFT(std::vector<Fr> &a, const Fr &omega) {
   size_t mul_count = 0;
   for (size_t s = 1; s <= logn; ++s) {
     // w_m is 2^s-th root of unity now
-    const Fr w_m = FrPower(omega, (n / (2 * m)));// omega ^ (n / (2 * m));
+    const Fr w_m = FrPower(omega, (n / (2 * m)));  // omega ^ (n / (2 * m));
 #ifndef _MSC_VER
     asm volatile("/* pre-inner */");
 #endif

@@ -105,7 +105,7 @@ class MulGadget : public libsnark::gadget<Fr> {
 
  private:
   void CheckMaxNumOfBits() {
-    assert(!a_.empty());
+    CHECK(!a_.empty(), "");
 
     size_t total_bits_of_c = 0;
     for (auto& i : c_) {
@@ -116,8 +116,7 @@ class MulGadget : public libsnark::gadget<Fr> {
     }
     size_t total_bits = a_.size() * (D + N) + total_bits_of_c;
 
-    assert(total_bits < 253);
-    if (total_bits >= 253) throw std::runtime_error(__FN__);
+    CHECK(total_bits < 253, "");
   }
 
  private:
@@ -137,6 +136,7 @@ class MulGadget : public libsnark::gadget<Fr> {
 template <size_t D, size_t N>
 bool MulGadget<D, N>::Test(std::vector<double> const& double_a,
                            std::vector<double> const& double_c) {
+  Tick tick(__FN__);
   double double_ret = 1.0;
   for (auto& i : double_a) {
     double_ret = double_ret * i;
@@ -145,7 +145,7 @@ bool MulGadget<D, N>::Test(std::vector<double> const& double_a,
     double_ret = double_ret * i;
   }
 
-  std::cout << "double_ret: " << double_ret << "\n";
+  std::cout << Tick::GetIndentString() << "double_ret: " << double_ret << "\n";
 
   std::vector<Fr> fr_a(double_a.size());
   for (size_t i = 0; i < double_a.size(); ++i) {
@@ -169,18 +169,19 @@ bool MulGadget<D, N>::Test(std::vector<double> const& double_a,
   }
 
   gadget.generate_r1cs_witness();
-  assert(pb.is_satisfied());
-  if (!pb.is_satisfied()) return false;
+  CHECK(pb.is_satisfied(), "");
 
   Fr fr_ret = pb.lc_val(gadget.ret());
-  std::cout << "fr_ret: " << fr_ret << "\t" << RationalToDouble<D, N>(fr_ret)
-            << "\n";
+  std::cout << Tick::GetIndentString() << "fr_ret: " << fr_ret << "\t"
+            << RationalToDouble<D, N>(fr_ret) << "\n";
   Fr fr_sign = pb.lc_val(gadget.sign());
-  std::cout << "sign: " << fr_sign << "\n";
-  assert(fr_sign == (double_ret >= 0 ? 1 : 0));
+  std::cout << Tick::GetIndentString() << "sign: " << fr_sign << "\n";
+  CHECK(fr_sign == (double_ret >= 0 ? 1 : 0), "");
 
-  std::cout << "num_constraints: " << pb.num_constraints() << "\n";
-  std::cout << "num_variables: " << pb.num_variables() << "\n";
+  std::cout << Tick::GetIndentString()
+            << "num_constraints: " << pb.num_constraints() << "\n";
+  std::cout << Tick::GetIndentString()
+            << "num_variables: " << pb.num_variables() << "\n";
   return true;
 }
 

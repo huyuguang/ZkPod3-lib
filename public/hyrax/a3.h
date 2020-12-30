@@ -12,14 +12,18 @@
 namespace hyrax {
 struct A3 {
   struct ProveInput {
-    ProveInput(std::vector<Fr> const& x, std::vector<Fr> const& a, Fr const& y,
-               GetRefG1 const& get_gx, G1 const& gy)
-        : x(x), a(a), y(y), get_gx(get_gx), gy(gy) {
+    ProveInput(std::string const& tag, std::vector<Fr> const& x,
+               std::vector<Fr> const& a, Fr const& y, GetRefG1 const& get_gx,
+               G1 const& gy)
+        : tag(tag), x(x), a(a), y(y), get_gx(get_gx), gy(gy) {
       assert(x.size() == a.size() && !a.empty());
       assert(y == InnerProduct(x, a));
     }
     int64_t n() const { return (int64_t)x.size(); }
-    std::vector<Fr> const& x;  // x.size = n
+    std::string to_string() const { return tag + ": " + std::to_string(n()); }
+
+    std::string tag;
+    std::vector<Fr> const& x;  // x.size = n // TODO: change to move
     std::vector<Fr> const& a;  // a.size = n
     Fr const y;                // y = <x, a>
     GetRefG1 const get_gx;
@@ -101,13 +105,17 @@ struct A3 {
   };
 
   struct VerifyInput {
-    VerifyInput(std::vector<Fr> const& a, CommitmentPub const& com_pub,
-                GetRefG1 const& get_gx, G1 const& gy)
-        : a(a), com_pub(com_pub), get_gx(get_gx), gy(gy) {}
+    VerifyInput(std::string const& tag, std::vector<Fr> const& a,
+                CommitmentPub const& com_pub, GetRefG1 const& get_gx,
+                G1 const& gy)
+        : tag(tag), a(a), com_pub(com_pub), get_gx(get_gx), gy(gy) {}
+    std::string tag;
     std::vector<Fr> const& a;  // a.size = n
     CommitmentPub const& com_pub;
     GetRefG1 const get_gx;
     G1 const gy;
+    int64_t n() const { return (int64_t)a.size(); }
+    std::string to_string() const { return tag + ": " + std::to_string(n()); }
   };
 
   static void UpdateSeed(h256_t& seed, std::vector<Fr> const& a,
@@ -156,11 +164,10 @@ struct A3 {
 
   static void ComputeCom(CommitmentPub& com_pub, CommitmentSec const& com_sec,
                          ProveInput const& input) {
-    // Tick tick(__FN__);
+    Tick tick(__FN__);
     std::array<parallel::VoidTask, 2> tasks;
     tasks[0] = [&com_pub, &input, &com_sec]() {
-      com_pub.xi =
-          pc::ComputeCom(input.get_gx, input.x, com_sec.r_xi);
+      com_pub.xi = pc::ComputeCom(input.get_gx, input.x, com_sec.r_xi);
     };
     tasks[1] = [&com_pub, &input, &com_sec]() {
       com_pub.tau = pc::ComputeCom(input.gy, input.y, com_sec.r_tau);
@@ -168,8 +175,10 @@ struct A3 {
     parallel::Invoke(tasks, true);
   }
 
+  // TODO: change to move
   static void Prove(Proof& proof, h256_t seed, ProveInput input,
                     CommitmentPub com_pub, CommitmentSec com_sec) {
+    Tick tick(__FN__, input.to_string());
     UpdateSeed(seed, input.a, com_pub);
 
     auto x = input.x;
@@ -179,7 +188,7 @@ struct A3 {
     int64_t round = (int64_t)misc::Log2UB(n);
     auto gx = pc::CopyG(input.get_gx, n);
     gx.resize(misc::Pow2UB(n), G1Zero());
-    //std::fill(gx.begin() + n, gx.end(), G1Zero());
+    // std::fill(gx.begin() + n, gx.end(), G1Zero());
     auto const& h = pc::PcH();
     proof.com_ext_pub.gamma_neg_1.resize(round);
     proof.com_ext_pub.gamma_pos_1.resize(round);
@@ -263,6 +272,7 @@ struct A3 {
 
   static void BuildS(std::vector<Fr>& s, std::vector<Fr> const& c,
                      std::vector<Fr> const& d, std::vector<Fr> const& cc) {
+    Tick tick(__FN__);
     assert(c.size() == d.size());
     auto round = c.size();
     assert(s.size() <= (1ULL << round));
@@ -302,7 +312,8 @@ struct A3 {
 
   static bool Verify(Proof const& proof, h256_t seed,
                      VerifyInput const& input) {
-    auto n = input.a.size();
+    Tick tick(__FN__, input.to_string());
+    auto n = input.n();
     if (!n || (int64_t)misc::Pow2UB(n) != proof.aligned_n()) {
       return false;
     }
@@ -428,7 +439,7 @@ bool A3::Test(int64_t n) {
   };
   G1 gy = pc::PcU();
   auto y = InnerProduct(x, a);
-  ProveInput prove_input(x, a, y, get_gx, pc::PcU());
+  ProveInput prove_input("test", x, a, y, get_gx, pc::PcU());
 
   CommitmentPub com_pub;
   CommitmentSec com_sec(FrRand(), FrRand());
@@ -455,7 +466,7 @@ bool A3::Test(int64_t n) {
   }
 #endif
 
-  VerifyInput verify_input(a, com_pub, get_gx, gy);
+  VerifyInput verify_input("test", a, com_pub, get_gx, gy);
   bool success = Verify(proof, seed, verify_input);
   std::cout << __FILE__ << " " << __FN__ << ": " << success << "\n\n\n\n\n\n";
   return success;

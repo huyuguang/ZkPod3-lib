@@ -66,6 +66,10 @@ struct Sec43b {
 
     int64_t m() const { return x.size(); }
     int64_t n() const { return n_; }
+    std::string to_string() const {
+      return std::to_string(m()) + "*" + std::to_string(n());
+    }
+
     void Take(std::vector<std::vector<Fr>>& ox,
               std::vector<std::vector<Fr>>& oy,
               std::vector<std::vector<Fr>>& oz) {
@@ -89,22 +93,10 @@ struct Sec43b {
 
    private:
     void Check() {
-      if (x.empty()) {
-        std::cout << __FN__ << ":" << __LINE__ << "oops\n";
-        throw std::runtime_error("oops");
-      }
-
-      if (x.size() != y.size() || x.size() != z.size()) {
-        std::cout << __FN__ << ":" << __LINE__ << "oops\n";
-        throw std::runtime_error("oops");
-      }
-
+      CHECK(!x.empty(), "");
+      CHECK(x.size() == y.size() && x.size() == z.size(), "");
       for (auto i = 0LL; i < m(); ++i) {
-        if (x[i].size() != y[i].size() || x[i].size() != z[i].size()) {
-          std::cout << __FN__ << ":" << __LINE__ << "oops\n";
-          throw std::runtime_error("oops");
-        }
-
+        CHECK(x[i].size() == y[i].size() && x[i].size() == z[i].size(), "");
         n_ = std::max(n_, x[i].size());
       }
     }
@@ -112,7 +104,7 @@ struct Sec43b {
 
   static void ComputeCom(CommitmentPub& com_pub, CommitmentSec& com_sec,
                          ProveInput const& input) {
-    Tick tick(__FN__);
+    Tick tick(__FN__, input.to_string());
     auto const m = input.m();
     com_sec.r.resize(m);
     FrRand(com_sec.r.data(), m);
@@ -128,9 +120,17 @@ struct Sec43b {
     com_pub.c.resize(m);
 
     auto parallel_f = [&com_sec, &com_pub, &input](int64_t i) {
-      com_pub.a[i] = pc::ComputeCom(input.get_gx, input.x[i], com_sec.r[i]);
-      com_pub.b[i] = pc::ComputeCom(input.get_gy, input.y[i], com_sec.s[i]);
-      com_pub.c[i] = pc::ComputeCom(input.get_gz, input.z[i], com_sec.t[i]);
+      std::array<parallel::VoidTask, 3> tasks;
+      tasks[0] = [&com_pub, &input, &com_sec, i]() {
+        com_pub.a[i] = pc::ComputeCom(input.get_gx, input.x[i], com_sec.r[i]);
+      };
+      tasks[1] = [&com_pub, &input, &com_sec, i]() {
+        com_pub.b[i] = pc::ComputeCom(input.get_gy, input.y[i], com_sec.s[i]);
+      };
+      tasks[2] = [&com_pub, &input, &com_sec, i]() {
+        com_pub.c[i] = pc::ComputeCom(input.get_gz, input.z[i], com_sec.t[i]);
+      };
+      parallel::Invoke(tasks);
     };
     parallel::For(m, parallel_f);
   }
@@ -156,11 +156,10 @@ struct Sec43b {
   static void Prove(Proof& proof, h256_t seed, ProveInput&& input,
                     CommitmentPub const& com_pub,
                     CommitmentSec const& com_sec) {
-    Tick tick(__FN__);
+    Tick tick(__FN__, input.to_string());
+
     auto m = input.m();
     auto n = input.n();
-
-    std::cout << "m: " << m << ", n:" << n << "\n";
 
     UpdateSeed(seed, com_pub, m, n);
     std::vector<Fr> k(m);
@@ -185,7 +184,7 @@ struct Sec43b {
     } para53(m);
 
     {
-      // Tick tick53(" sec43b->Sec53");
+      Tick tick53(" sec43b->Sec53");
 
       auto& com_sec_53 = para53.com_sec_53;
       auto& com_pub_53 = para53.com_pub_53;
@@ -198,12 +197,19 @@ struct Sec43b {
       Fr z = FrZero();
 
       {
-        // Tick tickz("Sec53 compute z");
+        Tick tickz("Sec53 compute z");
         // 2*m*n fr mul
-        for (int64_t i = 0; i < m; ++i) {
+        std::vector<Fr> ip(m);
+        auto pf = [&input_x, &input_yt, &input_y, &t, &ip](int64_t i) {
           input_yt[i] = HadamardProduct(input_y[i], t);
-          z += InnerProduct(input_x[i], input_yt[i]);
-        }
+          ip[i] = InnerProduct(input_x[i], input_yt[i]);
+        };
+        parallel::For(m, pf);
+        z = std::accumulate(ip.begin(), ip.end(), FrZero());
+        // for (int64_t i = 0; i < m; ++i) {
+        //  input_yt[i] = HadamardProduct(input_y[i], t);
+        //  z += InnerProduct(input_x[i], input_yt[i]);
+        //}
       }
 
       para53.input_53.reset(new typename Sec53::ProveInput(
@@ -213,7 +219,7 @@ struct Sec43b {
       auto& input_53 = *para53.input_53;
 
       {
-        // Tick tickz("Sec53 compute com_sec_53 com_pub_53");
+        Tick tickz("Sec53 compute com_sec_53 com_pub_53");
         input_53_z = input_53.z;
         com_sec_53.r.resize(m);
         com_pub_53.a.resize(m);
@@ -244,7 +250,7 @@ struct Sec43b {
     } parahy(n);
 
     {
-      // Tick tick53("sec43b->hyraxa");
+      Tick tick53("sec43b->hyraxa");
       auto& com_pub_hy = parahy.com_pub_hy;
       auto& com_sec_hy = parahy.com_sec_hy;
       auto& zk = parahy.zk;
@@ -260,7 +266,7 @@ struct Sec43b {
       parallel::For(n, parallel_f, n < 16 * 1024);
 
       parahy.input_hy.reset(new typename HyraxA::ProveInput(
-          zk, t, input_53_z, input.get_gz, SelectSec53Gz()));
+          "43b", zk, t, input_53_z, input.get_gz, SelectSec53Gz()));
       auto& input_hy = *parahy.input_hy;
       (void)input_hy;
 
@@ -270,14 +276,13 @@ struct Sec43b {
       com_pub_hy.tau = com_pub_53_c;
 
       // do not need to compute the com1_pub_hy.xi in release build
-      assert(input_hy.y == InnerProduct(input_hy.x, input_hy.a));
+      DCHECK(input_hy.y == InnerProduct(input_hy.x, input_hy.a), "");
 
       com_pub_hy.xi = MultiExpBdlo12(com_pub.c, k);
 
-#ifdef _DEBUG
-      auto check_xi = pc::ComputeCom(input.get_gz, input_hy.x, com_sec_hy.r_xi);
-      assert(check_xi == com_pub_hy.xi);
-#endif
+      DCHECK(pc::ComputeCom(input.get_gz, input_hy.x, com_sec_hy.r_xi) ==
+                 com_pub_hy.xi,
+             "");
     }
 
     std::array<parallel::VoidTask, 2> tasks;
@@ -302,8 +307,7 @@ struct Sec43b {
           com_pub(com_pub),
           get_gx(get_gx),
           get_gy(get_gy),
-          get_gz(get_gz) {
-    }
+          get_gz(get_gz) {}
     std::vector<size_t> const& mn;
     CommitmentPub const& com_pub;
     GetRefG1 const& get_gx;
@@ -311,11 +315,14 @@ struct Sec43b {
     GetRefG1 const& get_gz;
     size_t m() const { return mn.size(); }
     size_t n() const { return *std::max_element(mn.begin(), mn.end()); }
+    std::string to_string() const {
+      return std::to_string(m()) + "*" + std::to_string(n());
+    }
   };
 
   static bool Verify(Proof const& proof, h256_t seed,
                      VerifyInput const& input) {
-    // Tick tick(__FN__);
+    Tick tick(__FN__, input.to_string());
     auto m = input.m();
     auto n = input.n();
 
@@ -348,7 +355,7 @@ struct Sec43b {
     tasks[1] = [&ret_a2, &com_pub, &proof, &t, &k, &seed, &input]() {
       typename HyraxA::CommitmentPub com_pub_hy(MultiExpBdlo12(com_pub.c, k),
                                                 proof.c);
-      typename HyraxA::VerifyInput input_hy(t, com_pub_hy, input.get_gz,
+      typename HyraxA::VerifyInput input_hy("43b", t, com_pub_hy, input.get_gz,
                                             SelectSec53Gz());
       ret_a2 = HyraxA::Verify(proof.proof_a, seed, input_hy);
       assert(ret_a2);
@@ -369,7 +376,7 @@ struct Sec43b {
 template <typename Sec53, typename HyraxA>
 bool Sec43b<Sec53, HyraxA>::Test(int64_t m, int64_t n) {
   Tick tick(__FN__);
-  std::cout << "old_m=" << m << ", n=" << n << "\n";
+  std::cout << Tick::GetIndentString() << "old_m=" << m << ", n=" << n << "\n";
 
   std::vector<std::vector<Fr>> x(m);
   for (auto& i : x) {
@@ -434,22 +441,19 @@ bool Sec43b<Sec53, HyraxA>::Test(int64_t m, int64_t n) {
   yas::mem_ostream os;
   yas::binary_oarchive<yas::mem_ostream, YasBinF()> oa(os);
   oa.serialize(proof);
-  std::cout << "proof size: " << os.get_shared_buffer().size << "\n";
+  std::cout << Tick::GetIndentString()
+            << "proof size: " << os.get_shared_buffer().size << "\n";
   // serialize from buffer
   yas::mem_istream is(os.get_intrusive_buffer());
   yas::binary_iarchive<yas::mem_istream, YasBinF()> ia(is);
   Proof proof2;
   ia.serialize(proof2);
-  if (proof != proof2) {
-    assert(false);
-    std::cout << "oops, serialize check failed\n";
-    return false;
-  }
+  CHECK(proof == proof2, "");
 #endif
 
   VerifyInput verify_input(mn, com_pub, get_gx, get_gy, get_gz);
   bool success = Verify(proof, seed, verify_input);
-  std::cout << __FILE__ << " " << __FN__ << ": " << success << "\n\n\n\n\n\n";
+  std::cout << Tick::GetIndentString() << success << "\n\n\n\n\n\n";
   return success;
 }
 }  // namespace groth09

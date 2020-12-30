@@ -140,8 +140,9 @@ bool SubstrPack<Policy>::Test(int64_t n, std::string const& k) {
     std::cout << "invalid parameter: k.size() must <= 31.\n";
     return false;
   }
-  if (n >= pc::Base::kGSize / 2) {
-    std::cout << "invalid parameter: n must < " << pc::Base::kGSize / 2 << "\n";
+  if (n >= pc::Base::GSize() / 2) {
+    std::cout << "invalid parameter: n must < " << pc::Base::GSize() / 2
+              << "\n";
     return false;
   }
 

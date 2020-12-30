@@ -13,14 +13,18 @@
 namespace hyrax {
 struct A2 {
   struct ProveInput {
-    ProveInput(std::vector<Fr> const& x, std::vector<Fr> const& a, Fr const& y,
-               GetRefG1 const& get_gx, G1 const& gy)
-        : x(x), a(a), y(y), get_gx(get_gx), gy(gy) {
+    ProveInput(std::string const& tag, std::vector<Fr> const& x,
+               std::vector<Fr> const& a, Fr const& y, GetRefG1 const& get_gx,
+               G1 const& gy)
+        : tag(tag), x(x), a(a), y(y), get_gx(get_gx), gy(gy) {
       assert(x.size() == a.size() && !a.empty());
       assert(y == InnerProduct(x, a));
     }
     int64_t n() const { return (int64_t)x.size(); }
-    std::vector<Fr> const& x;  // x.size = n
+    std::string to_string() const { return tag + ": " + std::to_string(n()); }
+
+    std::string tag;
+    std::vector<Fr> const& x;  // x.size = n // TODO: change to move
     std::vector<Fr> const& a;  // a.size = n
     Fr const y;                // y = <x, a>
     GetRefG1 const get_gx;
@@ -93,13 +97,17 @@ struct A2 {
   };
 
   struct VerifyInput {
-    VerifyInput(std::vector<Fr> const& a, CommitmentPub const& com_pub,
-                GetRefG1 const& get_gx, G1 const& gy)
-        : a(a), com_pub(com_pub), get_gx(get_gx), gy(gy) {}
+    VerifyInput(std::string const& tag, std::vector<Fr> const& a,
+                CommitmentPub const& com_pub, GetRefG1 const& get_gx,
+                G1 const& gy)
+        : tag(tag), a(a), com_pub(com_pub), get_gx(get_gx), gy(gy) {}
+    std::string tag;
     std::vector<Fr> const& a;  // a.size = n
     CommitmentPub const& com_pub;
     GetRefG1 const get_gx;
     G1 const gy;
+    int64_t n() const { return (int64_t)a.size(); }
+    std::string to_string() const { return tag + ": " + std::to_string(n()); }
   };
 
   // com(n) + com(1) + ip(n)
@@ -199,7 +207,7 @@ struct A2 {
   static void Prove(Proof& proof, h256_t seed, ProveInput const& input,
                     CommitmentPub const& com_pub,
                     CommitmentSec const& com_sec) {
-    Tick tick(__FN__);
+    Tick tick(__FN__, input.to_string());
 
     CommitmentExtSec com_ext_sec;
     ComputeCommitmentExt(proof.com_ext_pub, com_ext_sec, input);
@@ -212,7 +220,7 @@ struct A2 {
 
   static bool Verify(Proof const& proof, h256_t seed,
                      VerifyInput const& input) {
-    // Tick tick(__FN__);
+    Tick tick(__FN__, input.to_string());
     if (input.a.size() != proof.sub_proof.z.size() || input.a.empty())
       return false;
 
@@ -290,7 +298,7 @@ bool A2::Test(int64_t n) {
     return pc::PcG()[x_g_offset + i];
   };
   auto z = InnerProduct(x, a);
-  ProveInput prove_input(x, a, z, get_gx, pc::PcU());
+  ProveInput prove_input("test", x, a, z, get_gx, pc::PcU());
 
   CommitmentPub com_pub;
   CommitmentSec com_sec(FrRand(), FrRand());
@@ -317,7 +325,7 @@ bool A2::Test(int64_t n) {
   }
 #endif
 
-  VerifyInput verify_input(a, com_pub, get_gx, pc::PcU());
+  VerifyInput verify_input("test", a, com_pub, get_gx, pc::PcU());
   bool success = Verify(proof, UpdateSeed, verify_input);
   std::cout << __FILE__ << " " << __FN__ << ": " << success << "\n\n\n\n\n\n";
   return success;

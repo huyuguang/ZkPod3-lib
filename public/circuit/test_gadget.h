@@ -39,8 +39,8 @@ class TestGadget : public libsnark::gadget<Fr> {
     }
   }
 
-   private:
-    libsnark::pb_variable_array<Fr> x_;
-  };
+ private:
+  libsnark::pb_variable_array<Fr> x_;
+};
 
 }  // namespace circuit

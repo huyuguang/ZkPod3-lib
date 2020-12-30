@@ -107,6 +107,11 @@ class MaxGadget : public libsnark::gadget<Fr> {
     MaxGadget<D, N> gadget(pb, pb_x, "MaxGadget");
 
     gadget.generate_r1cs_constraints();
+
+    std::cout << Tick::GetIndentString()
+              << "num_constraints: " << pb.num_constraints()
+              << ", num_variables: " << pb.num_variables() << "\n";
+
     for (size_t i = 0; i < x.size(); ++i) {
       pb.val(pb_x[i]) = x[i];
     }
@@ -128,11 +133,11 @@ class MaxGadget : public libsnark::gadget<Fr> {
 inline bool TestMax() {
   Tick tick(__FN__);
   constexpr size_t D = 8;
-  constexpr size_t N = 2;
+  constexpr size_t N = 24;
   std::vector<Fr> x;
   std::vector<bool> rets;
 
-  rets.push_back(MaxGadget<D, N>::Test({100, 0, -11}, 100));
+  rets.push_back(MaxGadget<D, N>::Test({1001234, 0, -11,2445}, 1001234));
   rets.push_back(MaxGadget<D, N>::Test({1, 3, -11}, 3));
   rets.push_back(MaxGadget<D, N>::Test({-32, 31, -1}, 31));
   rets.push_back(MaxGadget<D, N>::Test({-32, 31, -1}, 31));

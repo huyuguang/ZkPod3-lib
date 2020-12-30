@@ -96,8 +96,9 @@ class DivBaseGadget : public libsnark::gadget<Fr> {
 
 template <size_t D, size_t N>
 bool DivBaseGadget<D, N>::Test(double double_a, double double_b) {
+  Tick tick(__FN__);
   auto double_ret = double_a / double_b;
-  std::cout << "double_ret: " << double_ret << "\n";
+  std::cout << Tick::GetIndentString() << "double_ret: " << double_ret << "\n";
 
   Fr a = DoubleToRational<D, N>(double_a);
   Fr b = DoubleToRational<D, N>(double_b);
@@ -112,18 +113,20 @@ bool DivBaseGadget<D, N>::Test(double double_a, double double_b) {
   pb.val(pb_a) = a;
   pb.val(pb_b) = b;
   gadget.generate_r1cs_witness();
-  assert(pb.is_satisfied());
+  CHECK(pb.is_satisfied(), "");
   if (!pb.is_satisfied()) return false;
 
   Fr fr_ret = pb.lc_val(gadget.ret());
-  std::cout << "fr_ret: " << fr_ret << "\t" << RationalToDouble<D, N>(fr_ret)
-            << "\n";
+  std::cout << Tick::GetIndentString() << "fr_ret: " << fr_ret << "\t"
+            << RationalToDouble<D, N>(fr_ret) << "\n";
   Fr fr_sign = pb.lc_val(gadget.sign());
-  std::cout << "sign: " << fr_sign << "\n";
-  assert(fr_sign == (double_ret >= 0 ? 1 : 0));
+  std::cout << Tick::GetIndentString() << "sign: " << fr_sign << "\n";
+  CHECK(fr_sign == (double_ret >= 0 ? 1 : 0), "");
 
-  std::cout << "num_constraints: " << pb.num_constraints() << "\n";
-  std::cout << "num_variables: " << pb.num_variables() << "\n";
+  std::cout << Tick::GetIndentString()
+            << "num_constraints: " << pb.num_constraints() << "\n";
+  std::cout << Tick::GetIndentString()
+            << "num_variables: " << pb.num_variables() << "\n";
   return true;
 }
 
@@ -269,8 +272,7 @@ class DivGadget : public libsnark::gadget<Fr> {
     Fr a = this->pb.lc_val(a_);
     Fr sign_a = this->pb.lc_val(sign_a_);
     Fr check_sign_a = a.isNegative() ? 0 : 1;
-    assert(sign_a == check_sign_a);
-    if (sign_a != check_sign_a) throw std::runtime_error(__FN__);
+    CHECK(sign_a == check_sign_a, "");
     if (!sign_a_.is_constant()) {
       this->pb.val(abs_a_) = a.isNegative() ? -a : a;
     }
@@ -279,10 +281,9 @@ class DivGadget : public libsnark::gadget<Fr> {
 
     Fr b = this->pb.lc_val(b_);
     Fr sign_b = this->pb.lc_val(sign_b_);
-    std::cout << "sign_b: " << sign_b << "\n";
+    // std::cout << "sign_b: " << sign_b << "\n";
     Fr check_sign_b = b.isNegative() ? 0 : 1;
-    assert(sign_b == check_sign_b);
-    if (sign_b != check_sign_b) throw std::runtime_error(__FN__);
+    CHECK(sign_b == check_sign_b, "");
     if (!sign_b_.is_constant()) {
       this->pb.val(abs_b_) = b.isNegative() ? -b : b;
     }
@@ -336,8 +337,9 @@ class DivGadget : public libsnark::gadget<Fr> {
 template <size_t D, size_t N>
 bool DivGadget<D, N>::Test(double double_a, double double_b, int sign_a_flag,
                            int sign_b_flag) {
+  Tick tick(__FN__);
   auto double_ret = double_a / double_b;
-  std::cout << "double_ret: " << double_ret << "\n";
+  std::cout << Tick::GetIndentString() << "double_ret: " << double_ret << "\n";
 
   Fr a = DoubleToRational<D, N>(double_a);
   Fr b = DoubleToRational<D, N>(double_b);
@@ -384,18 +386,19 @@ bool DivGadget<D, N>::Test(double double_a, double double_b, int sign_a_flag,
   }
 
   gadget.generate_r1cs_witness();
-  assert(pb.is_satisfied());
-  if (!pb.is_satisfied()) return false;
+  CHECK(pb.is_satisfied(), "");
 
   Fr fr_ret = pb.lc_val(gadget.ret());
-  std::cout << "fr_ret: " << fr_ret << "\t" << RationalToDouble<D, N>(fr_ret)
-            << "\n";
+  std::cout << Tick::GetIndentString() << "fr_ret: " << fr_ret << "\t"
+            << RationalToDouble<D, N>(fr_ret) << "\n";
   Fr fr_sign = pb.lc_val(gadget.sign());
-  std::cout << "sign: " << fr_sign << "\n";
-  assert(fr_sign == (double_ret >= 0 ? 1 : 0));
+  std::cout << Tick::GetIndentString() << "sign: " << fr_sign << "\n";
+  CHECK(fr_sign == (double_ret >= 0 ? 1 : 0), "");
 
-  std::cout << "num_constraints: " << pb.num_constraints() << "\n";
-  std::cout << "num_variables: " << pb.num_variables() << "\n";
+  std::cout << Tick::GetIndentString()
+            << "num_constraints: " << pb.num_constraints() << "\n";
+  std::cout << Tick::GetIndentString()
+            << "num_variables: " << pb.num_variables() << "\n";
   return true;
 }
 
@@ -493,8 +496,9 @@ class InvGadget : public DivGadget<D, N> {
 
 template <size_t D, size_t N>
 bool InvGadget<D, N>::Test(double double_b, int sign_b_flag) {
+  Tick tick(__FN__);
   auto double_ret = 1.0 / double_b;
-  std::cout << "double_ret: " << double_ret << "\n";
+  std::cout << Tick::GetIndentString() << "double_ret: " << double_ret << "\n";
 
   Fr b = DoubleToRational<D, N>(double_b);
 
@@ -522,18 +526,19 @@ bool InvGadget<D, N>::Test(double double_b, int sign_b_flag) {
   }
 
   gadget.generate_r1cs_witness();
-  assert(pb.is_satisfied());
-  if (!pb.is_satisfied()) return false;
+  CHECK(pb.is_satisfied(), "");
 
   Fr fr_ret = pb.lc_val(gadget.ret());
-  std::cout << "fr_ret: " << fr_ret << "\t" << RationalToDouble<D, N>(fr_ret)
-            << "\n";
+  std::cout << Tick::GetIndentString() << "fr_ret: " << fr_ret << "\t"
+            << RationalToDouble<D, N>(fr_ret) << "\n";
   Fr fr_sign = pb.lc_val(gadget.sign());
-  std::cout << "sign: " << fr_sign << "\n";
-  assert(fr_sign == (double_ret >= 0 ? 1 : 0));
+  std::cout << Tick::GetIndentString() << "sign: " << fr_sign << "\n";
+  CHECK(fr_sign == (double_ret >= 0 ? 1 : 0), "");
 
-  std::cout << "num_constraints: " << pb.num_constraints() << "\n";
-  std::cout << "num_variables: " << pb.num_variables() << "\n";
+  std::cout << Tick::GetIndentString()
+            << "num_constraints: " << pb.num_constraints() << "\n";
+  std::cout << Tick::GetIndentString()
+            << "num_variables: " << pb.num_variables() << "\n";
   return true;
 }
 

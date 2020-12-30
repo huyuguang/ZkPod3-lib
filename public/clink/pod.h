@@ -311,7 +311,7 @@ struct Pod {
   }
 
   static bool CheckCommitedData(CommitedData const& data) {
-    if (!data.n || !data.s || data.s > pc::Base::kGSize) return false;
+    if (!data.n || !data.s || data.s > pc::Base::GSize()) return false;
 
     bool all_success = false;
     auto parallel_f = [&data](int64_t i) {

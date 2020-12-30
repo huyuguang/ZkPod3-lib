@@ -413,7 +413,7 @@ inline void HadamardProduct(std::vector<Fr>& c, std::vector<Fr> const& a,
 }
 
 inline std::vector<Fr> HadamardProduct(std::vector<Fr> const& a,
-                                       std::vector<Fr> const& b) {  
+                                       std::vector<Fr> const& b) {
   std::vector<Fr> c;
   HadamardProduct(c, a, b);
   return c;
@@ -432,8 +432,8 @@ inline bool BinToFr32(void const* start, Fr* fr) {
 
 inline Fr BinToFr32(void const* start) {
   Fr r;
-  if (BinToFr32(start, &r)) return r;
-  throw std::runtime_error("");
+  CHECK(BinToFr32(start, &r), "");
+  return r;
 }
 
 inline Fr H256ToFr(h256_t const& digest) {
@@ -446,7 +446,7 @@ inline Fr H256ToFr(h256_t const& digest) {
 
 // buf must 32 bytes, if the fr comes from BinToFr31(), the buf[31] will be 0
 inline void FrToBin(Fr const& fr, uint8_t* buf) {
-  if (fr.serialize(buf, 32) != 32) throw std::runtime_error("");
+  CHECK(fr.serialize(buf, 32) == 32, "");
 }
 
 inline h256_t FrToBin(Fr const& fr) {
@@ -635,13 +635,13 @@ inline bool BinToG1(uint8_t const* buf, G1* g) {
 
 inline G1 BinToG1(uint8_t const* buf) {
   G1 r;
-  if (BinToG1(buf, &r)) return r;
-  throw std::runtime_error("");
+  CHECK(BinToG1(buf, &r), "");
+  return r;
 }
 
 // buf must 32 bytes
 inline void G1ToBin(G1 const& g, uint8_t* buf) {
-  if (g.serialize(buf, 32) != 32) throw std::runtime_error("");
+  CHECK(g.serialize(buf, 32) == 32, "");
 }
 
 inline h256_t G1ToBin(G1 const& g) {
@@ -701,7 +701,7 @@ inline bool FlatBinToG1(uint8_t const* const buf, G1* g) {
 
 inline G1 FlatBinToG1(uint8_t const* const buf) {
   G1 r;
-  if (!FlatBinToG1(buf, &r)) throw std::invalid_argument("");
+  CHECK(FlatBinToG1(buf, &r), "");
   return r;
 }
 
@@ -730,13 +730,13 @@ inline bool BinToG2(uint8_t const* buf, G2* g) {
 
 inline G2 BinToG2(uint8_t const* buf) {
   G2 r;
-  if (BinToG2(buf, &r)) return r;
-  throw std::runtime_error("");
+  CHECK(BinToG2(buf, &r), "");
+  return r;
 }
 
 // buf must 64 bytes
 inline void G2ToBin(G2 const& g, uint8_t* buf) {
-  if (g.serialize(buf, 64) != 64) throw std::runtime_error("");
+  CHECK(g.serialize(buf, 64) == 64, "");
 }
 
 // >= kG2FlatBinSize
@@ -786,7 +786,7 @@ inline bool FlatBinToG2(uint8_t const* const buf, G2* g) {
 
 inline G2 FlatBinToG2(uint8_t const* const buf) {
   G2 r;
-  if (!FlatBinToG2(buf, &r)) throw std::invalid_argument("");
+  CHECK(FlatBinToG2(buf, &r), "");
   return r;
 }
 

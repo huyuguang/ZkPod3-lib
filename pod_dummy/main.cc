@@ -17,16 +17,15 @@
 #include "misc/misc.h"
 #include "public.h"
 
+bool DEBUG_CHECK = false;
+bool BIG_MODE = false;
+bool DISABLE_TBB = false;
+
 bool InitAll(std::string const& data_dir) {
   InitEcc();
 
-  // auto ecc_pub_file = data_dir + "/" + "ecc_pub.bin";
-  // if (!OpenOrCreateEccPub(ecc_pub_file)) {
-  //  std::cerr << "Open or create ecc pub file " << ecc_pub_file << "
-  //  failed\n"; return false;
-  //}
-
-  auto ecc_pds_file = data_dir + "/" + "pds_pub.bin";
+  std::string const kFileName = BIG_MODE ? "pds_pub_big.bin" : "pds_pub.bin";
+  auto ecc_pds_file = data_dir + "/" + kFileName;
   if (!pc::OpenOrCreatePdsPub(ecc_pds_file)) {
     std::cerr << "Open or create pds pub file " << ecc_pds_file << " failed\n";
     return false;
@@ -237,8 +236,8 @@ int main(int argc, char** argv) {
         "vgg16_infer", po::value<Param2Str>(&vgg16_infer),
         "\"test_image_path working_path\"")(
         "vgg16_prove", po::value<Param2Str>(&vgg16_prove),
-        "test_image_path working_path")("vgg16_test", "")(
-        "sudoku", po::value<int64_t>(&sudoku_d), "");
+        "test_image_path working_path")("vgg16_test", "")("sudoku", po::value<int64_t>(&sudoku_d), "")(
+        "debug_check", "")("big_mode", "")("disable_tbb", "");
 
     boost::program_options::variables_map vmap;
 
@@ -307,6 +306,18 @@ int main(int argc, char** argv) {
 
     if (vmap.count("vgg16_test")) {
       vgg16_test = true;
+    }
+
+    if (vmap.count("debug_check")) {
+      DEBUG_CHECK = true;
+    }
+
+    if (vmap.count("big_mode")) {
+      BIG_MODE = true;
+    }
+
+    if (vmap.count("disable_tbb")) {
+      DISABLE_TBB = true;
     }
   } catch (std::exception& e) {
     std::cout << "Unknown parameters.\n"

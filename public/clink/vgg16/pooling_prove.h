@@ -48,15 +48,16 @@ inline void PoolingInputProvePreprocess(h256_t seed,
   };
   parallel::For<int64_t>(9, parallel_f2);
 
-#ifdef _DEBUG_CHECK
-  Fr sum_xq_5 = std::accumulate(xq.begin(), xq.begin() + 5, FrZero());
-  Fr sum_xq_4 = std::accumulate(xq.begin() + 5, xq.end(), FrZero());
-  if (sum_xq_5 != sum_xq_4) throw std::runtime_error("oops");
-  G1 sum_com_xq_5 =
-      std::accumulate(com_xq.begin(), com_xq.begin() + 5, G1Zero());
-  G1 sum_com_xq_4 = std::accumulate(com_xq.begin() + 5, com_xq.end(), G1Zero());
-  if (sum_com_xq_5 != sum_com_xq_4) throw std::runtime_error("oops");
-#endif
+  if (DEBUG_CHECK) {
+    Fr sum_xq_5 = std::accumulate(xq.begin(), xq.begin() + 5, FrZero());
+    Fr sum_xq_4 = std::accumulate(xq.begin() + 5, xq.end(), FrZero());
+    CHECK(sum_xq_5 == sum_xq_4, "");
+    G1 sum_com_xq_5 =
+        std::accumulate(com_xq.begin(), com_xq.begin() + 5, G1Zero());
+    G1 sum_com_xq_4 =
+        std::accumulate(com_xq.begin() + 5, com_xq.end(), G1Zero());
+    CHECK(sum_com_xq_5 == sum_com_xq_4, "");
+  }
 
   input_sec.a = x[5];
   input_sec.b = x[6];
@@ -99,18 +100,15 @@ inline void PoolingR1csProvePreprocess(
   r1cs_sec.w.resize(s);
   auto n = input_sec.a.size();
   for (auto& i : r1cs_sec.w) i.resize(n);
-  std::cout << "PoolingR1csProvePreprocess: " << r1cs_sec.r1cs_info->to_string()
+  std::cout << Tick::GetIndentString() << r1cs_sec.r1cs_info->to_string()
             << ", repeat times: " << n << "\n";
 
-#ifdef _DEBUG_CHECK
-  if (input_sec.a.size() != n || input_sec.b.size() != n ||
-      input_sec.c.size() != n || input_sec.d.size() != n) {
-    throw std::runtime_error("oops");
+  if (DEBUG_CHECK) {
+    CHECK(input_sec.a.size() == n && input_sec.b.size() == n &&
+              input_sec.c.size() == n && input_sec.d.size() == n,
+          "");
+    CHECK(n == PoolingGetCircuitCount(), "");
   }
-  if (n != PoolingGetCircuitCount()) {
-    throw std::runtime_error("oops");
-  }
-#endif
 
   for (size_t j = 0; j < n; ++j) {
     std::array<Fr const*, 4> data = {&input_sec.a[j], &input_sec.b[j],
@@ -126,7 +124,7 @@ inline void PoolingR1csProvePreprocess(
   r1cs_pub.com_w.resize(s);
   r1cs_sec.com_w_r.resize(s);
 
-  std::cout << "compute pooling com(witness)\n";
+  std::cout << Tick::GetIndentString() << "compute pooling com(witness)\n";
   r1cs_sec.com_w_r[0] = input_sec.r_a;
   r1cs_pub.com_w[0] = input_pub.cx[5];
   r1cs_sec.com_w_r[1] = input_sec.r_b;
@@ -179,36 +177,36 @@ inline void PoolingOutputProvePreprocess(h256_t seed,
     com_x_r[i + 1] = context.image_com_sec().r[layer];
   }
 
-#ifdef _DEBUG_CHECK
-  std::vector<Fr> check_x;
-  for (size_t i = 1; i < x.size(); ++i) {
-    check_x.insert(check_x.end(), x[i].begin(), x[i].end());
+  if (DEBUG_CHECK) {
+    std::vector<Fr> check_x;
+    for (size_t i = 1; i < x.size(); ++i) {
+      check_x.insert(check_x.end(), x[i].begin(), x[i].end());
+    }
+    CHECK(x[0] == check_x, "");
   }
-  if (x[0] != check_x) throw std::runtime_error("oops");
-#endif
 
   PoolingUpdateSeed(seed, r1cs_pub);
 
   std::array<std::vector<Fr>, 6> q;
   PoolingBuildOutputQ(seed, q);
 
-#ifdef _DEBUG_CHECK
-  // now we have 6 x and 6 q
-  std::array<Fr, 6> xq;
-  std::array<Fr, 6> com_xq_r;
-  std::array<G1, 6> com_xq;
-  SelectOutputComIpR(com_xq_r);
-  auto parallel_f = [&x, &q, &xq, &com_xq_r, &com_xq](int64_t i) {
-    xq[i] = InnerProduct(x[i], q[i]);
-    com_xq[i] = pc::ComputeCom(xq[i], com_xq_r[i]);
-  };
-  parallel::For<int64_t>(xq.size(), parallel_f);
+  if (DEBUG_CHECK) {
+    // now we have 6 x and 6 q
+    std::array<Fr, 6> xq;
+    std::array<Fr, 6> com_xq_r;
+    std::array<G1, 6> com_xq;
+    SelectOutputComIpR(com_xq_r);
+    auto parallel_f = [&x, &q, &xq, &com_xq_r, &com_xq](int64_t i) {
+      xq[i] = InnerProduct(x[i], q[i]);
+      com_xq[i] = pc::ComputeCom(xq[i], com_xq_r[i]);
+    };
+    parallel::For<int64_t>(xq.size(), parallel_f);
 
-  Fr sum_xq = std::accumulate(xq.begin() + 1, xq.end(), FrZero());
-  if (sum_xq != xq[0]) throw std::runtime_error("oops");
-  G1 sum_com_xq = std::accumulate(com_xq.begin() + 1, com_xq.end(), G1Zero());
-  if (sum_com_xq != com_xq[0]) throw std::runtime_error("oops");
-#endif
+    Fr sum_xq = std::accumulate(xq.begin() + 1, xq.end(), FrZero());
+    CHECK(sum_xq == xq[0], "");
+    G1 sum_com_xq = std::accumulate(com_xq.begin() + 1, com_xq.end(), G1Zero());
+    CHECK(sum_com_xq == com_xq[0], "");
+  }
 
   // auto parallel_f2 = [&seed, &x, &q, &xq, &com_xq, &com_x_r, &com_xq_r,
   //                    &output_pub](int64_t i) {

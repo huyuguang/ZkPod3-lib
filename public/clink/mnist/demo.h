@@ -1890,7 +1890,6 @@ inline dbl::Para const& GetDblPara() {
   return para;
 }
 
-
 ////
 template <typename T>
 void PrintTableRow(T const& t, const int width) {

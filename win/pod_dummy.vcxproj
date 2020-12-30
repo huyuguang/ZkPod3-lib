@@ -217,7 +217,6 @@
     <ClInclude Include="..\public\cmd\substr_query.h" />
     <ClInclude Include="..\public\debug\flags.h" />
     <ClInclude Include="..\public\ecc\ecc.h" />
-    <ClInclude Include="..\public\ecc\ecc_pub.h" />
     <ClInclude Include="..\public\ecc\funcs.h" />
     <ClInclude Include="..\public\ecc\multiexp.h" />
     <ClInclude Include="..\public\ecc\parallel_multiexp.h" />
@@ -244,6 +243,8 @@
     <ClInclude Include="..\public\iop\iop.h" />
     <ClInclude Include="..\public\log\log.h" />
     <ClInclude Include="..\public\log\tick.h" />
+    <ClInclude Include="..\public\misc\check.h" />
+    <ClInclude Include="..\public\misc\debug.h" />
     <ClInclude Include="..\public\misc\funcs.h" />
     <ClInclude Include="..\public\misc\func_alias.h" />
     <ClInclude Include="..\public\misc\misc.h" />

@@ -20,7 +20,7 @@ inline bool MpzIsUint256(mpz_class const& v) {
 
 inline void MpzToBE(mpz_class const& v, uint8_t* buf, size_t len) {
   auto count = (mpz_sizeinbase(v.get_mpz_t(), 2) + 7) / 8;
-  if (count > len) throw std::runtime_error("oops");
+  CHECK(count <= len, "");
   mpz_export(buf + (len - count), nullptr, 1, 1, 0, 0, v.get_mpz_t());
   if (len > count) {
     memset(buf, 0, len - count);
@@ -29,7 +29,7 @@ inline void MpzToBE(mpz_class const& v, uint8_t* buf, size_t len) {
 
 inline void MpzToLE(mpz_class const& v, uint8_t* buf, size_t len) {
   auto count = (mpz_sizeinbase(v.get_mpz_t(), 2) + 7) / 8;
-  if (count > len) throw std::runtime_error("oops");
+  CHECK(count <= len, "");
   mpz_export(buf, nullptr, -1, 1, 0, 0, v.get_mpz_t());
   if (len > count) {
     memset(buf + count, 0, len - count);

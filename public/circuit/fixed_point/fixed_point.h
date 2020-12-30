@@ -57,8 +57,8 @@ inline bool Test() {
   // ret = TestRelu();
   // rets.push_back(ret);
 
-  // ret = TestMax();
-  // rets.push_back(ret);
+  ret = TestMax();
+  rets.push_back(ret);
   return std::all_of(rets.begin(), rets.end(), [](auto i) { return i; });
 }
 }  // namespace fixed_point

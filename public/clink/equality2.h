@@ -24,10 +24,9 @@ struct Equality2 {
                     std::vector<G1> const& cv, std::vector<Fr> const& rv,
                     GetRefG1 const& get_gv, std::vector<G1> const& cu,
                     std::vector<Fr> const& ru, GetRefG1 const& get_gu) {
-    if (v.size() != cv.size() || v.size() != cu.size() ||
-        v.size() != rv.size() || v.size() != ru.size()) {
-      throw std::runtime_error("oops");
-    }
+    CHECK(v.size() == cv.size() && v.size() == cu.size() &&
+              v.size() == rv.size() && v.size() == ru.size(),
+          "");
 
     auto m = v.size();
     size_t n = 0;
@@ -72,7 +71,7 @@ struct Equality2 {
       else
         return get_gu(i - n);
     };
-    hyrax::A3::ProveInput input(W, S, FrZero(), get_g, G1Zero());
+    hyrax::A3::ProveInput input("equality2", W, S, FrZero(), get_g, G1Zero());
     hyrax::A3::CommitmentPub com_pub(cw, G1Zero());
     hyrax::A3::CommitmentSec com_sec(rw, FrZero());
     hyrax::A3::Prove(proof, seed, input, com_pub, com_sec);
@@ -82,9 +81,7 @@ struct Equality2 {
                      std::vector<size_t> const& v_size,
                      std::vector<G1> const& cv, GetRefG1 const& get_gv,
                      std::vector<G1> const& cu, GetRefG1 const& get_gu) {
-    if (cu.size() != cv.size() || v_size.size() != cv.size()) {
-      throw std::runtime_error("oops");
-    }
+    CHECK(cu.size() == cv.size() && v_size.size() == cv.size(), "");
 
     auto m = v_size.size();
     size_t n = 0;
@@ -116,11 +113,12 @@ struct Equality2 {
     };
 
     hyrax::A3::CommitmentPub com_pub(cw, G1Zero());
-    hyrax::A3::VerifyInput input(S, com_pub, get_g, G1Zero());
+    hyrax::A3::VerifyInput input("equality2", S, com_pub, get_g, G1Zero());
     return hyrax::A3::Verify(proof, seed, input);
   }
 
   static bool Test() {
+    Tick tick(__FN__);
     auto seed = misc::RandH256();
     std::vector<std::vector<Fr>> x(10);
     for (size_t i = 0; i < x.size(); ++i) {
@@ -163,7 +161,7 @@ struct Equality2 {
       // n = std::max<size_t>(n, v_size[i]);
     }
     bool success = Verify(proof, seed, v_size, cv, get_gv, cu, get_gu);
-    std::cout << __FILE__ << " " << __FN__ << ": " << success << "\n\n\n\n\n\n";
+    std::cout << Tick::GetIndentString() << success << "\n\n\n\n\n\n";
     return success;
   }
 };

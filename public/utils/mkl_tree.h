@@ -304,8 +304,7 @@ inline Tree BuildTree(uint64_t item_count, GetItem const& get_item) {
 inline Path GetRangePath(uint64_t item_count, GetItem const& get_item,
                          Tree const& tree, Range const& range) {
   std::vector<h256_t> path;
-  if (tree.size() != GetTreeSize(item_count))
-    throw std::runtime_error("invaild parameters");
+  CHECK(tree.size() == GetTreeSize(item_count), "");
 
   if (tree.size() == 1) return path;  // empty
 

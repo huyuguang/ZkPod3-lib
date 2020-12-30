@@ -56,10 +56,7 @@ struct Sec53a {
 
    private:
     void Check() {
-      if (com_pub.a.size() != mn.size() || com_pub.b.size() != mn.size()) {
-        std::cerr << __FN__ << ":" << __LINE__ << " oops\n";
-        throw std::runtime_error("oops");
-      }
+      CHECK(com_pub.a.size() == mn.size() && com_pub.b.size() == mn.size(), "");
       max_n = *std::max_element(mn.begin(), mn.end());
     }
   };
@@ -115,21 +112,12 @@ struct Sec53a {
 
    private:
     void Check() {
-      if (x.empty()) {
-        std::cout << __FN__ << ":" << __LINE__ << "oops\n";
-        throw std::runtime_error("oops");
-      }
+      CHECK(!x.empty(), "");
 
-      if (x.size() != y.size()) {
-        std::cout << __FN__ << ":" << __LINE__ << "oops\n";
-        throw std::runtime_error("oops");
-      }
+      CHECK(x.size() == y.size(), "");
 
       for (int64_t i = 0; i < m(); ++i) {
-        if (x[i].size() != y[i].size()) {
-          std::cout << __FN__ << ":" << __LINE__ << "oops\n";
-          throw std::runtime_error("oops");
-        }
+        CHECK(x[i].size() == y[i].size(), "");
         max_n = std::max(max_n, x[i].size());
       }
 
@@ -418,10 +406,7 @@ struct Sec53a {
 
   template <typename T>
   static void Permute(std::vector<size_t> const& order, std::vector<T>& v) {
-    if (order.size() != v.size()) {
-      std::cerr << __FN__ << " oops";
-      throw std::runtime_error("oops");
-    }
+    CHECK(order.size() == v.size(), "");
 
     std::vector<T> v2(v.size());
     for (size_t i = 0; i < order.size(); ++i) {

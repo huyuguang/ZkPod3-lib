@@ -229,8 +229,9 @@ bool MatchQuery<Policy>::Test(int64_t n, int64_t s, std::string const& key,
     std::cout << "invalid parameter: k.size() must <= 31.\n";
     return false;
   }
-  if (s >= pc::Base::kGSize / 2) {
-    std::cout << "invalid parameter: s must < " << pc::Base::kGSize / 2 << "\n";
+  if (s >= pc::Base::GSize() / 2) {
+    std::cout << "invalid parameter: s must < " << pc::Base::GSize() / 2
+              << "\n";
     return false;
   }
 

@@ -4,6 +4,7 @@
 
 namespace circuit::fixed_point {
 
+// NOTE the template M
 // insure a >=-kFrDN && a < kFrDN, that is [-2^(D+N), 2^(D+N)-1]
 // ret = a >= 0? a : 0
 // num_constraints:
@@ -19,9 +20,9 @@ class Relu2Gadget : public libsnark::gadget<Fr> {
               const std::string& annotation_prefix = "")
       : libsnark::gadget<Fr>(pb, annotation_prefix) {
     a_.allocate(this->pb, FMT(this->annotation_prefix, " a"));
+    ret_.allocate(pb, FMT(this->annotation_prefix, " ret"));
     precision_gadget_.reset(new PrecisionGadget<D, N, M>(
         this->pb, a_, FMT(this->annotation_prefix, " precision_gadget")));
-    ret_.allocate(pb, FMT(this->annotation_prefix, " ret"));
     generate_r1cs_constraints();
   }
 
@@ -46,11 +47,11 @@ class Relu2Gadget : public libsnark::gadget<Fr> {
   void generate_r1cs_witness() {
     precision_gadget_->generate_r1cs_witness();
 
-    //auto a = this->pb.lc_val(a_);
+    // auto a = this->pb.lc_val(a_);
     auto b = this->pb.lc_val(precision_gadget_->ret());
     auto sign = this->pb.lc_val(precision_gadget_->sign());
     this->pb.val(ret_) = sign == Fr(0) ? Fr(0) : b;
-  }  
+  }
 
  public:
   static bool Test(double const& dx) {
@@ -59,14 +60,16 @@ class Relu2Gadget : public libsnark::gadget<Fr> {
     libsnark::protoboard<Fr> pb;
     gadget = std::make_unique<Relu2Gadget<D, N, M>>(pb, "Relu2Gadget");
     gadget->Assign(x);
-    assert(pb.is_satisfied());
-
+    CHECK(pb.is_satisfied(), "");
+    std::cout << Tick::GetIndentString()
+              << "num_constraints: " << pb.num_constraints()
+              << ", num_variables: " << pb.num_variables() << "\n";
 #ifdef _DEBUG
     double dr = RationalToDouble<D, M>(pb.val(gadget->ret()));
     if (dx < 0) {
-      assert(dr == 0);
+      CHECK(dr == 0, "");
     } else {
-      assert(std::abs(dx - dr) < 0.001);
+      CHECK(std::abs(dx - dr) < 0.001, "");
     }
 #endif
     return pb.is_satisfied();
@@ -80,15 +83,15 @@ class Relu2Gadget : public libsnark::gadget<Fr> {
 
 inline bool TestRelu2() {
   Tick tick(__FN__);
-  constexpr size_t D = 18;
-  constexpr size_t N = 32;
+  constexpr size_t D = 8;
+  constexpr size_t N = 48;
   constexpr size_t M = 24;
   std::vector<bool> rets;
   rets.push_back(Relu2Gadget<D, N, M>::Test(3.124));
   rets.push_back(Relu2Gadget<D, N, M>::Test(-22.212));
   rets.push_back(Relu2Gadget<D, N, M>::Test(0.00123));
   rets.push_back(Relu2Gadget<D, N, M>::Test(-0.00123));
-  rets.push_back(Relu2Gadget<D, N, M>::Test(234.123));
+  rets.push_back(Relu2Gadget<D, N, M>::Test(34.123));
   rets.push_back(Relu2Gadget<D, N, M>::Test(-23.11224));
   return std::all_of(rets.begin(), rets.end(), [](auto i) { return i; });
 }

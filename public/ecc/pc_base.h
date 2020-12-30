@@ -6,20 +6,34 @@
 #include "log/tick.h"
 #include "public.h"
 
+extern bool BIG_MODE;
+
 namespace pc {
 
 // pedersen commitment base H&G
 class Base : boost::noncopyable {
  public:
-  static inline int64_t const kGSize = 4096 * 1025;
+  static int64_t GSize() {
+    constexpr int64_t kBig = 4096 * 1025 * 10;
+    constexpr int64_t kNor = 4096 * 1025;  // 16384 * 1024 + 100;
+    return BIG_MODE ? kBig : kNor;
+  }
 
-  Base(std::string const& file) { LoadInternal(file); }
+  Base(std::string const& file) {
+    g_ = new G1[GSize()];
+    LoadInternal(file);
+  }
 
-  Base() { Create(); }
+  Base() {
+    g_ = new G1[GSize()];
+    Create();
+  }
+
+  ~Base() { delete[] g_; }
 
   G1 const& u() const& { return u_; }
   G1 const& h() const& { return h_; }
-  std::array<G1, kGSize> const& g() const { return g_; }
+  G1 const* g() const { return g_; }
 
   bool Save(std::string const& file) {
     try {
@@ -33,69 +47,60 @@ class Base : boost::noncopyable {
 
  private:
   struct Header {
-    uint64_t header_size;
-    uint64_t g_size;
+    int64_t header_size;
+    int64_t g_size;
   };
 
   void Create() {
     Tick tick(__FN__);
 
-    GenerateG1(0xffffffff, &h_);
+    GenerateG1(0xffffffffffffffffULL, &h_);
 
-    GenerateG1(0xfffffffe, &u_);
+    GenerateG1(0xfffffffffffffffeULL, &u_);
 
     auto parallel_f = [this](int64_t i) { GenerateG1(i, &g_[i]); };
-    parallel::For(kGSize, parallel_f);
+    parallel::For(GSize(), parallel_f);
   }
 
   void SaveInternal(std::string const& file) {
     Tick tick(__FN__);
     FILE* f = fopen(file.c_str(), "wb+");
-    if (!f) throw std::runtime_error("Create file failed");
+    CHECK(f, file);
 
     std::unique_ptr<FILE, decltype(&fclose)> auto_close(f, fclose);
 
     Header header;
     header.header_size = sizeof(Header);
-    header.g_size = kGSize;
+    header.g_size = GSize();
 
-    if (!WriteHeader(f, header)) {
-      throw std::runtime_error("Write header failed");
-    }
-
-    if (!WriteG1(f, h_)) {
-      throw std::runtime_error("Write pedersen_base failed");
-    }
-
-    if (!WriteG1(f, u_)) {
-      throw std::runtime_error("Write pedersen_base failed");
-    }
-
-    for (auto& i : g_) {
-      if (!WriteG1(f, i)) {
-        throw std::runtime_error("Write pedersen_base failed");
-      }
+    CHECK(WriteHeader(f, header), "");
+    CHECK(WriteG1(f, h_), "");
+    CHECK(WriteG1(f, u_), "");
+    for (auto i = 0; i < GSize(); ++i) {
+      auto& g = g_[i];
+      CHECK(WriteG1(f, g), "");
     }
   }
 
   void LoadInternal(std::string const& file) {
     Tick tick(__FN__);
     FILE* f = fopen(file.c_str(), "rb");
-    if (!f) throw std::runtime_error("Open failed");
+    CHECK(f, file);
 
     std::unique_ptr<FILE, decltype(&fclose)> auto_close(f, fclose);
 
     Header header;
-    if (!ReadHeader(f, header)) throw std::runtime_error("Read header failed");
+    CHECK(ReadHeader(f, header), file);
 
-    if (header.g_size != kGSize) throw std::runtime_error("Invalid data");
+    CHECK(header.g_size == GSize(), file);
 
-    if (!ReadG1(f, h_)) throw std::runtime_error("Read pedersen_base failed");
+    CHECK(ReadG1(f, h_), file);
 
-    if (!ReadG1(f, u_)) throw std::runtime_error("Read pedersen_base failed");
+    CHECK(ReadG1(f, u_), file);
 
-    for (auto& i : g_) {
-      if (!ReadG1(f, i)) throw std::runtime_error("Read pedersen_base failed");
+    for (auto i = 0; i < GSize(); ++i) {
+      auto& g = g_[i];
+      CHECK(ReadG1(f, g), file);
     }
   }
 
@@ -152,7 +157,7 @@ class Base : boost::noncopyable {
  private:
   G1 u_;
   G1 h_;
-  std::array<G1, kGSize> g_;
+  G1* g_;
 };
 
 inline Base& GetPcBase(std::string const& file = "") {
@@ -161,8 +166,11 @@ inline Base& GetPcBase(std::string const& file = "") {
 }
 
 inline bool operator==(Base const& a, Base const& b) {
+  if (a.u() != b.u()) return false;
   if (a.h() != b.h()) return false;
-  if (a.g() != b.g()) return false;
+  for (int64_t i = 0; i < Base::GSize(); ++i) {
+    if (a.g()[i] != b.g()[i]) return false;
+  }
   return true;
 }
 
@@ -192,7 +200,7 @@ inline bool OpenOrCreatePdsPub(std::string const& file) {
 
     std::cout << "Create pc base file success.\n";
     if (!Load(file)) return false;
-    assert(*base == GetPcBase());
+    DCHECK(*base == GetPcBase(), "");
     return true;
   } catch (std::exception& e) {
     std::cerr << "Create pc base file exception: " << e.what() << "\n";
@@ -200,7 +208,7 @@ inline bool OpenOrCreatePdsPub(std::string const& file) {
   }
 }
 
-inline std::array<G1, Base::kGSize> const& PcG() {
+inline G1 const* PcG() {
   auto const& base = GetPcBase();
   return base.g();
 }
@@ -210,6 +218,7 @@ inline G1 const& PcG(int64_t i) {
   if (i == -1) {
     return base.u();
   } else {
+    CHECK(i < Base::GSize(), std::to_string(i));
     return base.g()[i];
   }
 }
@@ -230,7 +239,7 @@ inline G1 const& PcHG(int64_t i) {
 }
 
 inline GetRefG1 const kGetRefG1 = [](int64_t i) -> G1 const& {
-  if (i >= Base::kGSize) throw std::runtime_error("oops");
+  CHECK(i < Base::GSize(), std::to_string(i));
   return pc::PcG()[i];
 };
 
@@ -271,7 +280,7 @@ inline G1 ComputeCom(int64_t n, G1 const* g, Fr const* x, Fr const& r,
 
 inline G1 ComputeCom(int64_t n, Fr const* x, Fr const& r,
                      bool check_01 = false) {
-  return ComputeCom(n, PcG().data(), PcH(), x, r, check_01);
+  return ComputeCom(n, PcG(), PcH(), x, r, check_01);
 }
 
 inline G1 ComputeCom(std::vector<Fr> const& x, Fr const& r,
@@ -322,7 +331,7 @@ inline G1 ComputeSigmaG(size_t offset, int64_t n) {
 }
 
 inline bool TestPcCommitment(int64_t n) {
-  if (n > Base::kGSize) return false;
+  if (n > Base::GSize()) return false;
   std::vector<Fr> x(n);
   FrRand(x);
   Fr r = FrRand();
@@ -330,11 +339,11 @@ inline bool TestPcCommitment(int64_t n) {
   G1 left, right;
   {
     Tick tick("multiexp1");
-    left = ComputeCom(n, base.g().data(), base.h(), x.data(), r);
+    left = ComputeCom(n, base.g(), base.h(), x.data(), r);
   }
   {
     Tick tick("multiexp2");
-    right = MultiExp(base.g().data(), x.data(), n) + base.h() * r;
+    right = MultiExp(base.g(), x.data(), n) + base.h() * r;
   }
 
   bool success = left == right;

@@ -40,7 +40,7 @@ inline bool StrToHex(char const* p, size_t len, uint8_t* q) {
 
 template <size_t T>
 std::array<uint8_t, T> StrToH(std::string const& s) {
-  if (s.size() < T * 2) throw std::runtime_error("invalid size");
+  CHECK(s.size() >= T * 2, "");
   std::array<uint8_t, T> ret;
   StrToHex(s.data(), T * 2, ret.data());
   return ret;
@@ -59,7 +59,7 @@ inline bool StartWith(char const* p, char const* q) {
 }
 
 inline void HexStrToH256(std::string const& str, h256_t& h) {
-  if (str.size() != 32 * 2) throw std::invalid_argument("");
+  CHECK(str.size() == 32 * 2, "");
   StrToHex(str.c_str(), str.size(), h.data());
 }
 

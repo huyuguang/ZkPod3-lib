@@ -24,17 +24,15 @@ struct BatchR1cs {
   using ProveInput = typename BaseR1cs::ProveInput;
   using VerifyInput = typename BaseR1cs::VerifyInput;
 
-  static void UpdateSeed(
-      h256_t& seed,
-      std::vector<ProveInput*> const& sorted_inputs) {
+  static void UpdateSeed(h256_t& seed,
+                         std::vector<ProveInput*> const& sorted_inputs) {
     // TODO
     (void)seed;
     (void)sorted_inputs;
   }
 
-  static void UpdateSeed(
-      h256_t& seed,
-      std::vector<VerifyInput*> const& sorted_inputs) {
+  static void UpdateSeed(h256_t& seed,
+                         std::vector<VerifyInput*> const& sorted_inputs) {
     // TODO
     (void)seed;
     (void)sorted_inputs;
@@ -56,7 +54,8 @@ struct BatchR1cs {
     });
 
     UpdateSeed(seed, inputs);
-    std::cout << __FN__ << " " << misc::HexToStr(seed) << "\n";
+    // std::cout << Tick::GetIndentString() << " " << misc::HexToStr(seed) <<
+    // "\n";
 
     std::vector<typename Sec43::CommitmentPub> com_pubs(inputs.size());
     std::vector<typename Sec43::CommitmentSec> com_secs(inputs.size());
@@ -104,8 +103,8 @@ struct BatchR1cs {
     }
 
     typename Sec43::ProveInput input_43(
-        std::move(combined_x), std::move(combined_y),
-        std::move(combined_z), get_g, get_g, get_g);
+        std::move(combined_x), std::move(combined_y), std::move(combined_z),
+        get_g, get_g, get_g);
 
     typename Sec43::CommitmentPub com_pub_43;
     typename Sec43::CommitmentSec com_sec_43;
@@ -126,16 +125,12 @@ struct BatchR1cs {
     Tick tick(__FN__);
 
     for (auto const& input : inputs) {
-      if (!input->Check()) {
-        assert(false);
-        std::cerr << input->unique_tag << " " << __FN__ << ":" << __LINE__ << " oops\n";
-        return false;
-      }
+      CHECK(input->Check(), input->unique_tag);
     }
 
     auto const& get_g = inputs[0]->get_g;
     for (auto const& input : inputs) {
-      if (input->get_g(0) != get_g(0)) throw std::runtime_error("oops");
+      CHECK(input->get_g(0) == get_g(0), input->unique_tag);
     }
 
     std::sort(inputs.begin(), inputs.end(), [](auto const& a, auto const& b) {
@@ -177,10 +172,9 @@ struct BatchR1cs {
     typename Sec43::CommitmentPub com_pub_43;
     com_pub_43.a = std::move(combined_a);
     com_pub_43.b = std::move(combined_b);
-    com_pub_43.c = std::move(combined_c);    
+    com_pub_43.c = std::move(combined_c);
 
-    typename Sec43::VerifyInput input_43(mn, com_pub_43,
-                                         get_g, get_g, get_g);
+    typename Sec43::VerifyInput input_43(mn, com_pub_43, get_g, get_g, get_g);
     return Sec43::Verify(proof, seed, input_43);
   }
 

@@ -1,6 +1,5 @@
 #pragma once
 
-#include "./ecc_pub.h"
 #include "./funcs.h"
 #include "./multiexp.h"
 #include "./pc_base.h"

@@ -83,8 +83,8 @@ struct EqualIp {
     Fr r_tau = FrRand();
     proof.com_z = pc::ComputeCom(input.gz, input.z, r_tau);
 
-    typename HyraxA::ProveInput input1(input.x, input.a, input.z, input.get_gx,
-                                       input.gz);
+    typename HyraxA::ProveInput input1("eip", input.x, input.a, input.z,
+                                       input.get_gx, input.gz);
     typename HyraxA::CommitmentSec com_sec1;
     com_sec1.r_xi = input.com_x_r;
     com_sec1.r_tau = r_tau;
@@ -92,8 +92,8 @@ struct EqualIp {
     com_pub1.xi = input.com_x;
     com_pub1.tau = proof.com_z;
 
-    typename HyraxA::ProveInput input2(input.y, input.b, input.z, input.get_gy,
-                                       input.gz);
+    typename HyraxA::ProveInput input2("eip", input.y, input.b, input.z,
+                                       input.get_gy, input.gz);
     typename HyraxA::CommitmentSec com_sec2;
     com_sec2.r_xi = input.com_y_r;
     com_sec2.r_tau = r_tau;
@@ -141,16 +141,16 @@ struct EqualIp {
       typename HyraxA::CommitmentPub com_pub;
       com_pub.xi = input.com_x;
       com_pub.tau = proof.com_z;
-      typename HyraxA::VerifyInput a_input(input.a, com_pub, input.get_gx,
-                                           input.gz);
+      typename HyraxA::VerifyInput a_input("eip", input.a, com_pub,
+                                           input.get_gx, input.gz);
       rets[0] = HyraxA::Verify(proof.p1, seed, a_input);
     };
     tasks[1] = [&proof, &input, &rets, &seed]() {
       typename HyraxA::CommitmentPub com_pub;
       com_pub.xi = input.com_y;
       com_pub.tau = proof.com_z;
-      typename HyraxA::VerifyInput a_input(input.b, com_pub, input.get_gy,
-                                           input.gz);
+      typename HyraxA::VerifyInput a_input("eip", input.b, com_pub,
+                                           input.get_gy, input.gz);
       rets[1] = HyraxA::Verify(proof.p2, seed, a_input);
     };
 
@@ -168,6 +168,7 @@ struct EqualIp {
 
 template <typename HyraxA>
 bool EqualIp<HyraxA>::Test(int64_t xn, int64_t yn) {
+  Tick tick(__FN__);
   auto seed = misc::RandH256();
   std::vector<Fr> x(xn);
   FrRand(x);
@@ -208,22 +209,19 @@ bool EqualIp<HyraxA>::Test(int64_t xn, int64_t yn) {
   yas::mem_ostream os;
   yas::binary_oarchive<yas::mem_ostream, YasBinF()> oa(os);
   oa.serialize(proof);
-  std::cout << "proof size: " << os.get_shared_buffer().size << "\n";
+  std::cout << Tick::GetIndentString()
+            << "proof size: " << os.get_shared_buffer().size << "\n";
   // serialize from buffer
   yas::mem_istream is(os.get_intrusive_buffer());
   yas::binary_iarchive<yas::mem_istream, YasBinF()> ia(is);
   Proof proof2;
   ia.serialize(proof2);
-  if (proof != proof2) {
-    assert(false);
-    std::cout << "oops, serialize check failed\n";
-    return false;
-  }
+  CHECK(proof == proof2, "");
 #endif
 
   VerifyInput verify_input(a, com_x, get_gx, b, com_y, get_gy);
   bool success = Verify(seed, proof, verify_input);
-  std::cout << __FILE__ << " " << __FN__ << ": " << success << "\n\n\n\n\n\n";
+  std::cout << Tick::GetIndentString() << success << "\n\n\n\n\n\n";
   return success;
 }
 }  // namespace clink

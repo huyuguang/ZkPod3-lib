@@ -29,8 +29,7 @@ struct Sec51b {
     int64_t n() const { return (int64_t)x.size(); }
     ProveInput(std::vector<Fr> const& x, std::vector<Fr> const& y,
                std::vector<Fr> const& t, std::vector<Fr> const& yt, Fr const& z,
-               GetRefG1 const& get_gx, GetRefG1 const& get_gy,
-               G1 const& gz)
+               GetRefG1 const& get_gx, GetRefG1 const& get_gy, G1 const& gz)
         : x(x),
           y(y),
           t(t),
@@ -167,18 +166,16 @@ struct Sec51b {
 
     std::array<parallel::VoidTask, 3> tasks;
     tasks[0] = [&com_ext_pub, &com_ext_sec, &input]() {
-      com_ext_pub.ad = pc::ComputeCom(input.get_gx, com_ext_sec.dx,
-                                            com_ext_sec.rd);
+      com_ext_pub.ad =
+          pc::ComputeCom(input.get_gx, com_ext_sec.dx, com_ext_sec.rd);
     };
     tasks[1] = [&com_ext_pub, &com_ext_sec, &input]() {
-      com_ext_pub.bd = pc::ComputeCom(input.get_gy, com_ext_sec.dy,
-                                            com_ext_sec.sd);
+      com_ext_pub.bd =
+          pc::ComputeCom(input.get_gy, com_ext_sec.dy, com_ext_sec.sd);
     };
     tasks[2] = [&com_ext_pub, &com_ext_sec, &xdy_dxy, &input]() {
-      com_ext_pub.c1 =
-          pc::ComputeCom(input.gz, xdy_dxy, com_ext_sec.t1);
-      com_ext_pub.c0 = pc::ComputeCom(input.gz, com_ext_sec.dz,
-                                            com_ext_sec.t0);
+      com_ext_pub.c1 = pc::ComputeCom(input.gz, xdy_dxy, com_ext_sec.t1);
+      com_ext_pub.c0 = pc::ComputeCom(input.gz, com_ext_sec.dz, com_ext_sec.t0);
     };
     parallel::Invoke(tasks);
   }
@@ -222,8 +219,7 @@ struct Sec51b {
 
   struct VerifyInput {
     VerifyInput(std::vector<Fr> const& t, CommitmentPub const& com_pub,
-                GetRefG1 const& get_gx,
-                GetRefG1 const& get_gy, G1 const& gz)
+                GetRefG1 const& get_gx, GetRefG1 const& get_gy, G1 const& gz)
         : t(t),
           com_pub(com_pub),
           get_gx(get_gx),
@@ -272,8 +268,7 @@ struct Sec51b {
         // a^e * a_d
         G1 left = (com_pub.a * e + com_ext_pub.ad);
         // com(fx,rx)
-        G1 right =
-            pc::ComputeCom(input.get_gx, sub_proof.fx, sub_proof.rx);
+        G1 right = pc::ComputeCom(input.get_gx, sub_proof.fx, sub_proof.rx);
         rets[0] = left == right;
         assert(rets[0]);
       };
@@ -281,8 +276,7 @@ struct Sec51b {
         // b^e * b_d
         G1 left = com_pub.b * e + com_ext_pub.bd;
         // com(fy,sy)
-        G1 right =
-            pc::ComputeCom(input.get_gy, sub_proof.fy, sub_proof.sy);
+        G1 right = pc::ComputeCom(input.get_gy, sub_proof.fy, sub_proof.sy);
         rets[1] = left == right;
         assert(rets[1]);
       };
@@ -428,8 +422,7 @@ bool Sec51b::Test(int64_t n) {
 
   VerifyInput verify_input(t, com_pub, get_gx, get_gy, pc::PcU());
   bool success = Verify(proof, seed, verify_input);
-  std::cout << __FILE__ << " " << __FN__ << ": " << success
-            << "\n\n\n\n\n\n";
+  std::cout << __FILE__ << " " << __FN__ << ": " << success << "\n\n\n\n\n\n";
   return success;
 }
 }  // namespace groth09

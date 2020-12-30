@@ -1,5 +1,6 @@
 #pragma once
 
+#include "./debug.h"
 #include "./funcs.h"
 #include "./mpz.h"
 #include "./msvc_hack.h"

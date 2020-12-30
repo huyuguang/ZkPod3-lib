@@ -26,11 +26,17 @@ struct A4 {
   };
 
   struct VerifyInput {
-    VerifyInput(CommitmentPub&& com_pub, GetRefG1 const& get_gx,
-                std::vector<std::vector<Fr>>&& a, G1 const& gz)
-        : com_pub(std::move(com_pub)), get_gx(get_gx), a(std::move(a)), gz(gz) {
+    VerifyInput(std::string const& tag, CommitmentPub&& com_pub,
+                GetRefG1 const& get_gx, std::vector<std::vector<Fr>>&& a,
+                G1 const& gz)
+        : tag(tag),
+          com_pub(std::move(com_pub)),
+          get_gx(get_gx),
+          a(std::move(a)),
+          gz(gz) {
       Check();
     }
+    std::string tag;
     CommitmentPub com_pub;
     GetRefG1 const& get_gx;
     std::vector<std::vector<Fr>> a;
@@ -38,8 +44,10 @@ struct A4 {
     size_t max_n = 0;
 
     int64_t m() const { return com_pub.m(); }
-
     int64_t n() const { return max_n; }
+    std::string to_string() const {
+      return tag + ": " + std::to_string(m()) + "*" + std::to_string(n());
+    }
 
     void SortAndAlign() {
       auto order = GetSortOrder(a);
@@ -59,10 +67,7 @@ struct A4 {
 
    private:
     void Check() {
-      if (com_pub.m() != (int64_t)a.size()) {
-        std::cerr << __FN__ << ":" << __LINE__ << " oops\n";
-        throw std::runtime_error("oops");
-      }
+      CHECK(com_pub.m() == (int64_t)a.size(), "");
       for (auto const& i : a) {
         max_n = std::max(max_n, i.size());
       }
@@ -70,6 +75,7 @@ struct A4 {
   };
 
   struct ProveInput {
+    std::string tag;
     std::vector<std::vector<Fr>> x;
     std::vector<std::vector<Fr>> a;
     Fr z;
@@ -79,11 +85,18 @@ struct A4 {
 
     int64_t m() const { return (int64_t)x.size(); }
     int64_t n() const { return (int64_t)max_n; }
-
-    ProveInput(std::vector<std::vector<Fr>>&& x,
+    std::string to_string() const {
+      return tag + ": " + std::to_string(m()) + "*" + std::to_string(n());
+    }
+    ProveInput(std::string const& tag, std::vector<std::vector<Fr>>&& x,
                std::vector<std::vector<Fr>>&& a, Fr const& z,
                GetRefG1 const& get_gx, G1 const& gz)
-        : x(std::move(x)), a(std::move(a)), z(z), get_gx(get_gx), gz(gz) {
+        : tag(tag),
+          x(std::move(x)),
+          a(std::move(a)),
+          z(z),
+          get_gx(get_gx),
+          gz(gz) {
       Check();
     }
 
@@ -96,7 +109,7 @@ struct A4 {
     }
 
     void Update(Fr const& alpha, Fr const& beta, Fr const& e, Fr const& ee) {
-      Tick tick(__FN__, std::to_string(m()) + "," + std::to_string(n()));
+      Tick tick(__FN__, to_string());
       auto m2 = m() / 2;
       std::vector<std::vector<Fr>> x2(m2);
       std::vector<std::vector<Fr>> a2(m2);
@@ -113,25 +126,19 @@ struct A4 {
 
    private:
     void Check() {
-      if (x.empty() || x.size() != a.size()) {
-        std::cerr << __FN__ << ":" << __LINE__ << " oops\n";
-        throw std::runtime_error("oops");
-      }
+      CHECK(!x.empty() && x.size() == a.size(), "");
       for (size_t i = 0; i < x.size(); ++i) {
-        if (x[i].size() != a[i].size()) {
-          std::cerr << __FN__ << ":" << __LINE__ << " oops\n";
-          throw std::runtime_error("oops");
-        }
+        CHECK(x[i].size() == a[i].size(), "");
         max_n = std::max(max_n, x[i].size());
       }
 
-#ifdef _DEBUG_CHECK
-      Fr check_z = FrZero();
-      for (int64_t i = 0; i < m(); ++i) {
-        check_z += InnerProduct(x[i], a[i]);
+      if (DEBUG_CHECK) {
+        Fr check_z = FrZero();
+        for (int64_t i = 0; i < m(); ++i) {
+          check_z += InnerProduct(x[i], a[i]);
+        }
+        CHECK(z == check_z, "");
       }
-      assert(z == check_z);
-#endif
     }
   };
 
@@ -190,7 +197,7 @@ struct A4 {
 
   static void ComputeCom(ProveInput const& input, CommitmentPub* com_pub,
                          CommitmentSec const& com_sec) {
-    Tick tick(__FN__);
+    Tick tick(__FN__, input.to_string());
     auto const m = input.m();
     // auto const n = input.n();
 
@@ -219,18 +226,18 @@ struct A4 {
   static void ProveFinal(Proof& proof, h256_t const& seed,
                          ProveInput const& input, CommitmentPub const& com_pub,
                          CommitmentSec const& com_sec) {
-    Tick tick(__FN__);
-    assert(input.m() == 1);
+    Tick tick(__FN__, input.to_string());
+    CHECK(input.m() == 1, "");
 
-    A3::ProveInput input_a3(input.x[0], input.a[0], input.z, input.get_gx,
-                            input.gz);
+    A3::ProveInput input_a3(input.tag, input.x[0], input.a[0], input.z,
+                            input.get_gx, input.gz);
     A3::CommitmentPub com_pub_a3(com_pub.cx[0], com_pub.cz);
     A3::CommitmentSec com_sec_a3(com_sec.r[0], com_sec.t);
     A3::Prove(proof.proof_a3, seed, input_a3, com_pub_a3, com_sec_a3);
   }
 
   static void ComputeSigmaXA(ProveInput const& input, Fr* alpha, Fr* beta) {
-    Tick tick(__FN__);
+    Tick tick(__FN__, input.to_string());
     int64_t m = input.m();
     auto m2 = m / 2;
     std::vector<Fr> xa1(m2, FrZero());
@@ -294,7 +301,7 @@ struct A4 {
 
   static void ProveRecursive(Proof& proof, h256_t& seed, ProveInput& input,
                              CommitmentPub& com_pub, CommitmentSec& com_sec) {
-    Tick tick(__FN__);
+    Tick tick(__FN__, input.to_string());
     assert(input.m() > 1);
 
     Fr alpha, beta;
@@ -316,19 +323,20 @@ struct A4 {
     input.Update(alpha, beta, e, ee);
 
     UpdateCom(com_pub, com_sec, tl, tu, cl, cu, e, ee);
+
     // debug check com_pub2 and com_sec2
-#ifdef _DEBUG_CHECK
-    CommitmentPub check_com_pub;
-    ComputeCom(input, &check_com_pub, com_sec);
-    assert(check_com_pub.cx == com_pub.cx);
-    assert(check_com_pub.cz == com_pub.cz);
-#endif
+    if (DEBUG_CHECK) {
+      CommitmentPub check_com_pub;
+      ComputeCom(input, &check_com_pub, com_sec);
+      CHECK(check_com_pub.cx == com_pub.cx, "");
+      CHECK(check_com_pub.cz == com_pub.cz, "");
+    }
   }
 
   static void Prove(Proof& proof, h256_t seed, ProveInput&& input,
                     CommitmentPub&& com_pub, CommitmentSec&& com_sec) {
-    Tick tick(__FN__);
-    
+    Tick tick(__FN__, input.to_string());
+
     input.SortAndAlign(com_pub, com_sec);
 
     while (input.m() > 1) {
@@ -338,7 +346,7 @@ struct A4 {
   }
 
   static bool Verify(Proof const& proof, h256_t seed, VerifyInput input) {
-    Tick tick(__FN__);
+    Tick tick(__FN__, input.to_string());
 
     input.SortAndAlign();
 
@@ -379,8 +387,8 @@ struct A4 {
     assert(input.a.size() == 1);
 
     A3::CommitmentPub com_pub_a3(com_pub.cx[0], com_pub.cz);
-    A3::VerifyInput verifier_input_a3(input.a[0], com_pub_a3, input.get_gx,
-                                      input.gz);
+    A3::VerifyInput verifier_input_a3(input.tag, input.a[0], com_pub_a3,
+                                      input.get_gx, input.gz);
     return A3::Verify(proof.proof_a3, seed, verifier_input_a3);
   }
 
@@ -391,9 +399,8 @@ struct A4 {
       order[i] = i;
     }
 
-    std::stable_sort(order.begin(), order.end(), [&mn](size_t a, size_t b) {
-      return mn[a] > mn[b];
-    });
+    std::stable_sort(order.begin(), order.end(),
+                     [&mn](size_t a, size_t b) { return mn[a] > mn[b]; });
 
     return order;
   }
@@ -409,10 +416,7 @@ struct A4 {
 
   template <typename T>
   static void Permute(std::vector<size_t> const& order, std::vector<T>& v) {
-    if (order.size() != v.size()) {
-      std::cerr << __FN__ << " oops";
-      throw std::runtime_error("oops");
-    }
+    CHECK(order.size() == v.size(), "");
 
     std::vector<T> v2(v.size());
     for (size_t i = 0; i < order.size(); ++i) {
@@ -483,7 +487,8 @@ struct A4 {
     };
 
     auto a_copy = a;
-    ProveInput prove_input(std::move(x), std::move(a), z, get_gx, pc::PcU());
+    ProveInput prove_input("test", std::move(x), std::move(a), z, get_gx,
+                           pc::PcU());
     CommitmentPub com_pub;
     CommitmentSec com_sec;
     ComputeCom(prove_input, &com_pub, &com_sec);
@@ -511,8 +516,8 @@ struct A4 {
     }
 #endif
 
-    VerifyInput verify_input(std::move(copy_com_pub), get_gx, std::move(a_copy),
-                             pc::PcU());
+    VerifyInput verify_input("test", std::move(copy_com_pub), get_gx,
+                             std::move(a_copy), pc::PcU());
     bool success = Verify(proof, seed, verify_input);
     std::cout << __FILE__ << " " << __FN__ << ": " << success << "\n\n\n\n\n\n";
     return success;

@@ -36,8 +36,6 @@ struct VrsSha256cScheme {
 #else
   static const int64_t kMaxUnitPerZkp = 128;
 #endif
-  static_assert(kMaxUnitPerZkp <= (int64_t)pc::Base::kGSize / 3,
-                "kMaxUnitPerZkp too large");
 
   static std::string const& type() {
     static const std::string a = "sha256c";
@@ -76,8 +74,6 @@ struct VrsMimc5Scheme {
 #else
   static const int64_t kMaxUnitPerZkp = 1024 * 16;
 #endif
-  static_assert(kMaxUnitPerZkp <= (int64_t)pc::Base::kGSize / 3,
-                "kMaxUnitPerZkp too large");
 
   static std::string const& type() {
     static const std::string a = "mimc5";
@@ -120,8 +116,8 @@ struct VrsPoseidonScheme {
 #else
   static const int64_t kMaxUnitPerZkp = 1024 * 16;
 #endif
-  static_assert(kMaxUnitPerZkp <= (int64_t)pc::Base::kGSize / 3,
-                "kMaxUnitPerZkp too large");
+  // static_assert(kMaxUnitPerZkp <= pc::Base::GSize() / 3,
+  //              "kMaxUnitPerZkp too large");
 
   static std::string const& type() {
     static const std::string a = "poseidon";

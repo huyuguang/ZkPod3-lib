@@ -54,12 +54,13 @@ inline bool TestAbs() {
   gadget.generate_r1cs_constraints();
   pb.val(pb_a) = a;
   gadget.generate_r1cs_witness();
-  assert(pb.is_satisfied());
+  CHECK(pb.is_satisfied(), "");
 
-  std::cout << pb.val(gadget.ret()) << "\n";
-
-  std::cout << "num_constraints: " << pb.num_constraints() << "\n";
-  std::cout << "num_variables: " << pb.num_variables() << "\n";
+  std::cout << Tick::GetIndentString() << pb.val(gadget.ret()) << "\n";
+  std::cout << Tick::GetIndentString()
+            << "num_constraints: " << pb.num_constraints() << "\n";
+  std::cout << Tick::GetIndentString()
+            << "num_variables: " << pb.num_variables() << "\n";
   return true;
 }
 }  // namespace circuit::fixed_point

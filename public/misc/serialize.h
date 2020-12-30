@@ -133,11 +133,11 @@ bool YasSaveBin(std::string const &file, T const &t) {
     return false;
   }
 
-#ifdef _DEBUG_CHECK
-  T check;
-  if (!YasLoadBin(file, check)) return false;
-  if (t != check) return false;
-#endif
+  if (DEBUG_CHECK) {
+    T check;
+    CHECK(YasLoadBin(file, check), "");
+    CHECK(t == check, "");
+  }
 
   return true;
 }
@@ -155,11 +155,11 @@ bool YasSaveBin(yas::shared_buffer &data, T const &t) {
     return false;
   }
 
-#ifdef _DEBUG_CHECK
-  T check;
-  if (!YasLoadBin(data.data.get(), data.size, check)) return false;
-  if (t != check) return false;
-#endif
+  if (DEBUG_CHECK) {
+    T check;
+    CHECK(YasLoadBin(data.data.get(), data.size, check), "");
+    CHECK(t == check, "");
+  }
 
   return true;
 }

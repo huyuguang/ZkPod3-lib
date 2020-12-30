@@ -206,7 +206,7 @@ struct VrsCache {
     auto num_var = (int64_t)pb.num_variables();
     assert(num_var == (int64_t)var_coms.size());
     var_coms.resize(num_var);
-    auto const* g = pc::PcG().data() + min_end - begin;
+    auto const* g = pc::PcG() + min_end - begin;
     auto parallel_f = [&var_coms, &values, is_grow, count, g](uint64_t i) {
       auto& var_com = var_coms[i];
       std::vector<Fr> data(count);

@@ -167,10 +167,7 @@ struct Sec52a {
     };
     parallel::For(m * 2 - 1, parallel_f);
 
-    if (com_ext_pub.cl[m - 1] != com_pub.c) {
-      assert(false);
-      throw std::runtime_error(__FN__);
-    }
+    CHECK(com_ext_pub.cl[m - 1] == com_pub.c, "");
   }
 
   // compute challenge1 by commitment1 and commitment2

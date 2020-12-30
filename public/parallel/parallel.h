@@ -1,6 +1,7 @@
 #pragma once
 
-#define TBB_SUPPRESS_DEPRECATED_MESSAGE
+#define TBB_SUPPRESS_DEPRECATED_MESSAGE 1
+#define __TBB_INTERNAL_INCLUDES_DEPRECATION_MESSAGE
 #include <tbb/scalable_allocator.h>
 #include <tbb/tbb.h>
 #include <tbb/tbb_allocator.h>
@@ -19,28 +20,10 @@
 #include <thread>
 #include <utility>
 #include <vector>
+
+extern bool DISABLE_TBB;
+
 namespace parallel {
-
-// #define DISABLE_TBB_RECURSION
-
-#ifdef DISABLE_TBB_RECURSION
-inline thread_local bool in_thread = false;
-
-struct AutoInThread {
-  AutoInThread() {
-    if (!in_thread) {
-      in_thread = true;
-      flag = true;
-    }
-  }
-  ~AutoInThread() {
-    if (flag) {
-      in_thread = false;
-    }
-  }
-  bool flag = false;
-};
-#endif
 
 inline void CheckAllocationHook() {
 #ifdef _WIN32
@@ -85,17 +68,16 @@ void For(T count, F& f, bool direct = false) {
     return;
   }
 
-#ifdef DISABLE_TBB_RECURSION
-  AutoInThread auto_in_thread;
-  if (!auto_in_thread.flag) direct = true;
-#endif
+  if (DISABLE_TBB) direct = true;
 
   if (direct) {
     for (T i = 0; i < count; ++i) f(i);
     return;
   }
 
-  auto f2 = [&f](const tbb::blocked_range<T>& range) {
+  auto indent = Tick::GetIndent();
+  auto f2 = [&f, indent](const tbb::blocked_range<T>& range) {
+    AutoTickIndent _indent_(indent + 1);
     for (T i = range.begin(); i != range.end(); ++i) {
       f(i);
     }
@@ -107,12 +89,12 @@ template <typename TaskContainer>
 void Invoke(TaskContainer& tasks, bool direct = false) {
   if (tasks.empty()) return;
 
-  if (tasks.size() == 1) return tasks[0]();
+  if (tasks.size() == 1) {
+    tasks[0]();
+    return;
+  }
 
-#ifdef DISABLE_TBB_RECURSION
-  AutoInThread auto_in_thread;
-  if (!auto_in_thread.flag) direct = true;
-#endif
+  if (DISABLE_TBB) direct = true;
 
   if (direct) {
     for (auto& task : tasks) {
@@ -121,35 +103,14 @@ void Invoke(TaskContainer& tasks, bool direct = false) {
     return;
   }
 
-  if (tasks.size() == 2) {
-    tbb::parallel_invoke(tasks[0], tasks[1]);
-  } else if (tasks.size() == 3) {
-    tbb::parallel_invoke(tasks[0], tasks[1], tasks[2]);
-  } else if (tasks.size() == 4) {
-    tbb::parallel_invoke(tasks[0], tasks[1], tasks[2], tasks[3]);
-  } else if (tasks.size() == 5) {
-    tbb::parallel_invoke(tasks[0], tasks[1], tasks[2], tasks[3], tasks[4]);
-  } else if (tasks.size() == 6) {
-    tbb::parallel_invoke(tasks[0], tasks[1], tasks[2], tasks[3], tasks[4],
-                         tasks[5]);
-  } else if (tasks.size() == 7) {
-    tbb::parallel_invoke(tasks[0], tasks[1], tasks[2], tasks[3], tasks[4],
-                         tasks[5], tasks[6]);
-  } else if (tasks.size() == 8) {
-    tbb::parallel_invoke(tasks[0], tasks[1], tasks[2], tasks[3], tasks[4],
-                         tasks[5], tasks[6], tasks[7]);
-  } else if (tasks.size() == 9) {
-    tbb::parallel_invoke(tasks[0], tasks[1], tasks[2], tasks[3], tasks[4],
-                         tasks[5], tasks[6], tasks[7], tasks[8]);
-  } else {
-    throw std::runtime_error("");
-  }
+  auto f = [&tasks](int64_t i) { tasks[i](); };
+  For(tasks.size(), f, direct);
 }
 
 template <class InputIt, class T>
 T Accumulate(InputIt first, InputIt last, T init) {
   auto count = std::distance(first, last);
-  if (count < 16 * 1024) {
+  if (DISABLE_TBB || count < 16 * 1024) {
     return std::accumulate(first, last, init);
   }
 
@@ -164,7 +125,7 @@ T Accumulate(InputIt first, InputIt last, T init) {
 template <class InputIt, class T, class BinaryOperation>
 T Accumulate(InputIt first, InputIt last, T init, BinaryOperation op) {
   auto count = std::distance(first, last);
-  if (count < 16 * 1024) {
+  if (DISABLE_TBB || count < 16 * 1024) {
     return std::accumulate(first, last, init, std::move(op));
   }
 

@@ -103,9 +103,9 @@ struct Matrix {
     Fr z = InnerProduct(v, e);
     assert(z == InnerProduct(w, d));
 
-    typename EqualIp<HyraxA>::ProveInput eip_input(
-        v, e, com_v, com_v_r, input.get_gr, w, d, com_w, com_w_r,
-        input.get_gc, z);
+    typename EqualIp<HyraxA>::ProveInput eip_input(v, e, com_v, com_v_r,
+                                                   input.get_gr, w, d, com_w,
+                                                   com_w_r, input.get_gc, z);
     EqualIp<HyraxA>::Prove(proof, seed, eip_input);
   }
 
@@ -150,8 +150,8 @@ struct Matrix {
 
     parallel::Invoke(tasks);
 
-    typename EqualIp<HyraxA>::VerifyInput eip_input(e, com_v, input.get_gr,
-                                                    d, com_w, input.get_gc);
+    typename EqualIp<HyraxA>::VerifyInput eip_input(e, com_v, input.get_gr, d,
+                                                    com_w, input.get_gc);
 
     return EqualIp<HyraxA>::Verify(seed, proof, eip_input);
   }
@@ -222,8 +222,7 @@ bool Matrix<HyraxA>::Test(int64_t n, int64_t s) {
 
   VerifyInput verify_input(com_rows, get_gr, com_cols, get_gc);
   bool success = Verify(seed, verify_input, proof);
-  std::cout << __FILE__ << " " << __FN__ << ": " << success
-            << "\n\n\n\n\n\n";
+  std::cout << __FILE__ << " " << __FN__ << ": " << success << "\n\n\n\n\n\n";
   return success;
 }
 

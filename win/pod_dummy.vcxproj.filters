@@ -127,9 +127,6 @@
     <ClInclude Include="..\public\ecc\ecc.h">
       <Filter>public\ecc</Filter>
     </ClInclude>
-    <ClInclude Include="..\public\ecc\ecc_pub.h">
-      <Filter>public\ecc</Filter>
-    </ClInclude>
     <ClInclude Include="..\public\ecc\multiexp.h">
       <Filter>public\ecc</Filter>
     </ClInclude>
@@ -510,6 +507,12 @@
     </ClInclude>
     <ClInclude Include="..\public\circuit\sudoku_gadget.h">
       <Filter>public\circuit</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\misc\check.h">
+      <Filter>public\misc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\public\misc\debug.h">
+      <Filter>public\misc</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

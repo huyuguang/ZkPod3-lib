@@ -56,24 +56,25 @@ class RationalConst {
     } else {
       ret = abs_mpz >= kMpzDN;
     }
-#ifdef _DEBUG_CHECK
-    if (ret) {
-      double double_x = abs_mpz.get_d();
-      uint64_t n = N;
-      for (;;) {
-        if (n > 63) {
-          double_x /= (double)(1ULL << 63);
-          n -= 63;
-        } else {
-          double_x /= (double)(1ULL << n);
-          break;
+
+    if (DEBUG_CHECK) {
+      if (ret) {
+        double double_x = abs_mpz.get_d();
+        uint64_t n = N;
+        for (;;) {
+          if (n > 63) {
+            double_x /= (double)(1ULL << 63);
+            n -= 63;
+          } else {
+            double_x /= (double)(1ULL << n);
+            break;
+          }
         }
+        double_x = neg ? -double_x : double_x;
+        std::cout << Tick::GetIndentString() << "fixpoint overflow: "
+                  << "<" << D << "," << N << ">, double_x=" << double_x << "\n";
       }
-      double_x = neg ? -double_x : double_x;
-      std::cout << "fixpoint overflow: "
-                << "<" << D << "," << N << ">, double_x=" << double_x << "\n";
     }
-#endif
     return ret;
   }
 
@@ -104,9 +105,7 @@ inline double RationalToDouble(Fr const& fr_x) {
   auto constances = RationalConst<D, N>();
   bool neg = fr_x.isNegative();
   mpz_class mpz_x = neg ? (-fr_x).getMpz() : fr_x.getMpz();
-  if (constances.IsOverflow(mpz_x, neg)) {
-    throw std::runtime_error(__FN__);
-  }
+  CHECK(!constances.IsOverflow(mpz_x, neg), "");
 
   double double_x = mpz_x.get_d();
   uint64_t n = N;
@@ -138,9 +137,7 @@ Fr DoubleToRational(double double_x) {
     }
   }
   mpz_class mpz_x = double_x;
-  if (constances.IsOverflow(mpz_x, neg)) {
-    throw std::runtime_error(__FN__);
-  }
+  CHECK(!constances.IsOverflow(mpz_x, neg), "");
   Fr fr_x;
   fr_x.setMpz(mpz_x);
   if (neg) fr_x = -fr_x;
@@ -158,9 +155,7 @@ Fr ReducePrecision(Fr const& a) {
   static_assert(D + N < 253, "invalid D or N");
   static_assert(N > M, "invalid N or M");
 
-  if (RationalConst<D, N>().IsOverflow(a)) {
-    throw std::runtime_error("oops");
-  }
+  CHECK((!RationalConst<D, N>().IsOverflow(a)), "");
 
   auto a_off = a + RationalConst<D, N>().kFrDN;
 

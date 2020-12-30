@@ -89,15 +89,10 @@ inline bool OneConvR1csVerifyPreprocess(h256_t seed,
   auto order = kLayerTypeOrders[layer].second;
 
   for (size_t i = 0; i < 9; ++i) {
-    if (proof.r1cs_pub.com_w[i] != proof.input_pub.cb[i]) {
-      std::cout << __FN__ << ": " << __LINE__ << ": proof invalid\n";
-      return false;
-    }
-    if (proof.r1cs_pub.com_w[i + 9] !=
-        context.para_com_pub().conv.coef[order][i]) {
-      std::cout << __FN__ << ": " << __LINE__ << ": proof invalid\n";
-      return false;
-    }
+    CHECK(proof.r1cs_pub.com_w[i] == proof.input_pub.cb[i], "invalid proof");
+    CHECK(proof.r1cs_pub.com_w[i + 9] ==
+              context.para_com_pub().conv.coef[order][i],
+          "invalid proof");
   }
 
   libsnark::protoboard<Fr> pb;
@@ -105,10 +100,7 @@ inline bool OneConvR1csVerifyPreprocess(h256_t seed,
   int64_t const primary_input_size = 0;
   pb.set_input_sizes(primary_input_size);
   auto r1cs_ret_index = gadget.ret().index - 1;  // see protoboard<FieldT>::val
-  if (proof.r1cs_pub.r1cs_ret_index != r1cs_ret_index) {
-    std::cout << __FN__ << ": " << __LINE__ << ": proof invalid\n";
-    return false;
-  }
+  CHECK(proof.r1cs_pub.r1cs_ret_index == r1cs_ret_index, "invalid proof");
 
   R1csVerifyItem item;
   item.public_w.reset(new std::vector<std::vector<Fr>>);
@@ -138,10 +130,7 @@ inline bool OneConvOutputVerifyPreprocess(h256_t seed,
   G1 cb =
       context.para_com_pub().conv.bias[order] * fp::RationalConst<8, 24>().kFrN;
 
-  if (cz != proof.output_pub.cy + cb) {
-    std::cout << __FN__ << ": " << __LINE__ << ": verify failed\n";
-    return false;
-  }
+  CHECK(cz == proof.output_pub.cy + cb, "invalid proof");
 
   OneConvUpdateSeed(seed, proof.output_pub.cy);
 
@@ -178,30 +167,22 @@ inline bool OneConvVerifyPreprocess(h256_t seed, VerifyContext const& context,
                                     size_t layer, OneConvProof const& proof,
                                     SafeVec<AdaptVerifyItem>& adapt_man,
                                     SafeVec<R1csVerifyItem>& r1cs_man) {
-  Tick tick(__FN__);
+  Tick tick(__FN__, std::to_string(layer));
 
-  // can parallel but need to protect adapt_items and parallel_tasks
-  if (!OneConvInputVerifyPreprocess(seed, context, layer, proof, adapt_man)) {
-#ifdef _DEBUG_CHECK
-    throw std::runtime_error("oops");
-#endif
-    return false;
-  }
+  std::array<parallel::VoidTask, 3> tasks;
+  tasks[0] = [&seed, &context, &layer, &proof, &adapt_man]() {
+    OneConvInputVerifyPreprocess(seed, context, layer, proof, adapt_man);
+  };
 
-  if (!OneConvR1csVerifyPreprocess(seed, context, layer, proof, r1cs_man)) {
-#ifdef _DEBUG_CHECK
-    throw std::runtime_error("oops");
-#endif
-    return false;
-  }
+  tasks[1] = [&seed, &context, &layer, &proof, &r1cs_man]() {
+    OneConvR1csVerifyPreprocess(seed, context, layer, proof, r1cs_man);
+  };
 
-  if (!OneConvOutputVerifyPreprocess(seed, context, layer, proof, adapt_man)) {
-#ifdef _DEBUG_CHECK
-    throw std::runtime_error("oops");
-#endif
-    return false;
-  }
+  tasks[2] = [&seed, &context, &layer, &proof, &adapt_man]() {
+    OneConvOutputVerifyPreprocess(seed, context, layer, proof, adapt_man);
+  };
 
+  parallel::Invoke(tasks);
   return true;
 }
 }  // namespace clink::vgg16

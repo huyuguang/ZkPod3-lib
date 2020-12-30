@@ -48,11 +48,12 @@ struct Sec53b {
           gz(gz) {
       Check();
     }
-    void SortAndAlign() {
-      PermuteAndAlign(GetSortOrder(mn), com_pub);
-    }
+    void SortAndAlign() { PermuteAndAlign(GetSortOrder(mn), com_pub); }
     int64_t m() const { return com_pub.m(); }
     int64_t n() const { return t.size(); }
+    std::string to_string() const {
+      return std::to_string(m()) + "*" + std::to_string(n());
+    }
 
     std::vector<size_t> const& mn;
     std::vector<Fr> const& t;  // size = n
@@ -63,16 +64,10 @@ struct Sec53b {
 
    private:
     void Check() {
-      if (com_pub.a.size() != mn.size() || com_pub.b.size() != mn.size()) {
-        std::cerr << __FN__ << ":" << __LINE__ << " oops\n";
-        throw std::runtime_error("oops");
-      }
+      CHECK(com_pub.a.size() == mn.size() && com_pub.b.size() == mn.size(), "");
 
       auto max_n = *std::max_element(mn.begin(), mn.end());
-      if (t.size() != max_n) {
-        std::cerr << __FN__ << ":" << __LINE__ << " oops\n";
-        throw std::runtime_error("oops");
-      }      
+      CHECK(t.size() == max_n, "");
     }
   };
 
@@ -88,9 +83,12 @@ struct Sec53b {
 
     int64_t m() const { return x.size(); }
     int64_t n() const { return t.size(); }
+    std::string to_string() const {
+      return std::to_string(m()) + "*" + std::to_string(n());
+    }
 
     ProveInput(std::vector<std::vector<Fr>>&& x,
-               std::vector<std::vector<Fr>>&& y, std::vector<Fr>const & t,
+               std::vector<std::vector<Fr>>&& y, std::vector<Fr> const& t,
                std::vector<std::vector<Fr>>&& yt, Fr const& z,
                GetRefG1 const& get_gx, GetRefG1 const& get_gy, G1 const& gz)
         : x(std::move(x)),
@@ -115,7 +113,7 @@ struct Sec53b {
 
     void Update(Fr const& sigma_xy1, Fr const& sigma_xy2, Fr const& e,
                 Fr const& ee) {
-      Tick tick(__FN__, std::to_string(m()) + "," + std::to_string(n()));
+      Tick tick(__FN__, to_string());
       auto m2 = m() / 2;
 
       {
@@ -144,40 +142,28 @@ struct Sec53b {
     }
 
    private:
-     void Check() {
-      if (x.empty()) {
-        std::cerr << __FN__ << ":" << __LINE__ << " oops\n";
-        throw std::runtime_error("oops");
-      }
+    void Check() {
+      CHECK(!x.empty(), "");
 
-      if (x.size() != y.size() || x.size() != yt.size()) {
-        std::cerr << __FN__ << ":" << __LINE__ << " oops\n";
-        throw std::runtime_error("oops");
-      }
+      CHECK(x.size() == y.size() && x.size() == yt.size(), "");
 
       size_t max_n = 0;
       for (int64_t i = 0; i < m(); ++i) {
-        if (x[i].size() != y[i].size() || x[i].size() != yt[i].size()) {
-          std::cerr << __FN__ << ":" << __LINE__ << " oops\n";
-          throw std::runtime_error("oops");
-        }
+        CHECK(x[i].size() == y[i].size() && x[i].size() == yt[i].size(), "");
         max_n = std::max(max_n, x[i].size());
       }
 
-      if (t.size() != max_n) {
-        std::cerr << __FN__ << ":" << __LINE__ << " oops\n";
-        throw std::runtime_error("oops");
-      }
+      CHECK(t.size() == max_n, "");
 
 #ifdef _DEBUG
       Fr check_z = FrZero();
       for (int64_t i = 0; i < m(); ++i) {
-        assert(yt[i] == HadamardProduct(y[i], t));
+        CHECK(yt[i] == HadamardProduct(y[i], t), "");
         check_z += InnerProduct(x[i], yt[i]);
       }
-      assert(z == check_z);
+      CHECK(z == check_z, "");
 #endif
-     }
+    }
   };
 
   struct CommitmentExtPub {
@@ -231,25 +217,32 @@ struct Sec53b {
 
   static void ComputeCom(ProveInput const& input, CommitmentPub* com_pub,
                          CommitmentSec const& com_sec) {
-    Tick tick(__FN__);
+    Tick tick(__FN__, input.to_string());
     auto const m = input.m();
-    auto const n = input.n();
+    // auto const n = input.n();
 
     com_pub->a.resize(m);
     com_pub->b.resize(m);
 
     auto parallel_f = [&input, &com_pub, &com_sec](int64_t i) {
-      com_pub->a[i] = pc::ComputeCom(input.get_gx, input.x[i], com_sec.r[i]);
-      com_pub->b[i] = pc::ComputeCom(input.get_gy, input.y[i], com_sec.s[i]);
+      std::array<parallel::VoidTask, 2> tasks{nullptr};
+      tasks[0] = [&com_pub, &com_sec, &input, i]() {
+        com_pub->a[i] = pc::ComputeCom(input.get_gx, input.x[i], com_sec.r[i]);
+      };
+      tasks[1] = [&com_pub, &com_sec, &input, i]() {
+        com_pub->b[i] = pc::ComputeCom(input.get_gy, input.y[i], com_sec.s[i]);
+      };
+      parallel::Invoke(tasks);
     };
-    parallel::For(m, parallel_f, m * n < 16 * 1024);
+    parallel::For(m, parallel_f);
 
     com_pub->c = pc::ComputeCom(input.gz, input.z, com_sec.t);
   }
 
   static void ComputeCom(ProveInput const& input, CommitmentPub* com_pub,
                          CommitmentSec* com_sec) {
-    Tick tick(__FN__);
+    Tick tick(__FN__, input.to_string());
+
     auto const m = input.m();
     com_sec->r.resize(m);
     FrRand(com_sec->r.data(), m);
@@ -265,8 +258,8 @@ struct Sec53b {
   static void ProveFinal(Proof& proof, h256_t const& seed,
                          ProveInput const& input, CommitmentPub const& com_pub,
                          CommitmentSec const& com_sec) {
-    Tick tick(__FN__);
-    assert(input.m() == 1);
+    Tick tick(__FN__, input.to_string());
+    DCHECK(input.m() == 1, "");
 
     typename Sec51::ProveInput input_51(input.x[0], input.y[0], input.t,
                                         input.yt[0], input.z, input.get_gx,
@@ -281,7 +274,7 @@ struct Sec53b {
 
   static void ComputeSigmaXY(ProveInput const& input, Fr* sigma_xy1,
                              Fr* sigma_xy2) {
-    Tick tick(__FN__);
+    Tick tick(__FN__, input.to_string());
     int64_t m = input.m();
     int64_t n = input.n();
     auto m2 = m / 2;
@@ -305,7 +298,7 @@ struct Sec53b {
   static void UpdateCom(CommitmentPub& com_pub, CommitmentSec& com_sec,
                         Fr const& tl, Fr const& tu, G1 const& cl, G1 const& cu,
                         Fr const& e, Fr const& ee) {
-    // Tick tick(__FN__);
+    Tick tick(__FN__);
     CommitmentPub com_pub2;
     CommitmentSec com_sec2;
     auto m2 = com_pub.a.size() / 2;
@@ -357,7 +350,7 @@ struct Sec53b {
 
   static void ProveRecursive(Proof& proof, h256_t& seed, ProveInput& input,
                              CommitmentPub& com_pub, CommitmentSec& com_sec) {
-    Tick tick(__FN__);
+    Tick tick(__FN__, input.to_string());
     assert(input.m() > 1);
 
     Fr sigma_xy1, sigma_xy2;
@@ -391,9 +384,10 @@ struct Sec53b {
 
   static void Prove(Proof& proof, h256_t seed, ProveInput&& input,
                     CommitmentPub&& com_pub, CommitmentSec&& com_sec) {
-    Tick tick(__FN__);
-    assert(pc::Base::kGSize >= input.n());
-    
+    Tick tick(__FN__, input.to_string());
+
+    assert(pc::Base::GSize() >= input.n());
+
     input.SortAndAlign(com_pub, com_sec);
 
     while (input.m() > 1) {
@@ -402,10 +396,9 @@ struct Sec53b {
     return ProveFinal(proof, seed, input, com_pub, com_sec);
   }
 
-  static bool Verify(Proof const& proof, h256_t seed,
-                     VerifyInput&& input) {
-    Tick tick(__FN__);
-    
+  static bool Verify(Proof const& proof, h256_t seed, VerifyInput&& input) {
+    Tick tick(__FN__, input.to_string());
+
     input.SortAndAlign();
 
     if (!proof.CheckFormat(input.m())) {
@@ -451,7 +444,7 @@ struct Sec53b {
     typename Sec51::VerifyInput verifier_input_51(
         input.t, com_pub_51, input.get_gx, input.get_gy, input.gz);
     return Sec51::Verify(proof.proof_51, seed, verifier_input_51);
-  }  
+  }
 
  private:
   static std::vector<size_t> GetSortOrder(std::vector<size_t> const& mn) {
@@ -460,9 +453,8 @@ struct Sec53b {
       order[i] = i;
     }
 
-    std::stable_sort(order.begin(), order.end(), [&mn](size_t a, size_t b) {
-      return mn[a] > mn[b];
-    });
+    std::stable_sort(order.begin(), order.end(),
+                     [&mn](size_t a, size_t b) { return mn[a] > mn[b]; });
 
     return order;
   }
@@ -478,10 +470,7 @@ struct Sec53b {
 
   template <typename T>
   static void Permute(std::vector<size_t> const& order, std::vector<T>& v) {
-    if (order.size() != v.size()) {
-      std::cerr << __FN__ << " oops";
-      throw std::runtime_error("oops");
-    }
+    CHECK(order.size() == v.size(), "");
 
     std::vector<T> v2(v.size());
     for (size_t i = 0; i < order.size(); ++i) {
@@ -588,7 +577,7 @@ bool Sec53b<Sec51>::Test(int64_t m, int64_t n) {
   CommitmentPub com_pub;
   CommitmentSec com_sec;
   ComputeCom(prove_input, &com_pub, &com_sec);
-  
+
   Proof proof;
   auto copy_com_pub = com_pub;
   Prove(proof, seed, std::move(prove_input), std::move(com_pub),
@@ -612,9 +601,9 @@ bool Sec53b<Sec51>::Test(int64_t m, int64_t n) {
   }
 
 #endif
-  
-  VerifyInput verify_input(mn, t, std::move(copy_com_pub), get_gx,
-                           get_gy, pc::PcU());
+
+  VerifyInput verify_input(mn, t, std::move(copy_com_pub), get_gx, get_gy,
+                           pc::PcU());
   bool success = Verify(proof, seed, std::move(verify_input));
   std::cout << __FILE__ << " " << __FN__ << ": " << success << "\n\n\n\n\n\n";
   return success;
