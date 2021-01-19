@@ -12,6 +12,8 @@
 // prove: z = \sum_{i=0}^{m}<x_i,a_i>
 // proof size: 2*log(m) G1 + (2+2log(n))G1 + 2Fr
 
+// copy from groth09 5.3a
+
 namespace hyrax {
 struct A4 {
   struct CommitmentPub {

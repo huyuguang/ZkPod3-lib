@@ -84,7 +84,7 @@ inline bool TestProve(std::string const& test_image_path,
                     std::string const& working_path) {
   Tick tick(__FN__);
   h256_t seed = misc::RandH256();
-
+   
   dbl::Image test_image(kImageInfos[0]);
   if (!dbl::LoadTestImage(test_image_path, test_image)) {
     return false;

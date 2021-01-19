@@ -118,7 +118,6 @@
     <None Include="..\public\clink\readme.md" />
     <None Include="..\public\ecc\readme.md" />
     <None Include="..\public\groth09\readme.md" />
-    <None Include="..\public\hyrax\readme.md" />
     <None Include="..\public\utils\readme.md" />
   </ItemGroup>
   <ItemGroup>

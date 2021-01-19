@@ -9,9 +9,6 @@
   <ItemGroup>
     <None Include="..\pod_dummy\Makefile" />
     <None Include="..\pod_dummy\README.md" />
-    <None Include="..\public\hyrax\readme.md">
-      <Filter>public\hyrax</Filter>
-    </None>
     <None Include="..\public\groth09\readme.md">
       <Filter>public\groth09</Filter>
     </None>

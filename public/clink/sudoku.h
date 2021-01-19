@@ -62,6 +62,56 @@ struct Sudoku {
     a.resize(x_size);
   }
 
+  // position of Mt
+  static std::vector<std::vector<size_t>> BuildMtPos(size_t d) {
+    size_t D = d * d;
+    std::vector<std::vector<size_t>> mt_pos(D * 3);
+    // every row
+    for (size_t i = 0; i < D; ++i) {
+      auto& pos = mt_pos[i];
+      pos.resize(D);
+      for (size_t j = 0; j < D; ++j) {
+        pos[j] = i * D + j;
+      }
+    }
+    // every col
+    for (size_t i = 0; i < D; ++i) {
+      auto& pos = mt_pos[i + D];
+      pos.resize(D);
+      for (size_t j = 0; j < D; ++j) {
+        pos[j] = j * D + i;
+      }
+    }
+    // every cell
+    for (size_t i = 0; i < D; ++i) {
+      auto& pos = mt_pos[i + D * 2];
+      pos.resize(D);
+      for (size_t j = 0; j < D; ++j) {
+        size_t ii = (i / d) * d + j / d;
+        size_t jj = (i % d) * d + j % d;
+        pos[j] = ii * D + jj;
+      }
+    }
+    return mt_pos;
+  }
+
+  static void AdaptUpdateSeed(h256_t& seed, G1 const& com_x,
+                              std::vector<G1> const& com_w) {
+    CryptoPP::Keccak_256 hash;
+    HashUpdate(hash, seed);
+    HashUpdate(hash, com_x);
+    for (auto const& i : com_w) {
+      HashUpdate(hash, i);
+    }
+    hash.Final(seed.data());
+  }
+
+  static void AdaptComputeFst(h256_t const& seed, std::string const& tag,
+                              std::vector<Fr>& e) {
+    std::string salt = "sudoku adapt " + std::to_string(e.size()) + tag;
+    ComputeFst(seed, salt, e);
+  }
+
   struct ProveInput {
     size_t d;
     size_t D;
@@ -78,10 +128,8 @@ struct Sudoku {
     std::unique_ptr<R1csInfo> r1cs_info;
     int64_t s;
     std::vector<std::vector<Fr>> mutable w;
-    std::vector<std::vector<Fr>> row_col_cells;
-    std::vector<std::vector<size_t>> row_col_cells_pos;    
+    std::vector<std::vector<size_t>> mt_pos;    
 
-    Fr const& get_x(size_t i, size_t j) const { return x[i * D + j]; }
     ProveInput(std::vector<Fr> const& x, G1 const& com_x, Fr const& com_x_r,
                std::vector<Fr> const& y, G1 const& com_y, Fr const& com_y_r,
                std::vector<size_t> const& open_positions, GetRefG1 const& get_g)
@@ -108,65 +156,14 @@ struct Sudoku {
       w.resize(s);
       for (auto& i : w) i.resize(D * 3);
 
-      row_col_cells.resize(D * 3);
-
-      // every row
-      for (size_t i = 0; i < D; ++i) {
-        std::vector<Fr>& row = row_col_cells[i];
-        row.resize(D);
-        for (size_t j = 0; j < D; ++j) {
-          row[j] = get_x(i, j);
-        }
-      }
-      // every col
-      for (size_t i = 0; i < D; ++i) {
-        std::vector<Fr>& col = row_col_cells[i + D];
-        col.resize(D);
-        for (size_t j = 0; j < D; ++j) {
-          col[j] = get_x(j, i);
-        }
-      }
-      // every cell
-      for (size_t i = 0; i < D; ++i) {
-        std::vector<Fr>& cell = row_col_cells[i + D * 2];
-        cell.resize(D);
-        for (size_t j = 0; j < D; ++j) {
-          size_t ii = (i / d) * d + j / d;
-          size_t jj = (i % d) * d + j % d;
-          cell[j] = get_x(ii, jj);
-        }
-      }
-
-      row_col_cells_pos.resize(D * 3);
-      // every row
-      for (size_t i = 0; i < D; ++i) {
-        auto& pos = row_col_cells_pos[i];
-        pos.resize(D);
-        for (size_t j = 0; j < D; ++j) {
-          pos[j] = i * D + j;
-        }
-      }
-      // every col
-      for (size_t i = 0; i < D; ++i) {
-        auto& pos = row_col_cells_pos[i + D];
-        pos.resize(D);
-        for (size_t j = 0; j < D; ++j) {
-          pos[j] = j * D + i;
-        }
-      }
-      // every cell
-      for (size_t i = 0; i < D; ++i) {
-        auto& pos = row_col_cells_pos[i + D * 2];
-        pos.resize(D);
-        for (size_t j = 0; j < D; ++j) {
-          size_t ii = (i / d) * d + j / d;
-          size_t jj = (i % d) * d + j % d;
-          pos[j] = ii * D + jj;
-        }
-      }
+      mt_pos = BuildMtPos(d);
 
       for (size_t j = 0; j < D * 3; ++j) {
-        gadget.Assign(row_col_cells[j]);
+        std::vector<Fr> line(D);
+        for (size_t i = 0; i < D; ++i) {
+          line[i] = x[mt_pos[j][i]];
+        }
+        gadget.Assign(line);
         assert(pb.is_satisfied());
         auto v = pb.full_variable_assignment();
         for (int64_t i = 0; i < s; ++i) {
@@ -180,23 +177,6 @@ struct Sudoku {
       }
     }
   };
-
-  static void AdaptUpdateSeed(h256_t& seed, G1 const& com_x,
-                              std::vector<G1> const& com_w) {
-    CryptoPP::Keccak_256 hash;
-    HashUpdate(hash, seed);
-    HashUpdate(hash, com_x);
-    for (auto const& i : com_w) {
-      HashUpdate(hash, i);
-    }
-    hash.Final(seed.data());
-  }
-
-  static void AdaptComputeFst(h256_t const& seed, std::string const& tag,
-                              std::vector<Fr>& e) {
-    std::string salt = "sudoku adapt " + std::to_string(e.size()) + tag;
-    ComputeFst(seed, salt, e);
-  }
 
   static void Prove(Proof& proof, h256_t seed, ProveInput const& input) {
     Tick tick(__FN__);
@@ -229,20 +209,20 @@ struct Sudoku {
 
     // prove adapt
     std::vector<AdaptProveItem> adapt_items;
-    std::vector<Fr> e, ee(input.D * input.D);
+    std::vector<Fr> e1, e2(input.D * input.D);
         
     // adapt: com_x consistent with open values
-    e.resize(input.open_positions.size());
-    AdaptComputeFst(seed, "open", e);
-    for (auto& i : ee) i = FrZero();
+    e1.resize(input.open_positions.size());
+    AdaptComputeFst(seed, "open", e1);
+    for (auto& i : e2) i = FrZero();
     for (size_t i = 0; i < input.open_positions.size(); ++i) {
-      ee[input.open_positions[i]] = e[i];
+      e2[input.open_positions[i]] = e1[i];
     }
-    Fr z = InnerProduct(e, input.open_values);
+    Fr z = InnerProduct(e1, input.open_values);
     AdaptProveItem adapt_open;
     adapt_open.Init(1, "open", z);
     adapt_open.x[0] = input.x;
-    adapt_open.a[0] = ee;
+    adapt_open.a[0] = e2;
     adapt_open.cx[0] = input.com_x;
     adapt_open.rx[0] = input.com_x_r;
     assert(adapt_open.CheckData());
@@ -250,25 +230,25 @@ struct Sudoku {
 
     // adapt: com_x consistent with com_w[N~2N)
     for (size_t i = 0; i < input.D; ++i) {
-      e.resize(input.D * 3);
-      AdaptComputeFst(seed, "open", e);
+      e1.resize(input.D * 3);
+      AdaptComputeFst(seed, "open", e1);
       std::vector<Fr> row(input.D * 3);
       for (size_t j = 0; j < input.D * 3; ++j) {
-        row[j] = input.row_col_cells[j][i];
+        row[j] = input.x[input.mt_pos[j][i]];        
       }
-      for (auto& item : ee) item = FrZero();
+      for (auto& item : e2) item = FrZero();
       for (size_t j = 0; j < input.D * 3; ++j) {
-        auto pos = input.row_col_cells_pos[j][i];
-        ee[pos] += -e[j];
+        auto pos = input.mt_pos[j][i];
+        e2[pos] += -e1[j];
       }
       AdaptProveItem adapt_cell;
       adapt_cell.Init(2, "cell" + std::to_string(i), FrZero());
       adapt_cell.x[0] = input.x;
-      adapt_cell.a[0] = ee;
+      adapt_cell.a[0] = e2;
       adapt_cell.cx[0] = input.com_x;
       adapt_cell.rx[0] = input.com_x_r;
       adapt_cell.x[1] = std::move(row);
-      adapt_cell.a[1] = e;
+      adapt_cell.a[1] = e1;
       adapt_cell.cx[1] = proof.com_w[input.D + i];
       adapt_cell.rx[1] = com_w_r[input.D + i];
       assert(adapt_cell.CheckData());
@@ -319,7 +299,7 @@ struct Sudoku {
     int64_t m;
     int64_t s;
     std::vector<std::vector<Fr>> public_w;
-    std::vector<std::vector<size_t>> row_col_cells_pos;
+    std::vector<std::vector<size_t>> mt_pos;
 
     VerifyInput(size_t d, std::vector<size_t> const& open_positions,
                 std::vector<Fr> const& open_values, GetRefG1 const& get_g)
@@ -346,33 +326,7 @@ struct Sudoku {
         }
       }
 
-      row_col_cells_pos.resize(D * 3);
-      // every row
-      for (size_t i = 0; i < D; ++i) {
-        auto& pos = row_col_cells_pos[i];
-        pos.resize(D);
-        for (size_t j = 0; j < D; ++j) {
-          pos[j] = i * D + j;
-        }
-      }
-      // every col
-      for (size_t i = 0; i < D; ++i) {
-        auto& pos = row_col_cells_pos[i + D];
-        pos.resize(D);
-        for (size_t j = 0; j < D; ++j) {
-          pos[j] = j * D + i;
-        }
-      }
-      // every cell
-      for (size_t i = 0; i < D; ++i) {
-        auto& pos = row_col_cells_pos[i + D * 2];
-        pos.resize(D);
-        for (size_t j = 0; j < D; ++j) {
-          size_t ii = (i / d) * d + j / d;
-          size_t jj = (i % d) * d + j % d;
-          pos[j] = ii * D + jj;
-        }
-      }
+      mt_pos = BuildMtPos(d);
     }
   };
 
@@ -397,36 +351,36 @@ struct Sudoku {
     
     // verify adapt
     std::vector<AdaptVerifyItem> adapt_items;
-    std::vector<Fr> e, ee(input.D * input.D);
+    std::vector<Fr> e1, e2(input.D * input.D);
 
     // adapt: com_x consistent with open values
-    e.resize(input.open_positions.size());
-    AdaptComputeFst(seed, "open", e);
-    for (auto& i : ee) i = FrZero();
+    e1.resize(input.open_positions.size());
+    AdaptComputeFst(seed, "open", e1);
+    for (auto& i : e2) i = FrZero();
     for (size_t i = 0; i < input.open_positions.size(); ++i) {
-      ee[input.open_positions[i]] = e[i];
+      e2[input.open_positions[i]] = e1[i];
     }
-    Fr z = InnerProduct(e, input.open_values);
+    Fr z = InnerProduct(e1, input.open_values);
     AdaptVerifyItem adapt_open;
     adapt_open.Init(1, "open", z);
-    adapt_open.a[0] = ee;
+    adapt_open.a[0] = e2;
     adapt_open.cx[0] = proof.com_x;
     adapt_items.emplace_back(std::move(adapt_open));
 
     // adapt: com_x consistent with com_w[N~2N)
     for (size_t i = 0; i < input.D; ++i) {
-      e.resize(input.D * 3);
-      AdaptComputeFst(seed, "open", e);
-      for (auto& item : ee) item = FrZero();
+      e1.resize(input.D * 3);
+      AdaptComputeFst(seed, "open", e1);
+      for (auto& item : e2) item = FrZero();
       for (size_t j = 0; j < input.D * 3; ++j) {
-        auto pos = input.row_col_cells_pos[j][i];
-        ee[pos] += -e[j];
+        auto pos = input.mt_pos[j][i];
+        e2[pos] += -e1[j];
       }
       AdaptVerifyItem adapt_cell;
       adapt_cell.Init(2, "cell" + std::to_string(i), FrZero());
-      adapt_cell.a[0] = ee;
+      adapt_cell.a[0] = e2;
       adapt_cell.cx[0] = proof.com_x;
-      adapt_cell.a[1] = e;
+      adapt_cell.a[1] = e1;
       adapt_cell.cx[1] = proof.com_w[input.D + i];
       adapt_items.emplace_back(std::move(adapt_cell));    
     }
