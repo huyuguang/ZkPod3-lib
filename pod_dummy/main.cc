@@ -684,13 +684,8 @@ int main(int argc, char** argv) {
   }
 
   if (vcp_mnist) {
-    if (policy == PolicyType::kOrdinary) {
-      rets["vcp_mnist(ordinary)"] =
-          clink::Mnist<groth09::OrdinaryPolicy>::Test();
-    } else {
-      rets["vcp_mnist(succinct)"] =
-          clink::Mnist<groth09::SuccinctPolicy>::Test();
-    }
+    rets["vcp_mnist"] =
+      clink::mnist::Mnist::Test();
   }
 
   if (iop) {

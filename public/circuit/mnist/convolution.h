@@ -4,7 +4,7 @@
 
 // combine conv, relu, max_pooling, flatten
 
-namespace circuit::cnn {
+namespace circuit::mnist {
 
 template <size_t D, size_t N, size_t DataCol, size_t DataRow, size_t ConvCol,
           size_t ConvRow>
@@ -191,4 +191,4 @@ inline bool TestConvolution() {
   }
   return std::all_of(rets.begin(), rets.end(), [](auto i) { return i; });
 }
-};  // namespace circuit::cnn
+};  // namespace circuit::mnist

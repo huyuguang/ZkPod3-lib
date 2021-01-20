@@ -7,14 +7,16 @@
 
 // verifiable mnist prediction
 
-namespace clink {
+namespace clink::mnist {
+//using Policy = groth09::OrdinaryPolicy;
+using Policy = groth09::SuccinctPolicy;
+using R1cs = typename clink::ParallelR1cs<Policy>;
+using HyraxA = typename Policy::HyraxA;
+using Sec51 = typename Policy::Sec51;
+using Sec53 = typename Policy::Sec53;
+using Sec43 = typename Policy::Sec43;
 
-template <typename Policy>
 struct Mnist {
-  using Sec53 = typename Policy::Sec53;
-  using HyraxA = typename Policy::HyraxA;
-  using R1cs = typename clink::ParallelR1cs<Policy>;
-
   struct Para {
     std::array<std::array<Fr, 10>, 5> conv;
     std::array<std::array<Fr, 13 * 13 * 5 + 1>, 10> dense1;
@@ -72,7 +74,7 @@ struct Mnist {
   }
 
   struct ProveConvInput {
-    typedef circuit::cnn::ConvGadget<6, 24, 4, 4, 3, 3> ConvGadget;
+    typedef circuit::mnist::ConvGadget<6, 24, 4, 4, 3, 3> ConvGadget;
     ProveConvInput(std::array<Fr, 28 * 28> const& data, Para const& para,
                    ParaCommitmentPub const& para_com_pub,
                    ParaCommitmentSec const& para_com_sec)
@@ -230,7 +232,7 @@ struct Mnist {
     VerifyConvInput(std::array<Fr, 28 * 28> const& data,
                     ParaCommitmentPub const& para_com_pub)
         : data(data), para_com_pub(para_com_pub) {
-      typedef circuit::cnn::ConvGadget<6, 24, 4, 4, 3, 3> ConvGadget;
+      typedef circuit::mnist::ConvGadget<6, 24, 4, 4, 3, 3> ConvGadget;
       libsnark::protoboard<Fr> pb;
       ConvGadget gadget(pb, "Mnist Gadget");
       int64_t const primary_input_size = 4 * 4;
@@ -331,8 +333,8 @@ struct Mnist {
   struct DenseProof {
     G1 com;
     G1 com_z;
-    groth09::Sec51a::Proof proof_51;
-    hyrax::A2::Proof proof_hy;
+    Sec51::Proof proof_51;
+    HyraxA::Proof proof_hy;
 
     bool operator==(DenseProof const& b) const {
       return com == b.com && com_z == b.com_z && proof_51 == b.proof_51 &&
@@ -434,23 +436,24 @@ struct Mnist {
 #endif
 
     // prove left
-    hyrax::A2::ProveInput input_hy("mnist", output.data, x, z, pc::kGetRefG1,
+    HyraxA::ProveInput input_hy("mnist", output.data, x, z, pc::kGetRefG1,
                                    pc::PcG(0));
-    hyrax::A2::CommitmentPub com_pub_hy(output.com, com_z);
-    hyrax::A2::CommitmentSec com_sec_hy(output.com_r, com_z_r);
-    hyrax::A2::Prove(proof.proof_hy, seed, input_hy, com_pub_hy, com_sec_hy);
+    HyraxA::CommitmentPub com_pub_hy(output.com, com_z);
+    HyraxA::CommitmentSec com_sec_hy(output.com_r, com_z_r);
+    HyraxA::Prove(proof.proof_hy, seed, input_hy, com_pub_hy, com_sec_hy);
 
     // prove right
     // std::cout << "prove, seed: " << misc::HexToStr(seed) << "\n";
     // std::cout << "prove, com_e: " << com_e << "\n";
     // std::cout << "prove, com_data: " << input.com_data << "\n";
     // std::cout << "prove, com_z: " << com_z << "\n";
-    groth09::Sec51a::ProveInput input_51(e, input.data, z, pc::kGetRefG1,
+    std::vector<Fr> t(e.size(), FrOne());
+    Sec51::ProveInput input_51(e, input.data, t, input.data, z, pc::kGetRefG1,
                                          pc::kGetRefG1, pc::PcG(0));
-    groth09::Sec51a::CommitmentPub com_pub_51(com_e, input.com_data, com_z);
-    groth09::Sec51a::CommitmentSec com_sec_51(com_e_r, input.com_data_r,
+    Sec51::CommitmentPub com_pub_51(com_e, input.com_data, com_z);
+    Sec51::CommitmentSec com_sec_51(com_e_r, input.com_data_r,
                                               com_z_r);
-    groth09::Sec51a::Prove(proof.proof_51, seed, input_51, com_pub_51,
+    Sec51::Prove(proof.proof_51, seed, input_51, com_pub_51,
                            com_sec_51);
   }
 
@@ -477,10 +480,10 @@ struct Mnist {
       com_e += input.com_para_dense[i] * x[i];
     }
 
-    hyrax::A2::CommitmentPub com_pub_hy(proof.com, proof.com_z);
-    hyrax::A2::VerifyInput input_hy("mnist", x, com_pub_hy, pc::kGetRefG1,
+    HyraxA::CommitmentPub com_pub_hy(proof.com, proof.com_z);
+    HyraxA::VerifyInput input_hy("mnist", x, com_pub_hy, pc::kGetRefG1,
                                     pc::PcG(0));
-    if (!hyrax::A2::Verify(proof.proof_hy, seed, input_hy)) {
+    if (!HyraxA::Verify(proof.proof_hy, seed, input_hy)) {
       assert(false);
       return false;
     }
@@ -489,11 +492,12 @@ struct Mnist {
     // std::cout << "verify, com_e: " << com_e << "\n";
     // std::cout << "verify, com: " << input.com << "\n";
     // std::cout << "verify, com_z: " << proof.com_z << "\n";
-    groth09::Sec51a::CommitmentPub com_pub_51(com_e, input.com_data,
+    Sec51::CommitmentPub com_pub_51(com_e, input.com_data,
                                               proof.com_z);
-    groth09::Sec51a::VerifyInput input_51(com_pub_51, pc::kGetRefG1,
+    std::vector<Fr> t(M + 1, FrOne());
+    Sec51::VerifyInput input_51(t, com_pub_51, pc::kGetRefG1,
                                           pc::kGetRefG1, pc::PcG(0));
-    if (!groth09::Sec51a::Verify(proof.proof_51, seed, input_51)) {
+    if (!Sec51::Verify(proof.proof_51, seed, input_51)) {
       assert(false);
       return false;
     }
@@ -804,8 +808,7 @@ struct Mnist {
   static bool TestSerialize(Proof const& proof);
 };
 
-template <typename Policy>
-bool Mnist<Policy>::TestSerialize(Proof const& proof) {
+bool Mnist::TestSerialize(Proof const& proof) {
   {
     yas::mem_ostream os;
     yas::binary_oarchive<yas::mem_ostream, YasBinF()> oa(os);
@@ -850,8 +853,7 @@ bool Mnist<Policy>::TestSerialize(Proof const& proof) {
   return true;
 }
 
-template <typename Policy>
-bool Mnist<Policy>::Test() {
+bool Mnist::Test() {
   std::unique_ptr<Para> para(new Para);
   LoadPara(mnist::demo::GetDblPara(), *para);
 
